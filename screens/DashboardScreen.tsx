@@ -1,20 +1,30 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, RefreshControl } from 'react-native';
 
-const summaryData = [
-  { label: 'Admissions', value: 4, color: '#ff7a00', icon: '👤', nav: 'Admissions' },
-  { label: 'School Verification', value: 2, color: '#2979ff', icon: '📋', nav: 'SchoolVerification' },
-  { label: 'Student Verification', value: 1, color: '#00c853', icon: '✔️', nav: 'StudentVerification' },
-  { label: 'Pending Setup', value: 1, color: '#ffd600', icon: '⏰', nav: 'PendingSetup' },
-];
+// Centralized color palette
+const COLORS = {
+  primary: '#023c69',
+  accent: '#ff7a00',
+  background: '#f7fafd',
+  card: '#fff',
+  text: '#222',
+  subtitle: '#5a6a85',
+  stat: '#2979ff',
+  success: '#00c853',
+  pending: '#ffb300',
+  border: '#e3e8ee',
+  light: '#f1f4f8',
+};
+
+// ...existing code...
 
 const admissionsStats = { newToday: 1, pending: 2, inProgress: 1, total: 4 };
 const schoolStats = { pending: 2, underReview: 1, approved: 3, total: 2 };
 const studentStats = { id: 1, grade: 0, completed: 6, total: 1 };
 
 const recentApplications = [
-  { name: 'Jane Doe', school: 'Kimana Girls School', status: 'Pending', color: '#ffe0b2' },
-  { name: 'Rajombol Siayho', school: 'Maasai Primary School', status: 'Approved', color: '#c8e6c9' },
+  { name: 'Jane Doe', school: 'Kimana Girls School', status: 'Pending' },
+  { name: 'Rajombol Siayho', school: 'Maasai Primary School', status: 'Approved' },
 ];
 
 export default function DashboardScreen({ navigation }: any) {
@@ -55,100 +65,121 @@ export default function DashboardScreen({ navigation }: any) {
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
     >
       {/* Header */}
+      {/* Orange header with greeting and avatar */}
       <View style={styles.headerCard}>
         <View style={styles.headerRow}>
-          <Text style={styles.headerTitle}>RED(P)</Text>
-          <View style={styles.headerIcons}>
-            <TouchableOpacity style={styles.headerIcon}><Text style={{fontSize:20}}>🔔</Text></TouchableOpacity>
-            <TouchableOpacity style={styles.headerIcon}><Text style={{fontSize:20}}>👤</Text></TouchableOpacity>
+          <View>
+            <Text style={styles.headerTitle}>RED(P) Dashboard</Text>
+            <Text style={styles.greeting}>Welcome back, Admin!</Text>
+          </View>
+          <View style={styles.headerRight}>
+            <TouchableOpacity style={styles.headerIcon} onPress={() => navigation.navigate('Notifications')}>
+              <Text style={{fontSize:20}}>🔔</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => navigation.navigate('AdminProfile')}>
+              <View style={styles.avatarCircle}><Text style={styles.avatarCircleText}>AD</Text></View>
+            </TouchableOpacity>
           </View>
         </View>
-        <Text style={styles.greeting}>Hello, Admin!</Text>
-        <Text style={styles.headerSubtitle}>Management</Text>
-        <View style={styles.summaryBoxRow}>
-          <TouchableOpacity
-            style={[styles.summaryBox, { backgroundColor: '#ff7a00' }]}
-            onPress={() => navigation.navigate('AdmissionsDetails')}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.summaryBoxIcon}>👤</Text>
-            <Text style={styles.summaryBoxValue}>{admissionsStats.total}</Text>
-            <Text style={styles.summaryBoxLabel}>Admissions</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.summaryBox, { backgroundColor: '#2979ff' }]}
-            onPress={() => navigation.navigate('SchoolVerificationDetails')}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.summaryBoxIcon}>📋</Text>
-            <Text style={styles.summaryBoxValue}>{schoolStats.total}</Text>
-            <Text style={styles.summaryBoxLabel}>School Verification</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.summaryBox, { backgroundColor: '#00c853' }]}
-            onPress={() => navigation.navigate('StudentVerificationDetails')}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.summaryBoxIcon}>✔️</Text>
-            <Text style={styles.summaryBoxValue}>{studentStats.total}</Text>
-            <Text style={styles.summaryBoxLabel}>Student Verification</Text>
-          </TouchableOpacity>
+      </View>
+
+      {/* White card with two summary boxes */}
+      <View style={styles.topSummaryCard}>
+        <View style={styles.topSummaryRow}>
+          <View style={[styles.topSummaryBox, { backgroundColor: '#fff' }]}> 
+            <Text style={styles.topSummaryIcon}>👤</Text>
+            <Text style={styles.topSummaryValue}>{admissionsStats.total}</Text>
+            <Text style={styles.topSummaryLabel}>Admissions</Text>
+          </View>
+          <View style={[styles.topSummaryBox, { backgroundColor: '#fff' }]}> 
+            <Text style={styles.topSummaryIcon}>📋</Text>
+            <Text style={styles.topSummaryValue}>{schoolStats.total}</Text>
+            <Text style={styles.topSummaryLabel}>School Verification</Text>
+          </View>
         </View>
       </View>
 
-      {/* Admissions Card */}
-      <View style={styles.sectionCard}>
-        <Text style={styles.sectionTitle}>Admissions <Text style={styles.sectionCount}>{admissionsStats.total}</Text></Text>
-        <Text style={styles.sectionSubtitle}>Total applications received <Text style={styles.sectionTrend}>+2 this week</Text></Text>
-        <View style={styles.statsRow}>
-          <View style={styles.statBox}><Text style={styles.statValue}>{admissionsStats.newToday}</Text><Text style={styles.statLabel}>New today</Text></View>
-          <View style={styles.statBox}><Text style={styles.statValue}>{admissionsStats.pending}</Text><Text style={styles.statLabel}>Pending review</Text></View>
-          <View style={styles.statBox}><Text style={styles.statValue}>{admissionsStats.inProgress}</Text><Text style={styles.statLabel}>In progress</Text></View>
-        </View>
-        <TouchableOpacity style={styles.detailsBtn} onPress={() => navigation.navigate('AdmissionsDetails')}>
-          <Text style={styles.detailsBtnText}>View Details →</Text>
+      {/* 2x2 grid of improved summary cards */}
+      <View style={styles.summaryGrid}>
+        {/* Admissions Card */}
+        <TouchableOpacity
+          style={[styles.summaryGridItem, styles.cardAdmissions]}
+          onPress={() => navigation.navigate('AdmissionsDetails')}
+          activeOpacity={0.85}
+        >
+          <View style={styles.cardRow}>
+            <Text style={[styles.summaryGridValue, { color: COLORS.accent }]}>{admissionsStats.total}</Text>
+            <View style={styles.trendBadgePositive}><Text style={styles.trendBadgeText}>+12%</Text></View>
+          </View>
+          <Text style={styles.summaryGridLabel}>Admissions</Text>
+          <View style={styles.miniStatsRow}>
+            <Text style={styles.miniStat}>New: <Text style={styles.miniStatValue}>{admissionsStats.newToday}</Text></Text>
+            <Text style={styles.miniStat}>Pending: <Text style={styles.miniStatValue}>{admissionsStats.pending}</Text></Text>
+          </View>
+        </TouchableOpacity>
+        {/* Schools Card */}
+        <TouchableOpacity
+          style={[styles.summaryGridItem, styles.cardSchools]}
+          onPress={() => navigation.navigate('SchoolVerificationDetails')}
+          activeOpacity={0.85}
+        >
+          <View style={styles.cardRow}>
+            <Text style={[styles.summaryGridValue, { color: COLORS.stat }]}>{schoolStats.total}</Text>
+            <View style={styles.trendBadgeNegative}><Text style={styles.trendBadgeText}>-3%</Text></View>
+          </View>
+          <Text style={styles.summaryGridLabel}>Schools</Text>
+          <View style={styles.miniStatsRow}>
+            <Text style={styles.miniStat}>Pending: <Text style={styles.miniStatValue}>{schoolStats.pending}</Text></Text>
+            <Text style={styles.miniStat}>Approved: <Text style={styles.miniStatValue}>{schoolStats.approved}</Text></Text>
+          </View>
+        </TouchableOpacity>
+        {/* Students Card */}
+        <TouchableOpacity
+          style={[styles.summaryGridItem, styles.cardStudents]}
+          onPress={() => navigation.navigate('StudentVerificationDetails')}
+          activeOpacity={0.85}
+        >
+          <View style={styles.cardRow}>
+            <Text style={[styles.summaryGridValue, { color: COLORS.success }]}>{studentStats.total}</Text>
+            <View style={styles.trendBadgePositive}><Text style={styles.trendBadgeText}>+8%</Text></View>
+          </View>
+          <Text style={styles.summaryGridLabel}>Students</Text>
+          <View style={styles.miniStatsRow}>
+            <Text style={styles.miniStat}>Completed: <Text style={styles.miniStatValue}>{studentStats.completed}</Text></Text>
+          </View>
+        </TouchableOpacity>
+        {/* Pending Card */}
+        <TouchableOpacity
+          style={[styles.summaryGridItem, styles.cardPending]}
+          onPress={() => navigation.navigate('AdmissionsDetails')}
+          activeOpacity={0.85}
+        >
+          <View style={styles.cardRow}>
+            <Text style={[styles.summaryGridValue, { color: COLORS.pending }]}>{admissionsStats.inProgress}</Text>
+            <View style={styles.progressBarBg}>
+              <View style={[styles.progressBarFill, { width: '40%' }]} />
+            </View>
+          </View>
+          <Text style={styles.summaryGridLabel}>Pending</Text>
+          <View style={styles.miniStatsRow}>
+            <Text style={styles.miniStat}>In Progress: <Text style={styles.miniStatValue}>{admissionsStats.inProgress}</Text></Text>
+          </View>
         </TouchableOpacity>
       </View>
 
-      {/* School Verification Card */}
-      <View style={styles.sectionCard}>
-        <Text style={styles.sectionTitle}>School Verification <Text style={styles.sectionCount}>{schoolStats.total}</Text></Text>
-        <Text style={styles.sectionSubtitle}>Schools awaiting verification <Text style={styles.sectionTrend}>1 completed today</Text></Text>
-        <View style={styles.statsRow}>
-          <View style={styles.statBox}><Text style={styles.statValue}>{schoolStats.pending}</Text><Text style={styles.statLabel}>Documents pending</Text></View>
-          <View style={styles.statBox}><Text style={styles.statValue}>{schoolStats.underReview}</Text><Text style={styles.statLabel}>Under review</Text></View>
-          <View style={styles.statBox}><Text style={styles.statValue}>{schoolStats.approved}</Text><Text style={styles.statLabel}>Approved this week</Text></View>
-        </View>
-        <TouchableOpacity style={styles.detailsBtn} onPress={() => navigation.navigate('SchoolVerificationDetails')}>
-          <Text style={styles.detailsBtnText}>View Details →</Text>
-        </TouchableOpacity>
-      </View>
 
-      {/* Student Verification Card */}
-      <View style={styles.sectionCard}>
-        <Text style={styles.sectionTitle}>Student Verification <Text style={styles.sectionCount}>{studentStats.total}</Text></Text>
-        <Text style={styles.sectionSubtitle}>Students awaiting verification <Text style={styles.sectionTrend}>2 verified today</Text></Text>
-        <View style={styles.statsRow}>
-          <View style={styles.statBox}><Text style={styles.statValue}>{studentStats.id}</Text><Text style={styles.statLabel}>ID verification</Text></View>
-          <View style={styles.statBox}><Text style={styles.statValue}>{studentStats.grade}</Text><Text style={styles.statLabel}>Grade verification</Text></View>
-          <View style={styles.statBox}><Text style={styles.statValue}>{studentStats.completed}</Text><Text style={styles.statLabel}>Completed</Text></View>
-        </View>
-        <TouchableOpacity style={styles.detailsBtn} onPress={() => navigation.navigate('StudentVerificationDetails')}>
-          <Text style={styles.detailsBtnText}>View Details →</Text>
-        </TouchableOpacity>
-      </View>
 
       {/* Quick Actions */}
       <View style={styles.sectionCard}>
         <Text style={styles.quickTitle}>Quick Actions</Text>
-        <TouchableOpacity style={styles.actionBtn}>
-          <Text style={styles.actionBtnText}>📝 Process New Admissions</Text>
+        <TouchableOpacity style={[styles.actionBtn, { backgroundColor: COLORS.primary }]}> 
+          <Text style={styles.actionBtnText}>📝 New Admission</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.actionBtnOutline}>
-          <Text style={styles.actionBtnOutlineText}>📋 Verify School Details</Text>
+          <Text style={[styles.actionBtnOutlineText, { color: COLORS.primary }]}>📋 Verify School</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.actionBtnOutline}>
-          <Text style={styles.actionBtnOutlineText}>📢 Send Notifications</Text>
+          <Text style={[styles.actionBtnOutlineText, { color: COLORS.primary }]}>📢 Notify</Text>
         </TouchableOpacity>
       </View>
 
@@ -162,59 +193,91 @@ export default function DashboardScreen({ navigation }: any) {
           style={{marginBottom: 8}}
         >
           {recentApplications.map((app, idx) => (
-            <View key={idx} style={[styles.recentRow, { backgroundColor: app.color, minWidth: 220, marginRight: 10 }]}> 
-              <View style={styles.avatar}><Text style={styles.avatarText}>{app.name.split(' ').map(n => n[0]).join('')}</Text></View>
+            <View key={idx} style={[styles.recentRow, { backgroundColor: COLORS.light, minWidth: 220, marginRight: 10, borderColor: COLORS.border, borderWidth: 1 }]}> 
+              <View style={[styles.avatar, { backgroundColor: COLORS.primary }]}><Text style={[styles.avatarText, { color: '#fff' }]}>{app.name.split(' ').map(n => n[0]).join('')}</Text></View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.recentName}>{app.name}</Text>
                 <Text style={styles.recentSchool}>{app.school}</Text>
               </View>
-              <Text style={[styles.recentStatus, app.status === 'Pending' ? styles.statusPending : styles.statusApproved]}>{app.status}</Text>
+              <Text style={[styles.recentStatus, app.status === 'Pending' ? { backgroundColor: COLORS.pending, color: '#fff' } : { backgroundColor: COLORS.success, color: '#fff' }]}>{app.status}</Text>
             </View>
           ))}
         </ScrollView>
-        <TouchableOpacity style={styles.detailsBtn}><Text style={[styles.detailsBtnText, { color: '#ff7a00' }]}>View All Applications</Text></TouchableOpacity>
+        <TouchableOpacity style={styles.detailsBtn} onPress={() => navigation.navigate('ApplicantList')}>
+          <Text style={[styles.detailsBtnText, { color: COLORS.primary }]}>View All Applications</Text>
+        </TouchableOpacity>
       </View>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  scroll: { backgroundColor: '#f6f6f6' },
+  scroll: { backgroundColor: COLORS.background },
   container: { padding: 16, paddingBottom: 32 },
-  headerCard: { backgroundColor: '#ff7a00', borderRadius: 20, padding: 20, marginBottom: 20, shadowColor: '#ff7a00', shadowOpacity: 0.15, shadowRadius: 8, elevation: 6 },
+  headerCard: { backgroundColor: COLORS.accent, borderRadius: 20, paddingVertical: 32, paddingHorizontal: 20, marginBottom: 0, shadowColor: COLORS.accent, shadowOpacity: 0.10, shadowRadius: 8, elevation: 6 },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  headerTitle: { color: '#fff', fontSize: 22, fontWeight: 'bold' },
-  headerIcons: { flexDirection: 'row' },
-  headerIcon: { marginLeft: 12 },
-  greeting: { color: '#fff', fontSize: 16, marginTop: 8, marginBottom: 2, fontWeight: 'bold' },
-  headerSubtitle: { color: '#fff', fontSize: 16, marginBottom: 16 },
-  summaryBoxRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 },
-  summaryBox: { flex: 1, marginHorizontal: 4, borderRadius: 10, alignItems: 'center', paddingVertical: 14, paddingHorizontal: 6, elevation: 3 },
-  summaryBoxIcon: { fontSize: 22, marginBottom: 2, color: '#fff' },
-  summaryBoxValue: { fontSize: 18, fontWeight: 'bold', color: '#fff', marginBottom: 2 },
-  summaryBoxLabel: { fontSize: 12, color: '#fff' },
-  sectionCard: { backgroundColor: '#fff', borderRadius: 16, padding: 16, marginBottom: 18, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 4, elevation: 2 },
-  sectionTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 2 },
-  sectionCount: { color: '#ff7a00', fontWeight: 'bold' },
-  sectionSubtitle: { fontSize: 13, color: '#555', marginBottom: 10 },
-  sectionTrend: { color: '#00c853', fontWeight: 'bold' },
+  headerTitle: { color: '#fff', fontSize: 20, fontWeight: 'bold', letterSpacing: 1 },
+  greeting: { color: '#fff', fontSize: 15, marginTop: 4, fontWeight: '500' },
+  headerRight: { flexDirection: 'row', alignItems: 'center' },
+  headerIcon: { marginRight: 10 },
+  avatarCircle: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', marginLeft: 2 },
+  avatarCircleText: { color: COLORS.accent, fontWeight: 'bold', fontSize: 16 },
+  topSummaryCard: { backgroundColor: '#fff', borderRadius: 16, marginHorizontal: 2, marginTop: -18, marginBottom: 18, padding: 10, shadowColor: COLORS.primary, shadowOpacity: 0.06, shadowRadius: 4, elevation: 2 },
+  topSummaryRow: { flexDirection: 'row', justifyContent: 'space-between' },
+  topSummaryBox: { flex: 1, alignItems: 'center', borderRadius: 12, marginHorizontal: 4, paddingVertical: 18, elevation: 1 },
+  topSummaryIcon: { fontSize: 22, marginBottom: 2, color: COLORS.accent },
+  topSummaryValue: { fontSize: 18, fontWeight: 'bold', color: COLORS.primary, marginBottom: 2 },
+  topSummaryLabel: { fontSize: 13, color: COLORS.subtitle, fontWeight: '600' },
+  summaryGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginBottom: 18 },
+  summaryGridItem: {
+    width: '48%',
+    borderRadius: 16,
+    paddingVertical: 18,
+    marginBottom: 12,
+    elevation: 2,
+    backgroundColor: '#fff',
+    shadowColor: COLORS.primary,
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    alignItems: 'flex-start',
+    paddingHorizontal: 16,
+    justifyContent: 'center',
+    minHeight: 110,
+    // Subtle gradient effect (simulated)
+  },
+  summaryGridValue: { fontSize: 26, fontWeight: 'bold', marginBottom: 2, marginRight: 8 },
+  summaryGridLabel: { fontSize: 14, color: COLORS.subtitle, fontWeight: '700', marginBottom: 6 },
+  cardRow: { flexDirection: 'row', alignItems: 'center', width: '100%', marginBottom: 2, justifyContent: 'space-between' },
+  miniStatsRow: { flexDirection: 'row', justifyContent: 'space-between', width: '100%' },
+  miniStat: { fontSize: 12, color: COLORS.subtitle, marginRight: 10 },
+  miniStatValue: { fontWeight: 'bold', color: COLORS.text },
+  trendBadgePositive: { backgroundColor: '#e6f6ee', borderRadius: 8, paddingHorizontal: 7, paddingVertical: 2, marginLeft: 4 },
+  trendBadgeNegative: { backgroundColor: '#ffeaea', borderRadius: 8, paddingHorizontal: 7, paddingVertical: 2, marginLeft: 4 },
+  trendBadgeText: { fontSize: 11, fontWeight: 'bold', color: COLORS.success },
+  progressBarBg: { height: 8, width: 40, backgroundColor: '#ffe6a1', borderRadius: 4, marginLeft: 4, overflow: 'hidden' },
+  progressBarFill: { height: 8, backgroundColor: COLORS.pending, borderRadius: 4 },
+  cardAdmissions: { backgroundColor: '#fff7f0' },
+  cardSchools: { backgroundColor: '#eaf3fb' },
+  cardStudents: { backgroundColor: '#e6f6ee' },
+  cardPending: { backgroundColor: '#fffbe7' },
+  sectionCard: { backgroundColor: COLORS.card, borderRadius: 18, padding: 18, marginBottom: 18, shadowColor: COLORS.primary, shadowOpacity: 0.04, shadowRadius: 4, elevation: 2 },
+  sectionTitle: { fontSize: 17, fontWeight: 'bold', marginBottom: 2, color: COLORS.text },
+  sectionCount: { color: COLORS.primary, fontWeight: 'bold' },
   statsRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
   statBox: { flex: 1, alignItems: 'center' },
-  statValue: { fontSize: 16, fontWeight: 'bold', color: '#333' },
-  statLabel: { fontSize: 12, color: '#888' },
+  statValue: { fontSize: 16, fontWeight: 'bold', color: COLORS.primary },
+  statLabel: { fontSize: 12, color: COLORS.subtitle },
   detailsBtn: { alignSelf: 'flex-start', marginTop: 4 },
-  detailsBtnText: { color: '#2979ff', fontWeight: 'bold' },
-  quickTitle: { fontSize: 16, fontWeight: 'bold', marginBottom: 10 },
-  actionBtn: { backgroundColor: '#ff7a00', borderRadius: 8, paddingVertical: 12, alignItems: 'center', marginBottom: 10 },
+  detailsBtnText: { color: COLORS.primary, fontWeight: 'bold' },
+  quickTitle: { fontSize: 15, fontWeight: 'bold', marginBottom: 10, color: COLORS.text },
+  actionBtn: { borderRadius: 8, paddingVertical: 12, alignItems: 'center', marginBottom: 10 },
   actionBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 15 },
-  actionBtnOutline: { borderWidth: 1, borderColor: '#ddd', borderRadius: 8, paddingVertical: 12, alignItems: 'center', marginBottom: 10 },
-  actionBtnOutlineText: { color: '#333', fontWeight: 'bold', fontSize: 15 },
+  actionBtnOutline: { borderWidth: 1, borderColor: COLORS.primary, borderRadius: 8, paddingVertical: 12, alignItems: 'center', marginBottom: 10, backgroundColor: COLORS.card },
+  actionBtnOutlineText: { fontWeight: 'bold', fontSize: 15 },
   recentRow: { flexDirection: 'row', alignItems: 'center', borderRadius: 8, padding: 10, marginBottom: 8 },
-  avatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', marginRight: 10, borderWidth: 1, borderColor: '#eee' },
-  avatarText: { fontWeight: 'bold', color: '#ff7a00' },
-  recentName: { fontWeight: 'bold', color: '#333' },
-  recentSchool: { fontSize: 12, color: '#888' },
+  avatar: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', marginRight: 10 },
+  avatarText: { fontWeight: 'bold', fontSize: 16 },
+  recentName: { fontWeight: 'bold', color: COLORS.text },
+  recentSchool: { fontSize: 12, color: COLORS.subtitle },
   recentStatus: { fontWeight: 'bold', fontSize: 13, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
-  statusPending: { backgroundColor: '#fffde7', color: '#ff7a00' },
-  statusApproved: { backgroundColor: '#e8f5e9', color: '#00c853' },
 });
