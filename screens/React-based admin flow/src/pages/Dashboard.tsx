@@ -2,7 +2,7 @@
 // Main admin dashboard page. Handles navigation, summary, and renders all major admin tables.
 // Backend engineers: Integrate API calls for fetching applicants, updating status, and admissions where noted below.
 // For Azure Functions, connect the action handlers to your HTTP triggers or function endpoints.
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate, Outlet, useLocation } from 'react-router-dom';
 import StudentsTable from './StudentsTable';
 import PendingDetails from './PendingDetails';
@@ -11,6 +11,30 @@ import AdmissionsTable from './AdmissionsTable';
 import './Dashboard.css';
 import logo from '../assets/redp-logo (2).png';
 import { FaTachometerAlt, FaUsers, FaUserGraduate, FaBell, FaSignOutAlt } from 'react-icons/fa';
+
+// API Configuration
+const API_BASE_URL = 'https://simbagetapplicants-hcf5cffbcccmgsbn.westus-01.azurewebsites.net/api/httptablefunction';
+
+// API Response Types
+type ApplicantBasic = {
+  firstName: string;
+  lastName: string;
+  status: string;
+  partitionKey: string;
+  rowKey: string;
+};
+
+// Detailed applicant type from the API (GET with partitionKey and rowKey)
+type ApplicantDetailed = {
+  firstName: string;
+  lastName: string;
+  status: string;
+  partitionKey: string;
+  rowKey: string;
+  [key: string]: any; // Additional fields that come from the detailed API
+};
+
+// Legacy initial data for fallback
 const initialApplicants = [
   {
     id: 1,
@@ -57,30 +81,113 @@ const initialApplicants = [
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
-  // TODO: Backend: Replace initialApplicants with data fetched from API (e.g., useEffect + fetch)
-  // TODO: Backend: Replace setApplicants with API/Azure Function call to update status or delete applicant
-  const [applicants, setApplicants] = React.useState(initialApplicants);
-  const stats = [
-    { label: 'Admissions', value: 4, color: '#ff3d00', route: '/dashboard/admissions', icon: <FaTachometerAlt /> },
-    { label: 'Students', value: applicants.filter(a => a.status === 'Approved').length, color: '#ff9800', route: '/dashboard/student-verification', icon: <FaUserGraduate /> },
-    { label: 'Pending', value: applicants.filter(a => a.status === 'Pending').length, color: '#222', route: '/dashboard/pending', icon: <FaUsers /> },
-  ];
-  const recent = applicants.map(a => ({
-    id: a.id,
-    name: a.firstName + ' ' + a.lastName,
-    school: a.schoolName,
-    status: a.status,
-    date: a.dateOfBirth,
-    details: a.email + ' / ' + a.phone
-  }));
+  
+  // State for API data
+  const [apiApplicants, setApiApplicants] = React.useState<ApplicantBasic[]>([]);
+  const [loading, setLoading] = React.useState<boolean>(true);
+  const [error, setError] = React.useState<string | null>(null);
+  
+  // State for detailed modal
+  const [modalApplicant, setModalApplicant] = React.useState<ApplicantDetailed | null>(null);
+  const [modalLoading, setModalLoading] = React.useState<boolean>(false);
+  
+  // Legacy state for compatibility (using fallback data)
+  const [applicants, setLegacyApplicants] = React.useState(initialApplicants);
+
+  // Fetch applicants from API
+  useEffect(() => {
+    const fetchApplicants = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await fetch(API_BASE_URL);
+        
+        if (!response.ok) {
+          throw new Error(`Failed to fetch applicants: ${response.status} ${response.statusText}`);
+        }
+        
+        const data: ApplicantBasic[] = await response.json();
+        setApiApplicants(data);
+      } catch (err) {
+        console.error('Error fetching applicants:', err);
+        setError(err instanceof Error ? err.message : 'Failed to fetch applicants');
+        // Continue using fallback data on error
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchApplicants();
+  }, []);
+
+  // Create recent applicants from API data (first 3) or fallback to legacy data
+  const recent = React.useMemo(() => {
+    if (apiApplicants.length > 0) {
+      // Use API data - take first 3 and format for display
+      return apiApplicants.slice(0, 3).map((a, index) => ({
+        id: index + 1, // Generate a simple ID for key
+        name: `${a.firstName} ${a.lastName}`,
+        school: 'School info not available', // API doesn't include school info in basic response
+        status: a.status || 'Pending',
+        date: 'Date not available', // API doesn't include date in basic response
+        details: `${a.partitionKey} - ${a.rowKey}`, // Show keys as temporary details
+        partitionKey: a.partitionKey,
+        rowKey: a.rowKey
+      }));
+    } else {
+      // Fallback to legacy data
+      return applicants.map(a => ({
+        id: a.id,
+        name: a.firstName + ' ' + a.lastName,
+        school: a.schoolName,
+        status: a.status,
+        date: a.dateOfBirth,
+        details: a.email + ' / ' + a.phone
+      }));
+    }
+  }, [apiApplicants, applicants]);
+
+  // Stats based on API data if available, otherwise use legacy data
+  const stats = React.useMemo(() => {
+    const dataSource = apiApplicants.length > 0 ? apiApplicants : applicants;
+    const approvedCount = dataSource.filter(a => (a.status || 'Pending') === 'Approved').length;
+    const pendingCount = dataSource.filter(a => (a.status || 'Pending') === 'Pending').length;
+    
+    return [
+      { label: 'Admissions', value: 4, color: '#ff3d00', route: '/dashboard/admissions', icon: <FaTachometerAlt /> },
+      { label: 'Students', value: approvedCount, color: '#ff9800', route: '/dashboard/student-verification', icon: <FaUserGraduate /> },
+      { label: 'Pending', value: pendingCount, color: '#222', route: '/dashboard/pending', icon: <FaUsers /> },
+    ];
+  }, [apiApplicants, applicants]);
 
   type Applicant = typeof initialApplicants[0];
-  const [modalApplicant, setModalApplicant] = React.useState<null | Applicant>(null);
   const [statusFilter, setStatusFilter] = React.useState('');
   const statusOptions = Array.from(new Set(recent.map(item => item.status)));
   const filteredRecent = statusFilter
     ? recent.filter(item => item.status === statusFilter)
     : recent;
+
+  // Fetch detailed applicant data for modal
+  const fetchApplicantDetails = async (partitionKey: string, rowKey: string) => {
+    try {
+      setModalLoading(true);
+      
+      const url = `${API_BASE_URL}?partitionKey=${encodeURIComponent(partitionKey)}&rowKey=${encodeURIComponent(rowKey)}`;
+      const response = await fetch(url);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch applicant details: ${response.status} ${response.statusText}`);
+      }
+      
+      const data: ApplicantDetailed = await response.json();
+      setModalApplicant(data);
+    } catch (err) {
+      console.error('Error fetching applicant details:', err);
+      // Could show an error message here
+    } finally {
+      setModalLoading(false);
+    }
+  };
 
   const location = useLocation();
   const isDashboardHome = location.pathname === '/dashboard' || location.pathname === '/dashboard/';
@@ -189,25 +296,83 @@ const Dashboard: React.FC = () => {
                   </select>
                   <button className="dashboard-viewall-btn" onClick={() => navigate('/dashboard/applicants')}>View All</button>
                 </div>
+                {error && (
+                  <div style={{ padding: '1rem', background: '#ffebee', border: '1px solid #f44336', borderRadius: '4px', marginBottom: '1rem', color: '#d32f2f' }}>
+                    <strong>API Error:</strong> {error}. Showing demo data instead.
+                  </div>
+                )}
                 <table className="dashboard-table">
                   <thead>
                     <tr>
                       <th>Name</th>
-                      <th>School</th>
-                      <th>Date</th>
+                      <th>Status</th>
                       <th>Details</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredRecent.length === 0 ? (
-                      <tr><td colSpan={4} style={{ textAlign: 'center', color: '#888' }}>No results found.</td></tr>
+                    {loading ? (
+                      <tr><td colSpan={3} style={{ textAlign: 'center', color: '#888', padding: '2rem' }}>Loading applicants...</td></tr>
+                    ) : filteredRecent.length === 0 ? (
+                      <tr><td colSpan={3} style={{ textAlign: 'center', color: '#888' }}>No results found.</td></tr>
                     ) : (
                       filteredRecent.map((item) => (
                         <tr key={item.id}>
                           <td>{item.name}</td>
-                          <td>{item.school}</td>
-                          <td>{item.date}</td>
-                          <td><button className="dashboard-table-link" onClick={() => setModalApplicant(applicants.find(a => a.id === item.id) || null)}>View</button></td>
+                          <td>
+                            <span style={{
+                              padding: '4px 8px',
+                              borderRadius: '12px',
+                              fontSize: '0.8rem',
+                              fontWeight: 600,
+                              color: 'white',
+                              background: item.status === 'Approved' ? '#4caf50' : 
+                                         item.status === 'Pending' ? '#ff9800' : 
+                                         item.status === 'Denied' ? '#f44336' : '#666'
+                            }}>
+                              {item.status}
+                            </span>
+                          </td>
+                          <td>
+                            {apiApplicants.length > 0 ? (
+                              <button 
+                                className="dashboard-table-link"
+                                onClick={() => {
+                                  const applicant = apiApplicants.find(a => `${a.firstName} ${a.lastName}` === item.name);
+                                  if (applicant) {
+                                    fetchApplicantDetails(applicant.partitionKey, applicant.rowKey);
+                                  }
+                                }}
+                              >
+                                View Details
+                              </button>
+                            ) : (
+                              <button 
+                                className="dashboard-table-link" 
+                                onClick={() => {
+                                  const legacyApplicant = applicants.find(a => a.id === item.id);
+                                  if (legacyApplicant) {
+                                    // Convert legacy applicant to ApplicantDetailed format for modal
+                                    setModalApplicant({
+                                      firstName: legacyApplicant.firstName,
+                                      lastName: legacyApplicant.lastName,
+                                      status: legacyApplicant.status,
+                                      partitionKey: 'demo',
+                                      rowKey: legacyApplicant.id.toString(),
+                                      email: legacyApplicant.email,
+                                      phone: legacyApplicant.phone,
+                                      dateOfBirth: legacyApplicant.dateOfBirth,
+                                      gradeLevel: legacyApplicant.gradeLevel,
+                                      schoolName: legacyApplicant.schoolName,
+                                      location: legacyApplicant.location,
+                                      essay: legacyApplicant.essay
+                                    });
+                                  }
+                                }}
+                              >
+                                View
+                              </button>
+                            )}
+                          </td>
                         </tr>
                       ))
                     )}
@@ -261,7 +426,7 @@ const Dashboard: React.FC = () => {
             }))}
           />
         ) : location.pathname === '/dashboard/applicants' ? (
-          <ApplicantList applicants={applicants} onAction={handleApplicantStatus} />
+          <ApplicantList />
         ) : location.pathname === '/dashboard/admissions' ? (
           <AdmissionsTable />
         ) : (
@@ -273,15 +438,33 @@ const Dashboard: React.FC = () => {
           <div className="modal-content" onClick={e => e.stopPropagation()}>
             <button className="modal-close" onClick={() => setModalApplicant(null)}>&times;</button>
             <h3>Applicant Details</h3>
-            <div><strong>Name:</strong> {modalApplicant.firstName} {modalApplicant.lastName}</div>
-            <div><strong>School:</strong> {modalApplicant.schoolName}</div>
-            <div><strong>Status:</strong> <span className={`status-badge ${modalApplicant.status?.toLowerCase().replace(' ', '-')}`}>{modalApplicant.status}</span></div>
-            <div><strong>Date of Birth:</strong> {modalApplicant.dateOfBirth}</div>
-            <div><strong>Email:</strong> {modalApplicant.email}</div>
-            <div><strong>Phone:</strong> {modalApplicant.phone}</div>
-            <div><strong>Grade:</strong> {modalApplicant.gradeLevel}</div>
-            <div><strong>Location:</strong> {modalApplicant.location}</div>
-            <div><strong>Essay:</strong> {modalApplicant.essay}</div>
+            {modalLoading ? (
+              <div style={{ textAlign: 'center', padding: '2rem' }}>
+                <p>Loading details...</p>
+              </div>
+            ) : (
+              <div>
+                {/* Display all fields from the detailed API response */}
+                {Object.entries(modalApplicant).map(([key, value]) => {
+                  // Skip internal keys (case-insensitive)
+                  const lowerKey = key.toLowerCase();
+                  if (lowerKey === 'partitionkey' || lowerKey === 'rowkey') {
+                    return null;
+                  }
+                  
+                  // Handle null status
+                  const displayValue = key === 'status' && (value === null || value === undefined) 
+                    ? 'Pending' 
+                    : String(value || '');
+                  
+                  return (
+                    <div key={key} style={{ marginBottom: '0.5rem' }}>
+                      <strong>{key.charAt(0).toUpperCase() + key.slice(1)}:</strong> {displayValue}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
       )}
