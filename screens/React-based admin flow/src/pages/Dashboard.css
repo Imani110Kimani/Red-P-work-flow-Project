@@ -1,3 +1,69 @@
+/* Dashboard main content and right panel layout */
+.dashboard-content-flex {
+  display: flex;
+  gap: 32px;
+  align-items: flex-start;
+}
+.dashboard-right-panel {
+  flex: 1;
+  min-width: 260px;
+  max-width: 340px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 1px 8px 0 rgba(2,60,105,0.07);
+  padding: 1.5rem 1.2rem;
+  margin-top: 8px;
+}
+
+@media (max-width: 900px) {
+  .dashboard-content-flex {
+    flex-direction: column;
+    gap: 18px;
+  }
+  .dashboard-right-panel {
+    max-width: 100%;
+    width: 100%;
+    margin-top: 18px;
+  }
+}
+/* Sidebar navigation spacing for desktop */
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+/* Center main table containers on desktop */
+.dashboard-recent-table, .pending-details-container, .applicant-list-container, .admissions-table-container {
+  max-width: 1100px;
+  margin: 2rem auto;
+  display: block;
+  overflow-x: auto;
+}
+.dashboard-table, .pending-table, .applicant-list-table {
+  min-width: 700px;
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  background: #f7fafd;
+  border-radius: 10px;
+  box-shadow: 0 1px 8px 0 rgba(2,60,105,0.04);
+  overflow-x: auto;
+  margin-top: 1.5rem;
+}
+.dashboard-recent-table, .pending-details-container, .applicant-list-container {
+  overflow-x: auto;
+}
+@media (max-width: 900px) {
+  .dashboard-table, .pending-table, .applicant-list-table {
+    min-width: 520px;
+    font-size: 0.97em;
+  }
+  .dashboard-recent-table, .pending-details-container, .applicant-list-container {
+    padding: 0.5rem;
+  }
+}
 /* Modal styles for dashboard popups */
 .modal-overlay {
   position: fixed;
@@ -81,58 +147,70 @@
   width: 28px;
   height: 28px;
 }
-.sidebar-nav {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-  padding: 6px 0;
+/* Responsive table styles */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 700px;
 }
-.sidebar-nav button {
-  background: none;
-  border: none;
-  color: #333;
+
+th, td {
+  padding: 12px 16px;
   text-align: left;
-  padding: 8px 14px;
-  font-size: 0.97rem;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-  border-radius: 6px;
-  transition: background 0.2s, color 0.2s;
+  border-bottom: 1px solid #e0e0e0;
 }
-.sidebar-nav button:hover, .sidebar-nav button.active {
-  background: #f7fafd;
-  color: #ff7a00;
+
+@media (max-width: 1100px) {
+  table {
+    min-width: 500px;
+  }
+  .dashboard-summary {
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+  .dashboard-summary-card {
+    width: 100%;
+    min-width: 0;
+  }
 }
-.sidebar-logout {
-  margin-top: auto;
-  color: #e53935 !important;
+
+@media (max-width: 700px) {
+  .admin-layout {
+    flex-direction: column;
+  }
+  .admin-sidebar {
+    width: 100%;
+    min-width: 0;
+    border-right: none;
+    border-bottom: 1px solid #eee;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0.5rem;
+  }
+  .sidebar-logo {
+    flex-direction: row;
+    gap: 0.5rem;
+  }
+  .sidebar-nav {
+    flex-direction: row;
+    gap: 0.3rem;
+    margin-top: 0;
+  }
+  .admin-main {
+    padding: 1rem 0.5rem;
+  }
+  table {
+    min-width: 350px;
+  }
+  th, td {
+    padding: 8px 6px;
+    font-size: 0.97em;
+  }
+  .dashboard-recent-table, .applicant-list-container, .pending-details-container, .admissions-table-container {
+    padding: 0 0.2rem !important;
+  }
 }
-.admin-main {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  padding: 0 18px 0 18px;
-}
-.admin-topbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: #fff;
-  border-bottom: 1px solid #e5e7eb;
-  padding: 10px 16px;
-  position: sticky;
-  top: 0;
-  z-index: 1;
-}
-.admin-search {
-  display: flex;
-  align-items: center;
-  background: #f3f3f3;
-  border-radius: 8px;
-  padding: 3px 8px;
   gap: 6px;
 }
 .admin-search input {
@@ -142,30 +220,40 @@
   font-size: 0.97rem;
   width: 120px;
 }
-.admin-topbar-actions {
+.admin-topbar {
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: space-between;
+  background: #fff;
+  padding: 0.7rem 2.2rem 0.7rem 2.2rem;
+  border-bottom: 1.5px solid #f2f2f2;
+  min-height: 56px;
+  z-index: 10;
 }
 .dashboard-summary {
   display: flex;
-  gap: 14px;
+  gap: 18px;
   justify-content: flex-start;
-  margin: 18px 0 12px 0;
+  margin: 18px 0 24px 0;
   flex-wrap: wrap;
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 2px 12px 0 rgba(2,60,105,0.04);
+  padding: 18px 18px 10px 18px;
 }
 .dashboard-summary-card {
-  background: #fff;
-  border-radius: 10px;
-  border: 1.5px solid #eee;
-  padding: 10px 14px;
-  min-width: 110px;
+  background: #f7fafd;
+  border-radius: 12px;
+  border: 1.5px solid #e5e7eb;
+  padding: 18px 22px;
+  min-width: 130px;
   text-align: center;
-  box-shadow: 0 1px 4px 0 rgba(2,60,105,0.03);
+  box-shadow: 0 2px 8px 0 rgba(2,60,105,0.06);
   display: flex;
   flex-direction: column;
   align-items: center;
-  transition: box-shadow 0.2s, border 0.2s;
+  transition: box-shadow 0.2s, border 0.2s, background 0.2s;
+  cursor: pointer;
 }
 .dashboard-summary-card:hover {
   border: 1.5px solid #ff7a00;
@@ -321,10 +409,23 @@
 }
 .dashboard-icon-btn,
 .dashboard-avatar-btn {
-  background: none;
-  border: none;
+  background: #fff;
+  border: 1.5px solid #ff3d00;
+  border-radius: 50%;
   cursor: pointer;
-  padding: 0 6px;
+  padding: 7px 10px 7px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s, border-color 0.2s;
+  font-size: 1.25rem;
+  color: #ff3d00;
+  box-shadow: 0 1px 6px 0 rgba(255,61,0,0.08);
+}
+.dashboard-icon-btn:hover {
+  background: #ff9800;
+  border-color: #ff9800;
+  color: #fff;
 }
 .dashboard-avatar {
   background: #fff;

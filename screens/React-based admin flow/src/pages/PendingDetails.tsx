@@ -1,56 +1,91 @@
 import React from "react";
-import { useNavigate } from "react-router-dom";
 import "./PendingDetails.css";
 
-const PendingDetails: React.FC = () => {
-  const navigate = useNavigate();
+// Accepts applicants as prop and filters for status === 'Pending'
 
-  // Placeholder data
-  const pending = {
-    type: "Application",
-    applicant: "Jane Smith",
-    submittedOn: "2025-07-01",
-    status: "Pending",
-    reason: "Awaiting document upload",
-    notes: "Applicant has not yet uploaded the required proof of address.",
+interface Applicant {
+  id: number;
+  name: string;
+  school: string;
+  status: string;
+  submittedOn: string;
+  reason: string;
+  notes: string;
+}
+
+const PendingDetails: React.FC<{ applicants: Applicant[] }> = ({ applicants }) => {
+  const pending = applicants.filter(a => a.status === 'Pending');
+  // Local state for editing reasons/notes
+  const [edits, setEdits] = React.useState<{ [id: number]: { reason: string; notes: string } }>({});
+
+  // Handler for editing reason/notes
+  const handleEdit = (id: number, field: 'reason' | 'notes', value: string) => {
+    setEdits(prev => ({
+      ...prev,
+      [id]: {
+        ...prev[id],
+        [field]: value,
+      },
+    }));
+  };
+
+  // Handler for saving to backend (API/Azure Function)
+  const handleSave = (id: number, field: 'reason' | 'notes') => {
+    // TODO: Backend: Save edits[id][field] to backend for applicant with id
+    // Example: await api.updatePendingReasonOrNotes(id, field, edits[id][field])
+    // Optionally show a loading indicator or success message
   };
 
   return (
-    <div className="pending-details-container">
-      <div className="details-nav-links">
-        <button className="back-btn" onClick={() => navigate('/dashboard')}>&larr; Dashboard</button>
-        <button className="back-btn" onClick={() => navigate('/pending/1')}>&larr; All Pending</button>
-      </div>
-      <div className="details-card">
-        <h2>Pending Details</h2>
-        <div className="info-row">
-          <span className="label">Type:</span>
-          <span>{pending.type}</span>
-        </div>
-        <div className="info-row">
-          <span className="label">Applicant:</span>
-          <span>{pending.applicant}</span>
-        </div>
-        <div className="info-row">
-          <span className="label">Submitted On:</span>
-          <span>{pending.submittedOn}</span>
-        </div>
-        <div className="info-row">
-          <span className="label">Status:</span>
-          <span className={`status-badge ${pending.status.toLowerCase()}`}>{pending.status}</span>
-        </div>
-        <div className="info-row">
-          <span className="label">Reason:</span>
-          <span>{pending.reason}</span>
-        </div>
-        <div className="info-row notes-row">
-          <span className="label">Notes:</span>
-          <span>{pending.notes}</span>
-        </div>
-        <div className="info-row">
-          <span className="label">Applicant:</span>
-          <a href="/applicants/1" className="related-link">View Applicant</a>
-        </div>
+    <div className="pending-details-container" style={{maxWidth: 1100, width: '100%', margin: '2rem auto'}}>
+      <h2>Pending Applications</h2>
+      <div style={{overflowX: 'auto'}}>
+        <table className="pending-table" style={{minWidth: 700}}>
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>School</th>
+              <th>Submitted On</th>
+              <th>Reason</th>
+              <th>Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            {pending.length === 0 ? (
+              <tr><td colSpan={5} style={{ textAlign: 'center', color: '#888' }}>No pending applications.</td></tr>
+            ) : (
+              pending.map(applicant => (
+                <tr key={applicant.id}>
+                  <td>{applicant.name}</td>
+                  <td>{applicant.school}</td>
+                  <td>{applicant.submittedOn}</td>
+                  <td>
+                    {/* Editable Reason. Backend: Save onBlur or onChange as needed. */}
+                    <textarea
+                      value={edits[applicant.id]?.reason ?? applicant.reason}
+                      onChange={e => handleEdit(applicant.id, 'reason', e.target.value)}
+                      onBlur={() => handleSave(applicant.id, 'reason')}
+                      rows={2}
+                      style={{ width: '100%', minWidth: 120, borderRadius: 6, border: '1.5px solid #ff9800', padding: 4, fontSize: '1em', resize: 'vertical' }}
+                      placeholder="Enter reason..."
+                    />
+                  </td>
+                  <td>
+                    {/* Editable Notes. Backend: Save onBlur or onChange as needed. */}
+                    <textarea
+                      value={edits[applicant.id]?.notes ?? applicant.notes}
+                      onChange={e => handleEdit(applicant.id, 'notes', e.target.value)}
+                      onBlur={() => handleSave(applicant.id, 'notes')}
+                      rows={2}
+                      style={{ width: '100%', minWidth: 120, borderRadius: 6, border: '1.5px solid #ff9800', padding: 4, fontSize: '1em', resize: 'vertical' }}
+                      placeholder="Enter notes..."
+                    />
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
       </div>
     </div>
   );

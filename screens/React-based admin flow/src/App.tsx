@@ -1,35 +1,51 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import Landing from './pages/Landing';
-import Login from './pages/Login';
-import Dashboard from './pages/Dashboard';
-import ApplicantList from './pages/ApplicantList';
-import ApplicantDetails from './pages/ApplicantDetails';
-import AdminProfile from './pages/AdminProfile';
-import Notifications from './pages/Notifications';
-import AdmissionsDetails from './pages/AdmissionsDetails';
-import SchoolVerificationDetails from './pages/SchoolVerificationDetails';
-import StudentVerificationDetails from './pages/StudentVerificationDetails';
-import PendingDetails from './pages/PendingDetails';
-import './App.css';
+import redpLogo from './assets/redp-logo (2).png';
+import React from "react";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import Dashboard from "./pages/Dashboard";
+import Notifications from "./pages/Notifications";
+import LandingLoginPage from "./pages/LandingLoginPage";
+import StudentVerificationDetails from "./pages/StudentVerificationDetails";
+import SchoolVerificationDetails from "./pages/SchoolVerificationDetails";
+import ApplicantList from "./pages/ApplicantList";
+import ApplicantDetails from "./pages/ApplicantDetails";
+import AdmissionDetails from "./pages/AdmissionsDetails";
+import PendingDetails from "./pages/PendingDetails";
 
-function App() {
-  return (
+
+
+const App: React.FC = () => (
+  <div style={{ background: '#fff', minHeight: '100vh' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '2rem 0 1rem 0' }}>
+      <img
+        src={redpLogo}
+        alt="REDP logo"
+        style={{ height: 60, marginBottom: 8, filter: 'drop-shadow(0 2px 8px #ff3d00)' }}
+      />
+      <h1 style={{ color: '#ff3d00', fontWeight: 900, letterSpacing: 2, fontSize: '2.2rem', margin: 0 }}>REDP Admin Portal</h1>
+    </div>
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Landing />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/applicants" element={<ApplicantList />} />
-        <Route path="/applicants/:id" element={<ApplicantDetails />} />
-        <Route path="/profile" element={<AdminProfile />} />
-        <Route path="/notifications" element={<Notifications />} />
-        <Route path="/admissions/:id" element={<AdmissionsDetails />} />
-        <Route path="/school-verification/:id" element={<SchoolVerificationDetails />} />
-        <Route path="/student-verification/:id" element={<StudentVerificationDetails />} />
-        <Route path="/pending/:id" element={<PendingDetails />} />
+        <Route path="/" element={<LandingLoginPage />} />
+        <Route path="/dashboard" element={<Dashboard />}>
+          {/* Dashboard main summary/cards can be rendered by default (index route) */}
+          <Route index element={null} />
+          <Route path="admissions" element={<AdmissionDetails />} />
+          <Route path="admissions/:id" element={<AdmissionDetails />} />
+          <Route path="student-verification" element={<StudentVerificationDetails />} />
+          <Route path="student-verification/:id" element={<StudentVerificationDetails />} />
+          <Route path="school-verification" element={<SchoolVerificationDetails />} />
+          <Route path="school-verification/:id" element={<SchoolVerificationDetails />} />
+          <Route path="applicants" element={<ApplicantList />} />
+          <Route path="applicants/:id" element={<ApplicantDetails />} />
+          <Route path="pending" element={<PendingDetails />} />
+          <Route path="pending/:id" element={<PendingDetails />} />
+          <Route path="notifications" element={<Notifications />} />
+        </Route>
+        {/* Fallback for 404 */}
+        <Route path="*" element={<div style={{padding: '2rem', textAlign: 'center'}}><h2>404 - Page Not Found</h2></div>} />
       </Routes>
     </BrowserRouter>
-  );
-}
+  </div>
+);
 
 export default App;

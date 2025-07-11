@@ -16,13 +16,25 @@
   margin-top: 1.5rem;
 }
 .student-verification-details-container {
-  max-width: 600px;
-  margin: 2rem auto;
-  padding: 1.5rem;
+  max-width: 1440px;         /* Match your dashboard's max width */
+  margin: 0 auto;
+  padding: 2rem 2vw;
+  min-height: 100vh;
+  background: #f4f6fa;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.details-card {
   background: #fff;
   border-radius: 12px;
   box-shadow: 0 2px 12px rgba(0,0,0,0.07);
-  position: relative;
+  padding: 2rem;
+  max-width: 600px;
+  width: 100%;
+  margin: 0 auto;
 }
 
 .back-btn {
