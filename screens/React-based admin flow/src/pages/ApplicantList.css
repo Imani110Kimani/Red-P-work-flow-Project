@@ -63,3 +63,46 @@
 .details-link:hover {
   color: #023c69;
 }
+.applicant-img-placeholder {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: #eee;
+  display: block;
+}
+
+@media (max-width: 700px) {
+  .applicant-list-container {
+    max-width: 98vw;
+    padding: 12px 2vw 12px 2vw;
+  }
+  .applicant-list-header,
+  .applicant-list-row {
+    grid-template-columns: 0.8fr 1.2fr 1.2fr 1fr;
+    font-size: 0.97em;
+    gap: 8px;
+    padding: 8px 0;
+  }
+  .applicant-img-placeholder {
+    width: 32px;
+    height: 32px;
+  }
+  .applicant-list-title {
+    font-size: 1.1rem;
+  }
+}
+@media (max-width: 480px) {
+  .applicant-list-header,
+  .applicant-list-row {
+    grid-template-columns: 0.7fr 1fr 1fr;
+    /* Hide Actions column for very small screens */
+  }
+  .applicant-img-placeholder {
+    width: 24px;
+    height: 24px;
+  }
+  .applicant-list-title {
+    font-size: 1rem;
+  }
+}

@@ -10,7 +10,8 @@ import ApplicantList from './ApplicantList';
 import AdmissionsTable from './AdmissionsTable';
 import './Dashboard.css';
 import logo from '../assets/redp-logo (2).png';
-import { FaTachometerAlt, FaUsers, FaUserGraduate, FaBell, FaSignOutAlt } from 'react-icons/fa';
+import { FaTachometerAlt, FaUsers, FaUserGraduate, FaBell, FaSignOutAlt, FaBars, FaTimes } from 'react-icons/fa';
+import NewAdmissionForm from './NewAdmissionForm';
 
 // API Configuration
 const API_BASE_URL = 'https://simbagetapplicants-hcf5cffbcccmgsbn.westus-01.azurewebsites.net/api/httptablefunction';
@@ -93,6 +94,10 @@ const Dashboard: React.FC = () => {
   
   // Legacy state for compatibility (using fallback data)
   const [applicants, setLegacyApplicants] = React.useState(initialApplicants);
+
+  // Hamburger menu state
+  const [sidebarOpen, setSidebarOpen] = React.useState(false);
+  const [showAdmissionForm, setShowAdmissionForm] = React.useState(false);
 
   // Fetch applicants from API
   useEffect(() => {
@@ -195,38 +200,84 @@ const Dashboard: React.FC = () => {
   // Centralized status update handler for workflow actions
   // TODO: Backend: Call API/Azure Function to update status or delete applicant here
   const handleApplicantStatus = (id: number, newStatus: 'Approved' | 'Pending' | 'Denied') => {
-    setApplicants(prev => {
+    setLegacyApplicants((prev: Applicant[]) => {
       if (newStatus === 'Denied') {
-        return prev.filter(a => a.id !== id);
+        return prev.filter((a: Applicant) => a.id !== id);
       }
-      return prev.map(a => a.id === id ? { ...a, status: newStatus } : a);
+      return prev.map((a: Applicant) => a.id === id ? { ...a, status: newStatus } : a);
     });
     // If modal is open for this applicant, update modalApplicant to reflect new status
     setModalApplicant(prevModal => {
-      if (prevModal && prevModal.id === id) {
+      if (prevModal && (prevModal as any).id === id) {
         return { ...prevModal, status: newStatus };
       }
       return prevModal;
     });
   };
 
+  // Helper: is mobile
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 900;
+
   return (
     <div className="admin-layout" style={{ position: 'relative' }}>
-      {/* Notification bell moved to far top right, outside header */}
+      {/* Hamburger menu for mobile */}
       <button
-        className="dashboard-icon-btn"
-        title="Notifications"
-        onClick={() => navigate('/notifications')}
+        className="dashboard-hamburger"
         style={{
-          position: 'absolute',
+          position: 'fixed',
           top: 18,
-          right: 32,
-          zIndex: 20,
+          left: 18,
+          zIndex: 30,
+          background: '#fff',
+          border: 'none',
+          borderRadius: 6,
+          padding: 8,
+        }}
+        onClick={() => setSidebarOpen(!sidebarOpen)}
+        aria-label="Open menu"
+      >
+        {sidebarOpen ? <FaTimes size={22} /> : <FaBars size={22} />}
+      </button>
+      {/* Dropdown menu for mobile */}
+      {sidebarOpen && (
+        <nav
+          className="sidebar-dropdown"
+          style={{
+            position: 'fixed',
+            top: 60,
+            left: 0,
+            width: '100vw',
+            background: '#fff',
+            boxShadow: '0 4px 16px rgba(0,0,0,0.10)',
+            zIndex: 31,
+            display: isMobile ? 'block' : 'none',
+            borderBottomLeftRadius: 12,
+            borderBottomRightRadius: 12,
+            padding: '1rem 0',
+          }}
+        >
+          <button onClick={() => { navigate('/dashboard'); setSidebarOpen(false); }} style={{ width: '100%', textAlign: 'left', padding: '1rem 2rem', border: 'none', background: 'none' }}><FaTachometerAlt /> Dashboard</button>
+          <button onClick={() => { navigate('/dashboard/applicants'); setSidebarOpen(false); }} style={{ width: '100%', textAlign: 'left', padding: '1rem 2rem', border: 'none', background: 'none' }}><FaUsers /> Applicants</button>
+          <button onClick={() => { navigate('/dashboard/admissions'); setSidebarOpen(false); }} style={{ width: '100%', textAlign: 'left', padding: '1rem 2rem', border: 'none', background: 'none' }}><FaTachometerAlt /> Admissions</button>
+          <button onClick={() => { navigate('/dashboard/student-verification'); setSidebarOpen(false); }} style={{ width: '100%', textAlign: 'left', padding: '1rem 2rem', border: 'none', background: 'none' }}><FaUserGraduate /> Students</button>
+          <button onClick={() => { navigate('/dashboard/pending'); setSidebarOpen(false); }} style={{ width: '100%', textAlign: 'left', padding: '1rem 2rem', border: 'none', background: 'none' }}><FaUsers /> Pending</button>
+          <button onClick={() => { navigate('/dashboard/notifications'); setSidebarOpen(false); }} style={{ width: '100%', textAlign: 'left', padding: '1rem 2rem', border: 'none', background: 'none' }}><FaBell /> Notifications</button>
+          <button className="sidebar-logout" onClick={() => { navigate('/'); setSidebarOpen(false); }} style={{ width: '100%', textAlign: 'left', padding: '1rem 2rem', border: 'none', background: 'none' }}><FaSignOutAlt /> Logout</button>
+        </nav>
+      )}
+      {/* Sidebar for desktop only */}
+      <aside
+        className="admin-sidebar"
+        style={{
+          display: isMobile ? 'none' : 'flex',
+          flexDirection: 'column',
+          minHeight: '100vh',
+          width: 170,
+          background: '#fff',
+          borderRight: '1px solid #e5e7eb',
+          zIndex: 10,
         }}
       >
-        <FaBell />
-      </button>
-      <aside className="admin-sidebar">
         <div className="sidebar-logo" onClick={() => navigate('/dashboard')}>
           <img src={logo} alt="RED(P) Logo" />
           <span>RED(P) Admin</span>
@@ -235,14 +286,13 @@ const Dashboard: React.FC = () => {
           <button onClick={() => navigate('/dashboard')}><FaTachometerAlt /> Dashboard</button>
           <button onClick={() => navigate('/dashboard/applicants')}><FaUsers /> Applicants</button>
           <button onClick={() => navigate('/dashboard/admissions')}><FaTachometerAlt /> Admissions</button>
-          {/* Schools removed */}
           <button onClick={() => navigate('/dashboard/student-verification')}><FaUserGraduate /> Students</button>
           <button onClick={() => navigate('/dashboard/pending')}><FaUsers /> Pending</button>
           <button onClick={() => navigate('/dashboard/notifications')}><FaBell /> Notifications</button>
-          {/* Profile button removed */}
-          <button className="sidebar-logout" onClick={() => navigate('/') }><FaSignOutAlt /> Logout</button>
+          <button className="sidebar-logout" onClick={() => navigate('/')}><FaSignOutAlt /> Logout</button>
         </nav>
       </aside>
+      {/* Main content */}
       <main className="admin-main">
         <header className="admin-topbar">
           {/* Search bar and notification bell removed from header */}
@@ -278,7 +328,7 @@ const Dashboard: React.FC = () => {
                 ))}
               </section>
               <section className="dashboard-actions">
-                <button className="dashboard-action-btn primary" onClick={() => navigate('/admissions/1')}>📝 New Admission</button>
+                <button className="dashboard-action-btn primary" onClick={() => setShowAdmissionForm(true)}>📝 New Admission</button>
                 <button className="dashboard-action-btn" onClick={() => navigate('/notifications')}>📢 Notify</button>
               </section>
               <section className="dashboard-recent-table">
@@ -435,36 +485,41 @@ const Dashboard: React.FC = () => {
       </main>
       {modalApplicant && (
         <div className="modal-overlay" onClick={() => setModalApplicant(null)}>
-          <div className="modal-content" onClick={e => e.stopPropagation()}>
-            <button className="modal-close" onClick={() => setModalApplicant(null)}>&times;</button>
-            <h3>Applicant Details</h3>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: 380, margin: '0 auto', borderRadius: 16, boxShadow: '0 8px 32px rgba(2,60,105,0.18)', padding: '2.5rem 2rem 2rem 2rem', background: '#fff', display: 'flex', flexDirection: 'column', alignItems: 'center', overflow: 'visible' }}>
+            <button className="modal-close" onClick={() => setModalApplicant(null)} style={{ position: 'absolute', top: 18, right: 24, fontSize: 28, color: '#888', background: 'none', border: 'none', cursor: 'pointer' }}>&times;</button>
+            {/* Applicant image/avatar placeholder */}
+            <div style={{ marginBottom: 18 }}>
+              {modalApplicant.profileImage ? (
+                <img
+                  src={modalApplicant.profileImage}
+                  alt={modalApplicant.firstName + ' ' + modalApplicant.lastName}
+                  style={{ width: 72, height: 72, borderRadius: '50%', objectFit: 'cover', background: '#eee', display: 'block' }}
+                />
+              ) : modalApplicant.firstName && modalApplicant.lastName ? (
+                <span style={{ width: 72, height: 72, borderRadius: '50%', background: '#eee', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, color: '#888', fontSize: 32 }}>
+                  {modalApplicant.firstName[0]}{modalApplicant.lastName[0]}
+                </span>
+              ) : (
+                <span style={{ width: 72, height: 72, borderRadius: '50%', background: '#eee', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#bbb', fontSize: 32 }}>?</span>
+              )}
+            </div>
+            <h3 style={{ margin: '0 0 1.2rem 0', color: '#023c69', fontSize: '1.3rem', fontWeight: 700, textAlign: 'center' }}>Applicant Details</h3>
             {modalLoading ? (
               <div style={{ textAlign: 'center', padding: '2rem' }}>
                 <p>Loading details...</p>
               </div>
             ) : (
-              <div>
-                {/* Display all fields from the detailed API response */}
-                {Object.entries(modalApplicant).map(([key, value]) => {
-                  // Skip internal keys (case-insensitive)
-                  const lowerKey = key.toLowerCase();
-                  if (lowerKey === 'partitionkey' || lowerKey === 'rowkey') {
-                    return null;
-                  }
-                  
-                  // Handle null status
-                  const displayValue = key === 'status' && (value === null || value === undefined) 
-                    ? 'Pending' 
-                    : String(value || '');
-                  
-                  return (
-                    <div key={key} style={{ marginBottom: '0.5rem' }}>
-                      <strong>{key.charAt(0).toUpperCase() + key.slice(1)}:</strong> {displayValue}
-                    </div>
-                  );
-                })}
-              </div>
+              <ModalDetailsContent modalApplicant={modalApplicant} />
             )}
+          </div>
+        </div>
+      )}
+      {/* Admission Form Modal */}
+      {showAdmissionForm && (
+        <div className="modal-overlay" onClick={() => setShowAdmissionForm(false)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: 520, margin: '0 auto', borderRadius: 16, boxShadow: '0 8px 32px rgba(2,60,105,0.18)', padding: '2.5rem 2rem 2rem 2rem', background: '#fff', display: 'flex', flexDirection: 'column', alignItems: 'center', overflow: 'visible' }}>
+            <button className="modal-close" onClick={() => setShowAdmissionForm(false)} style={{ position: 'absolute', top: 18, right: 24, fontSize: 28, color: '#888', background: 'none', border: 'none', cursor: 'pointer' }}>&times;</button>
+            <NewAdmissionForm />
           </div>
         </div>
       )}
@@ -473,3 +528,186 @@ const Dashboard: React.FC = () => {
 };
 
 export default Dashboard;
+
+const ModalDetailsContent: React.FC<{ modalApplicant: any }> = ({ modalApplicant }) => {
+  const [copiedKey, setCopiedKey] = React.useState<string | null>(null);
+  const [previewUrl, setPreviewUrl] = React.useState<string | null>(null);
+  const [previewType, setPreviewType] = React.useState<'image' | 'pdf' | 'txt' | 'doc' | 'other' | null>(null);
+  const [txtContent, setTxtContent] = React.useState<string | null>(null);
+
+  // Helper to detect URLs
+  const isUrl = (value: string) => /^https?:\/\//i.test(value);
+  // Helper to detect image
+  const isImage = (url: string) => /\.(jpg|jpeg|png|gif|bmp|webp)$/i.test(url);
+  // Helper to detect PDF
+  const isPdf = (url: string) => /\.pdf$/i.test(url);
+  // Helper to detect TXT
+  const isTxt = (url: string) => /\.txt$/i.test(url);
+  // Helper to detect DOC/DOCX
+  const isDoc = (url: string) => /\.(doc|docx)$/i.test(url);
+
+  React.useEffect(() => {
+    if (previewType === 'txt' && previewUrl) {
+      fetch(previewUrl)
+        .then(res => res.text())
+        .then(setTxtContent)
+        .catch(() => setTxtContent('Could not load text file.'));
+    } else {
+      setTxtContent(null);
+    }
+  }, [previewType, previewUrl]);
+
+  return (
+    <div style={{ width: '100%' }}>
+      {Object.entries(modalApplicant).map(([key, value]) => {
+        // Skip internal keys (case-insensitive)
+        const lowerKey = key.toLowerCase();
+        if (lowerKey === 'partitionkey' || lowerKey === 'rowkey' || lowerKey === 'profileimage') {
+          return null;
+        }
+        // Handle null status
+        const displayValue = key === 'status' && (value === null || value === undefined) 
+          ? 'Pending' 
+          : String(value || '');
+        // If value is a URL, show preview button
+        if (isUrl(displayValue)) {
+          return (
+            <div key={key} style={{ marginBottom: '0.7rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f3f3f3', padding: '0.3rem 0' }}>
+              <strong style={{ color: '#555', fontWeight: 600, fontSize: 15 }}>{key.charAt(0).toUpperCase() + key.slice(1)}:</strong>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <button
+                  style={{ padding: '4px 12px', borderRadius: 5, border: '1px solid #ff9800', background: '#fff', color: '#ff9800', fontWeight: 600, cursor: 'pointer' }}
+                  onClick={() => {
+                    if (isImage(displayValue)) {
+                      setPreviewType('image');
+                    } else if (isPdf(displayValue)) {
+                      setPreviewType('pdf');
+                    } else if (isTxt(displayValue)) {
+                      setPreviewType('txt');
+                    } else if (isDoc(displayValue)) {
+                      setPreviewType('doc');
+                    } else {
+                      setPreviewType('other');
+                    }
+                    setPreviewUrl(displayValue);
+                  }}
+                >
+                  Preview
+                </button>
+                <span
+                  className="modal-detail-value"
+                  title={displayValue}
+                  style={{
+                    maxWidth: 120,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                    display: 'inline-block',
+                    verticalAlign: 'middle',
+                    cursor: 'pointer',
+                    color: '#333',
+                    fontSize: 15,
+                    position: 'relative',
+                    background: copiedKey === key ? '#e0ffe0' : 'transparent',
+                    borderRadius: copiedKey === key ? 4 : undefined,
+                    transition: 'background 0.2s',
+                  }}
+                  onClick={() => {
+                    navigator.clipboard.writeText(displayValue);
+                    setCopiedKey(key);
+                    setTimeout(() => setCopiedKey(null), 1200);
+                  }}
+                >
+                  {displayValue}
+                  {copiedKey === key && (
+                    <span style={{
+                      position: 'absolute',
+                      left: '50%',
+                      top: '1.8em',
+                      transform: 'translateX(-50%)',
+                      background: '#222',
+                      color: '#fff',
+                      borderRadius: 4,
+                      padding: '2px 10px',
+                      fontSize: 12,
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                      zIndex: 10,
+                    }}>Copied!</span>
+                  )}
+                </span>
+              </span>
+            </div>
+          );
+        }
+        // Not a URL: normal copy-to-clipboard
+        return (
+          <div key={key} style={{ marginBottom: '0.7rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f3f3f3', padding: '0.3rem 0' }}>
+            <strong style={{ color: '#555', fontWeight: 600, fontSize: 15 }}>{key.charAt(0).toUpperCase() + key.slice(1)}:</strong>
+            <span
+              className="modal-detail-value"
+              title={displayValue}
+              style={{
+                maxWidth: 180,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                display: 'inline-block',
+                verticalAlign: 'middle',
+                cursor: 'pointer',
+                color: '#333',
+                fontSize: 15,
+                position: 'relative',
+                background: copiedKey === key ? '#e0ffe0' : 'transparent',
+                borderRadius: copiedKey === key ? 4 : undefined,
+                transition: 'background 0.2s',
+              }}
+              onClick={() => {
+                navigator.clipboard.writeText(displayValue);
+                setCopiedKey(key);
+                setTimeout(() => setCopiedKey(null), 1200);
+              }}
+            >
+              {displayValue}
+              {copiedKey === key && (
+                <span style={{
+                  position: 'absolute',
+                  left: '50%',
+                  top: '1.8em',
+                  transform: 'translateX(-50%)',
+                  background: '#222',
+                  color: '#fff',
+                  borderRadius: 4,
+                  padding: '2px 10px',
+                  fontSize: 12,
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                  zIndex: 10,
+                }}>Copied!</span>
+              )}
+            </span>
+          </div>
+        );
+      })}
+      {/* Preview Modal */}
+      {previewUrl && (
+        <div className="modal-overlay" onClick={() => { setPreviewUrl(null); setTxtContent(null); }}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: 600, minHeight: 300, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+            <button className="modal-close" onClick={() => { setPreviewUrl(null); setTxtContent(null); }} style={{ position: 'absolute', top: 18, right: 24, fontSize: 28, color: '#888', background: 'none', border: 'none', cursor: 'pointer' }}>&times;</button>
+            {previewType === 'image' ? (
+              <img src={previewUrl} alt="Preview" style={{ maxWidth: '100%', maxHeight: 400, borderRadius: 8, boxShadow: '0 2px 8px rgba(0,0,0,0.10)' }} />
+            ) : previewType === 'pdf' ? (
+              <iframe src={previewUrl} title="PDF Preview" style={{ width: 520, height: 400, border: 'none', borderRadius: 8, boxShadow: '0 2px 8px rgba(0,0,0,0.10)' }} />
+            ) : previewType === 'txt' ? (
+              <div style={{ width: '100%', maxHeight: 400, overflowY: 'auto', background: '#f7fafd', borderRadius: 8, padding: 16, fontFamily: 'monospace', fontSize: 15, color: '#222', boxShadow: '0 2px 8px rgba(0,0,0,0.10)' }}>{txtContent || 'Loading...'}</div>
+            ) : previewType === 'doc' ? (
+              <iframe src={`https://docs.google.com/gview?url=${encodeURIComponent(previewUrl)}&embedded=true`} title="Doc Preview" style={{ width: 520, height: 400, border: 'none', borderRadius: 8, boxShadow: '0 2px 8px rgba(0,0,0,0.10)' }} />
+            ) : (
+              <div style={{ textAlign: 'center' }}>
+                <p>Preview not supported. <a href={previewUrl} target="_blank" rel="noopener noreferrer">Open in new tab</a></p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
