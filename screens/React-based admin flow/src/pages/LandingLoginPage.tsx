@@ -40,8 +40,6 @@ const LandingLoginPage: React.FC = () => {
 
       if (response.ok) {
         const responseText = await response.text();
-        console.log('Raw response:', responseText);
-        console.log('Response length:', responseText.length);
         
         let data;
         let code = '';
@@ -49,13 +47,8 @@ const LandingLoginPage: React.FC = () => {
         try {
           // Clean the response text of control characters before parsing
           const cleanedText = responseText.replace(/[\x00-\x1F\x7F]/g, '');
-          console.log('Cleaned response:', cleanedText);
           data = JSON.parse(cleanedText);
-          console.log('Parsed JSON data:', data);
         } catch (parseError) {
-          console.error('JSON parse error:', parseError);
-          console.log('Attempting direct code extraction...');
-          
           // If JSON parsing fails, try to extract the code directly from the response
           // Try different patterns for 6-character codes
           const patterns = [
@@ -70,7 +63,6 @@ const LandingLoginPage: React.FC = () => {
             const matches = responseText.match(pattern);
             if (matches && matches.length > 0) {
               code = matches[0].replace(/[^A-Z0-9]/g, ''); // Clean any extra characters
-              console.log('Extracted code using pattern:', pattern, 'Result:', code);
               break;
             }
           }
@@ -80,7 +72,6 @@ const LandingLoginPage: React.FC = () => {
             const trimmed = responseText.trim();
             if (trimmed.length === 6 && /^[A-Z0-9]+$/.test(trimmed)) {
               code = trimmed;
-              console.log('Using trimmed response as code:', code);
             }
           }
         }
@@ -96,18 +87,14 @@ const LandingLoginPage: React.FC = () => {
           } else if (data.value && typeof data.value === 'string') {
             code = data.value.trim();
           }
-          console.log('Code from JSON data:', code);
         }
-        
-        console.log('Final extracted code:', code);
         
         if (code && code.length >= 4) { // Accept codes that are at least 4 characters
           setGeneratedCode(code);
           setCodeTimestamp(Date.now());
           return true;
         } else {
-          setError("Failed to extract verification code from response. Check console for details.");
-          console.error('Code extraction failed. Raw response was:', responseText);
+          setError("Failed to extract verification code from response.");
           return false;
         }
       } else {

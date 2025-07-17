@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import './ConfirmationCode.css';
 
 const CODE_LENGTH = 6;
-const EXPIRATION_TIME = 30 * 1000; // 30 seconds for testing
+const EXPIRATION_TIME = 10 * 60 * 1000; // 10 minutes
 
 interface ConfirmationCodeProps {
   onSuccess: () => void;
@@ -158,7 +158,7 @@ const ConfirmationCode: React.FC<ConfirmationCodeProps> = ({ onSuccess, email, e
           {!isExpired ? (
             <>Didn't get the code? Check your spam folder or click "Resend Code" above.</>
           ) : (
-            <>Code expired after 30 seconds. Click "Resend Code" to get a new one.</>
+            <>Code expired after 10 minutes. Click "Resend Code" to get a new one.</>
           )}
         </div>
       </div>
