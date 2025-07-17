@@ -5,50 +5,33 @@
 import React from 'react';
 import './Dashboard.css';
 
-// TODO: Backend: Replace admissions array with data fetched from API
-const admissions = [
-  {
-    id: 1,
-    firstName: 'John',
-    lastName: 'Doe',
-    email: 'john@example.com',
-    phone: '555-123-4567',
-    dateOfBirth: '2005-06-15',
-    gradeLevel: 10,
-    schoolName: 'Springfield High School',
-    location: '123 Main St, Springfield',
-    essay: 'My essay about why I deserve the scholarship.',
-    status: 'Approved',
-  },
-  {
-    id: 2,
-    firstName: 'Priya',
-    lastName: 'Sharma',
-    email: 'priya@email.com',
-    phone: '555-987-6543',
-    dateOfBirth: '2006-02-10',
-    gradeLevel: 9,
-    schoolName: 'Green Valley Public School',
-    location: '456 Green Rd, Valley',
-    essay: 'I want to make a difference in my community.',
-    status: 'Pending',
-  },
-  {
-    id: 3,
-    firstName: 'Amina',
-    lastName: 'Njeri',
-    email: 'amina@email.com',
-    phone: '555-222-3333',
-    dateOfBirth: '2007-03-20',
-    gradeLevel: 8,
-    schoolName: 'Nairobi High',
-    location: '789 River Rd, Nairobi',
-    essay: 'Education is the key to my future success.',
-    status: 'Pending',
-  },
-];
+// Type for API applicant data
+type ApplicantBasic = {
+  firstName: string;
+  lastName: string;
+  status: string;
+  partitionKey: string;
+  rowKey: string;
+  [key: string]: any; // Additional fields from API
+};
 
-const AdmissionsTable: React.FC = () => {
+// Helper function to get status display
+function getStatusDisplay(status: number | null) {
+  if (status === null || status === 1) {
+    return 'Pending';
+  } else if (status === 2) {
+    return 'Approved';
+  } else if (status === 3) {
+    return 'Denied';
+  }
+  return 'Pending';
+}
+
+interface AdmissionsTableProps {
+  applicants: ApplicantBasic[];
+}
+
+const AdmissionsTable: React.FC<AdmissionsTableProps> = ({ applicants }) => {
   return (
     <div className="dashboard-recent-table" style={{maxWidth: 1100, width: '100%', minWidth: 0, margin: '2rem auto', padding: '0 1rem', boxSizing: 'border-box'}}>
       <h2>New Admissions</h2>
@@ -69,21 +52,25 @@ const AdmissionsTable: React.FC = () => {
             </tr>
           </thead>
           <tbody>
-            {admissions.length === 0 ? (
+            {applicants.length === 0 ? (
               <tr><td colSpan={10} style={{ textAlign: 'center', color: '#888' }}>No new admissions.</td></tr>
             ) : (
-              admissions.map(adm => (
-                <tr key={adm.id}>
-                  <td>{adm.firstName}</td>
-                  <td>{adm.lastName}</td>
-                  <td>{adm.email}</td>
-                  <td>{adm.phone}</td>
-                  <td>{adm.dateOfBirth}</td>
-                  <td>{adm.gradeLevel}</td>
-                  <td>{adm.schoolName}</td>
-                  <td>{adm.location}</td>
-                  <td>{adm.essay}</td>
-                  <td><span className={`status-badge ${adm.status.toLowerCase().replace(' ', '-')}`}>{adm.status}</span></td>
+              applicants.map((applicant, idx) => (
+                <tr key={applicant.rowKey || idx}>
+                  <td>{applicant.firstName}</td>
+                  <td>{applicant.lastName}</td>
+                  <td>{applicant.email || 'N/A'}</td>
+                  <td>{applicant.phone || 'N/A'}</td>
+                  <td>{applicant.dateOfBirth || 'N/A'}</td>
+                  <td>{applicant.gradeLevel || 'N/A'}</td>
+                  <td>{applicant.schoolName || 'N/A'}</td>
+                  <td>{applicant.location || 'N/A'}</td>
+                  <td>{applicant.essay || 'N/A'}</td>
+                  <td>
+                    <span className={`status-badge ${getStatusDisplay(applicant.status === undefined ? null : Number(applicant.status)).toLowerCase().replace(' ', '-')}`}>
+                      {getStatusDisplay(applicant.status === undefined ? null : Number(applicant.status))}
+                    </span>
+                  </td>
                 </tr>
               ))
             )}

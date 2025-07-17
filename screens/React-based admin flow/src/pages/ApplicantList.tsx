@@ -52,6 +52,9 @@ interface ApplicantListProps {
 // API base URL
 const API_BASE_URL = 'https://simbagetapplicants-hcf5cffbcccmgsbn.westus-01.azurewebsites.net/api/httptablefunction';
 
+// Import helpers from Dashboard
+import { getStatusDisplay, shouldShowButtons } from './Dashboard';
+
 const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
   // State for storing the basic applicants list
   const [applicants, setApplicants] = useState<ApplicantBasic[]>([]);
@@ -70,31 +73,41 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
   // Add state for search and pagination
   const [search, setSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
-  const applicantsPerPage = 10;
+  const [applicantsPerPage, setApplicantsPerPage] = useState(10);
+
+  // Add modal state
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalMessage, setModalMessage] = useState('');
+  // Remove modalAction state
+  // const [modalAction, setModalAction] = useState<null | (() => void)>(null);
+
+  // Add local state for demo approvals
+  const [demoApprovals, setDemoApprovals] = useState<{ [key: string]: string[] }>({});
+
+  // Refetch function to update data after status changes
+  const refetchApplicants = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await fetch(API_BASE_URL);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch applicants: ${response.status} ${response.statusText}`);
+      }
+      
+      const data: ApplicantBasic[] = await response.json();
+      setApplicants(data);
+    } catch (err) {
+      console.error('Error fetching applicants:', err);
+      setError(err instanceof Error ? err.message : 'Failed to fetch applicants');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Fetch all applicants on component mount
   useEffect(() => {
-    const fetchApplicants = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const response = await fetch(API_BASE_URL);
-        
-        if (!response.ok) {
-          throw new Error(`Failed to fetch applicants: ${response.status} ${response.statusText}`);
-        }
-        
-        const data: ApplicantBasic[] = await response.json();
-        setApplicants(data);
-      } catch (err) {
-        console.error('Error fetching applicants:', err);
-        setError(err instanceof Error ? err.message : 'Failed to fetch applicants');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchApplicants();
+    refetchApplicants();
   }, []);
 
   // Fetch detailed applicant data for modal
@@ -135,19 +148,24 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
 
   // Bulk action handler
   const handleBulkAction = (action: 'Approved' | 'Pending' | 'Denied') => {
+    console.log('Bulk action clicked:', action);
     const selectedKeys = Object.keys(selected).filter(k => selected[k]);
+    console.log('Selected keys:', selectedKeys);
     // Call onAction for each selected applicant
     selectedKeys.forEach(key => {
-      const [partitionKey, rowKey] = key.split('-');
+      const [partitionKey, rowKey] = key.split('|');
+      console.log('Processing applicant:', { partitionKey, rowKey, action });
       if (onAction) onAction(partitionKey, rowKey, action);
     });
     // Optionally clear selection after action
     setSelected({});
+    // Refetch data after bulk action to show updated statuses
+    setTimeout(() => refetchApplicants(), 1000);
   };
 
   // Helper: select all visible applicants
-  const allSelected = applicants.length > 0 && applicants.every(a => selected[`${a.partitionKey}-${a.rowKey}`]);
-  const someSelected = applicants.some(a => selected[`${a.partitionKey}-${a.rowKey}`]);
+  const allSelected = applicants.length > 0 && applicants.every(a => selected[`${a.partitionKey}|${a.rowKey}`]);
+  const someSelected = applicants.some(a => selected[`${a.partitionKey}|${a.rowKey}`]);
   const toggleSelectAll = () => {
     if (allSelected) {
       // Deselect all
@@ -156,7 +174,7 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
     } else {
       // Select all
       const newSel: { [key: string]: boolean } = {};
-      applicants.forEach(a => { newSel[`${a.partitionKey}-${a.rowKey}`] = true; });
+      applicants.forEach(a => { newSel[`${a.partitionKey}|${a.rowKey}`] = true; });
       setSelected(newSel);
     }
   };
@@ -180,6 +198,9 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
     (currentPage - 1) * applicantsPerPage,
     currentPage * applicantsPerPage
   );
+
+  // Dropdown options for applicants per page
+  const pageSizeOptions = [10, 25, 50, 100];
 
   // Reset to page 1 if search changes
   useEffect(() => { setCurrentPage(1); }, [search]);
@@ -218,7 +239,18 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
   }
 
   return (
-    <div className="applicant-list-container">
+    <div className="applicant-list-container" style={{
+      display: 'flex',
+      flexDirection: 'column',
+      minHeight: '70vh',
+      maxWidth: 1200,
+      margin: '0 auto',
+      padding: '2rem 1rem',
+      background: '#fff',
+      borderRadius: 16,
+      boxShadow: '0 2px 16px 0 rgba(34,34,34,0.08)',
+      flexGrow: 1
+    }}>
       <h2 className="applicant-list-title">All Applications</h2>
       {/* Search/filter bar */}
       <div style={{ display: 'flex', gap: 12, marginBottom: 16, alignItems: 'center' }}>
@@ -244,18 +276,19 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
         >
           Deny Selected
         </button>
-        <button
-          onClick={() => handleBulkAction('Pending')}
-          disabled={!someSelected}
-          style={{ background: '#ff9800', color: '#fff', border: 'none', borderRadius: 5, padding: '8px 18px', fontWeight: 600, cursor: someSelected ? 'pointer' : 'not-allowed', opacity: someSelected ? 1 : 0.5 }}
-        >
-          Pend Selected
-        </button>
         {someSelected && <span style={{ color: '#888', fontSize: 14 }}>{Object.keys(selected).filter(k => selected[k]).length} selected</span>}
       </div>
-      <div className="applicant-list-table" style={{overflowX: 'auto'}}>
-        {/* Table header */}
-        <div className="applicant-list-header" style={{display: 'grid', gridTemplateColumns: '0.5fr 0.7fr 1.5fr 1.5fr 1fr 2fr', gap: 16, fontWeight: 600, padding: '1rem'}}>
+      <div className="applicant-list-table" style={{
+        overflowX: 'auto',
+        border: '1px solid #eee',
+        borderRadius: 8,
+        marginTop: 12,
+        flexGrow: 1,
+        minHeight: '40vh',
+        background: '#fafbfc'
+      }}>
+        {/* Table header: consistently show 5 columns */}
+        <div className="applicant-list-header" style={{display: 'grid', gridTemplateColumns: '0.5fr 0.7fr 1.5fr 1.5fr 1fr 2fr 1.5fr', gap: 16, fontWeight: 600, padding: '1rem', background: '#fafafa', borderBottom: '1px solid #eee'}}>
           <span>
             <input
               type="checkbox"
@@ -265,18 +298,42 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
               aria-label="Select all applicants"
             />
           </span>
-          <span>Image</span>
+          <span>Avatar</span>
           <span>First Name</span>
           <span>Last Name</span>
           <span>Status</span>
+          <span>Approved By</span>
           <span>Actions</span>
         </div>
         {/* Table rows: map over paginatedApplicants array */}
         {paginatedApplicants.map((applicant, idx) => {
-          const applicantKey = `${applicant.partitionKey}-${applicant.rowKey}`;
-          const status = applicant.status || 'Pending';
+          const applicantKey = `${applicant.partitionKey}|${applicant.rowKey}`;
+          // Use local state for approvedBy, fallback to dummy data
+          let approvedBy = demoApprovals[applicantKey];
+          if (!approvedBy) {
+            if ((applicant.status === undefined ? null : Number(applicant.status)) === 2) {
+              approvedBy = ['Admin1', 'Admin2'];
+            } else if ((applicant.status === undefined ? null : Number(applicant.status)) === 1 || applicant.status === null) {
+              approvedBy = ['Admin1'];
+            } else {
+              approvedBy = [];
+            }
+          }
+          // Use the actual API status instead of calculating from approvedBy
+          const status = getStatusDisplay(applicant.status === undefined ? null : Number(applicant.status));
+          // Handler for toggling admin approval
+          const toggleAdmin = (admin: string) => {
+            setDemoApprovals(prev => {
+              const current = prev[applicantKey] || approvedBy;
+              if (current.includes(admin)) {
+                return { ...prev, [applicantKey]: current.filter(a => a !== admin) };
+              } else {
+                return { ...prev, [applicantKey]: [...current, admin] };
+              }
+            });
+          };
           return (
-            <div className="applicant-list-row" key={applicantKey} style={{display: 'grid', gridTemplateColumns: '0.5fr 0.7fr 1.5fr 1.5fr 1fr 2fr', gap: 16, alignItems: 'center', padding: '1rem', borderBottom: '1px solid #eee'}}>
+            <div className="applicant-list-row" key={applicantKey} style={{display: 'grid', gridTemplateColumns: '0.5fr 0.7fr 1.5fr 1.5fr 1fr 2fr 1.5fr', gap: 16, alignItems: 'center', padding: '1rem', borderBottom: '1px solid #eee', background: idx % 2 === 0 ? '#fff' : '#f7f7f7'}}>
               {/* Checkbox */}
               <span>
                 <input
@@ -286,24 +343,18 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
                   aria-label={`Select applicant ${applicant.firstName} ${applicant.lastName}`}
                 />
               </span>
-              {/* Image placeholder */}
-              <span style={{display: 'flex', justifyContent: 'center', alignItems: 'center'}}>
+              {/* Avatar/Initials */}
+              <span>
                 {applicant.profileImage ? (
                   <img
                     src={applicant.profileImage}
                     alt={applicant.firstName + ' ' + applicant.lastName}
-                    className="applicant-img-placeholder"
-                    style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover', background: '#eee' }}
+                    style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover', background: '#eee', display: 'block' }}
                   />
-                ) : applicant.firstName && applicant.lastName ? (
-                  <span className="applicant-img-placeholder" style={{
-                    width: 40, height: 40, borderRadius: '50%', background: '#eee',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, color: '#888', fontSize: 18
-                  }}>
-                    {applicant.firstName[0]}{applicant.lastName[0]}
-                  </span>
                 ) : (
-                  <FaUserCircle className="applicant-img-placeholder" style={{ width: 40, height: 40, color: '#bbb' }} />
+                  <span className="avatar-initials">
+                    {applicant.firstName && applicant.lastName ? `${applicant.firstName[0]}${applicant.lastName[0]}`.toUpperCase() : '?'}
+                  </span>
                 )}
               </span>
               <span>{applicant.firstName}</span>
@@ -315,14 +366,40 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
                 fontWeight: 600,
                 textAlign: 'center',
                 color: 'white',
-                background: status === 'Approved' ? '#4caf50' : 
-                           status === 'Pending' ? '#ff9800' : 
-                           status === 'Denied' ? '#f44336' : '#666'
+                background: status === 'Approved' ? '#43a047' : status === 'Pending' ? '#ff9800' : status === 'Denied' ? '#f44336' : '#ff9800',
+                minWidth: 90,
+                display: 'inline-block',
               }}>
                 {status}
               </span>
+              <span style={{ minWidth: 120 }}>
+                <select
+                  multiple
+                  value={approvedBy}
+                  onChange={e => {
+                    const options = Array.from(e.target.selectedOptions).map(opt => opt.value);
+                    setDemoApprovals(prev => ({ ...prev, [applicantKey]: options }));
+                  }}
+                  style={{
+                    border: '1.5px solid #ff9800',
+                    borderRadius: 6,
+                    padding: '4px 8px',
+                    fontWeight: 600,
+                    color: '#ff9800',
+                    background: '#fff',
+                    minWidth: 110,
+                    marginRight: 8,
+                    cursor: 'pointer',
+                  }}
+                  title="Select admins who have approved"
+                >
+                  {['Admin1', 'Admin2', 'Admin3'].map(admin => (
+                    <option key={admin} value={admin}>{admin}</option>
+                  ))}
+                </select>
+              </span>
               <span style={{display: 'flex', gap: 8, alignItems: 'center'}}>
-                {/* View button only */}
+                {/* Only show View button */}
                 <button
                   className="details-link"
                   style={{
@@ -355,31 +432,137 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
           );
         })}
       </div>
-      {/* Pagination controls */}
-      {totalPages > 1 && (
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, marginTop: 18 }}>
-          <button
-            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-            disabled={currentPage === 1}
-            style={{ padding: '6px 14px', borderRadius: 5, border: '1px solid #ccc', background: currentPage === 1 ? '#eee' : '#fff', cursor: currentPage === 1 ? 'not-allowed' : 'pointer' }}
-          >
-            Prev
-          </button>
-          <span style={{ fontWeight: 600, fontSize: 15 }}>Page {currentPage} of {totalPages}</span>
-          <button
-            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-            disabled={currentPage === totalPages}
-            style={{ padding: '6px 14px', borderRadius: 5, border: '1px solid #ccc', background: currentPage === totalPages ? '#eee' : '#fff', cursor: currentPage === totalPages ? 'not-allowed' : 'pointer' }}
-          >
-            Next
-          </button>
+      {/* Stylish Modal for feedback */}
+      {modalOpen && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100vh',
+          background: 'rgba(0,0,0,0.35)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999
+        }}>
+          <div style={{
+            background: '#fff',
+            borderRadius: 16,
+            boxShadow: '0 4px 32px 0 rgba(34,34,34,0.18)',
+            padding: '2.5rem 2.5rem 2rem 2.5rem',
+            minWidth: 320,
+            maxWidth: '90vw',
+            textAlign: 'center',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: 24
+          }}>
+            <div style={{ fontSize: 28, fontWeight: 700, color: '#ff3d00', marginBottom: 12 }}>
+              {modalMessage}
+            </div>
+            <button
+              style={{
+                background: '#ff3d00',
+                color: '#fff',
+                border: 'none',
+                borderRadius: 8,
+                padding: '10px 32px',
+                fontWeight: 600,
+                fontSize: 18,
+                cursor: 'pointer',
+                marginTop: 8
+              }}
+              onClick={() => {
+                setModalOpen(false);
+                window.location.reload();
+              }}
+            >
+              OK
+            </button>
+          </div>
         </div>
       )}
+      {/* Pagination controls */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 24 }}>
+        {/* Page size dropdown */}
+        <div>
+          <label htmlFor="pageSize" style={{ marginRight: 8 }}>Rows per page:</label>
+          <select
+            id="pageSize"
+            value={applicantsPerPage}
+            onChange={e => {
+              setCurrentPage(1);
+              setApplicantsPerPage(Number(e.target.value));
+            }}
+            style={{ padding: '4px 8px', borderRadius: 4, border: '1px solid #bbb' }}
+          >
+            {pageSizeOptions.map(size => (
+              <option key={size} value={size}>{size}</option>
+            ))}
+          </select>
+        </div>
+        {/* Page navigation dropdown */}
+        {totalPages > 1 && (
+          <div>
+            <label htmlFor="pageNav" style={{ marginRight: 8 }}>Page:</label>
+            <select
+              id="pageNav"
+              value={currentPage}
+              onChange={e => setCurrentPage(Number(e.target.value))}
+              style={{ padding: '4px 8px', borderRadius: 4, border: '1px solid #bbb' }}
+            >
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                <option key={page} value={page}>{page}</option>
+              ))}
+            </select>
+          </div>
+        )}
+      </div>
       
       {/* Modal for applicant details */}
       {modalApplicant && (
-        <div className="modal-overlay" onClick={() => setModalApplicant(null)}>
-          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: 380, margin: '0 auto', borderRadius: 16, boxShadow: '0 8px 32px rgba(2,60,105,0.18)', padding: '2.5rem 2rem 2rem 2rem', background: '#fff', display: 'flex', flexDirection: 'column', alignItems: 'center', overflow: 'visible' }}>
+        <div className="modal-overlay" style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100vh',
+          background: 'rgba(0,0,0,0.35)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999
+        }} onClick={() => setModalApplicant(null)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{
+            padding: 24,
+            background: '#fff',
+            borderRadius: 12,
+            boxShadow: '0 2px 16px 0 rgba(34,34,34,0.10)',
+            minWidth: 320,
+            maxWidth: 480,
+            margin: '0 auto',
+            textAlign: 'left',
+            position: 'relative',
+            zIndex: 10001
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16 }}>
+              <span style={{
+                padding: '4px 12px',
+                borderRadius: '20px',
+                fontSize: '0.875rem',
+                fontWeight: 600,
+                textAlign: 'center',
+                color: 'white',
+                background: Number(modalApplicant.status) === 2 ? '#4caf50' : Number(modalApplicant.status) === 3 ? '#f44336' : '#ff9800',
+                minWidth: 90,
+                display: 'inline-block',
+              }}>
+                {getStatusDisplay(modalApplicant.status === undefined ? null : Number(modalApplicant.status))}
+              </span>
+              <span style={{ fontWeight: 700, fontSize: 20 }}>{modalApplicant.firstName} {modalApplicant.lastName}</span>
+            </div>
             <button className="modal-close" onClick={() => setModalApplicant(null)} style={{ position: 'absolute', top: 18, right: 24, fontSize: 28, color: '#888', background: 'none', border: 'none', cursor: 'pointer' }}>&times;</button>
             {/* Applicant image/avatar placeholder */}
             <div style={{ marginBottom: 18 }}>
@@ -411,11 +594,13 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
                   if (lowerKey === 'partitionkey' || lowerKey === 'rowkey' || lowerKey === 'profileimage') {
                     return null;
                   }
-                  // Handle null status
-                  const displayValue = key === 'status' && (value === null || value === undefined) 
-                    ? 'Pending' 
-                    : String(value || '');
-                  // Remove isLong check, always allow copy
+                  // Use getStatusDisplay for status field
+                  let displayValue;
+                  if (key === 'status') {
+                    displayValue = getStatusDisplay(value === undefined ? null : Number(value));
+                  } else {
+                    displayValue = value === null || value === undefined ? '' : String(value);
+                  }
                   return (
                     <div key={key} style={{ marginBottom: '0.7rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f3f3f3', padding: '0.3rem 0' }}>
                       <strong style={{ color: '#555', fontWeight: 600, fontSize: 15 }}>{key.charAt(0).toUpperCase() + key.slice(1)}:</strong>

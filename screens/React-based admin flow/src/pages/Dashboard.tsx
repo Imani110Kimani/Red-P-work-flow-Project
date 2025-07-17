@@ -78,6 +78,22 @@ const initialApplicants = [
   },
 ];
 
+// Add status code helpers from the prompt
+export function getStatusDisplay(status: number | null) {
+    if (status === null || status === 1) {
+        return 'Pending';
+    } else if (status === 2) {
+        return 'Approved';
+    } else if (status === 3) {
+        return 'Denied';
+    }
+    // Any unknown status is treated as Pending
+    return 'Pending';
+}
+export function shouldShowButtons(status: number | null) {
+    // Allow approve/deny for any unknown status
+    return status === null || status === 1 || status !== 2 && status !== 3;
+}
 
 
 const Dashboard: React.FC = () => {
@@ -112,6 +128,13 @@ const Dashboard: React.FC = () => {
         }
         
         const data: ApplicantBasic[] = await response.json();
+        // Debug: Log the status values to see what the API returns
+        console.log('API Response - Status values:', data.map(a => ({ 
+          name: `${a.firstName} ${a.lastName}`, 
+          status: a.status, 
+          statusType: typeof a.status,
+          processedStatus: getStatusDisplay(a.status === undefined ? null : Number(a.status))
+        })));
         setApiApplicants(data);
       } catch (err) {
         console.error('Error fetching applicants:', err);
@@ -293,7 +316,15 @@ const Dashboard: React.FC = () => {
         </nav>
       </aside>
       {/* Main content */}
-      <main className="admin-main">
+      <main className="admin-main fade-transition" style={{
+        minHeight: '80vh',
+        display: 'flex',
+        flexDirection: 'column',
+        flexGrow: 1,
+        justifyContent: 'flex-start',
+        alignItems: 'stretch',
+        padding: '0 0 2rem 0',
+      }}>
         <header className="admin-topbar">
           {/* Search bar and notification bell removed from header */}
         </header>
@@ -356,72 +387,31 @@ const Dashboard: React.FC = () => {
                     <tr>
                       <th>Name</th>
                       <th>Status</th>
-                      <th>Details</th>
                     </tr>
                   </thead>
                   <tbody>
                     {loading ? (
-                      <tr><td colSpan={3} style={{ textAlign: 'center', color: '#888', padding: '2rem' }}>Loading applicants...</td></tr>
+                      <tr><td colSpan={2} style={{ textAlign: 'center', color: '#888', padding: '2rem' }}>Loading applicants...</td></tr>
                     ) : filteredRecent.length === 0 ? (
-                      <tr><td colSpan={3} style={{ textAlign: 'center', color: '#888' }}>No results found.</td></tr>
+                      <tr><td colSpan={2} style={{ textAlign: 'center', color: '#888' }}>No results found.</td></tr>
                     ) : (
                       filteredRecent.map((item) => (
                         <tr key={item.id}>
                           <td>{item.name}</td>
                           <td>
                             <span style={{
-                              padding: '4px 8px',
-                              borderRadius: '12px',
-                              fontSize: '0.8rem',
+                              padding: '4px 12px',
+                              borderRadius: '20px',
+                              fontSize: '0.875rem',
                               fontWeight: 600,
+                              textAlign: 'center',
                               color: 'white',
-                              background: item.status === 'Approved' ? '#4caf50' : 
-                                         item.status === 'Pending' ? '#ff9800' : 
-                                         item.status === 'Denied' ? '#f44336' : '#666'
+                              background: Number(item.status) === 2 ? '#4caf50' : Number(item.status) === 3 ? '#f44336' : '#ff9800',
+                              minWidth: 90,
+                              display: 'inline-block',
                             }}>
-                              {item.status}
+                              {getStatusDisplay(item.status === undefined ? null : Number(item.status))}
                             </span>
-                          </td>
-                          <td>
-                            {apiApplicants.length > 0 ? (
-                              <button 
-                                className="dashboard-table-link"
-                                onClick={() => {
-                                  const applicant = apiApplicants.find(a => `${a.firstName} ${a.lastName}` === item.name);
-                                  if (applicant) {
-                                    fetchApplicantDetails(applicant.partitionKey, applicant.rowKey);
-                                  }
-                                }}
-                              >
-                                View Details
-                              </button>
-                            ) : (
-                              <button 
-                                className="dashboard-table-link" 
-                                onClick={() => {
-                                  const legacyApplicant = applicants.find(a => a.id === item.id);
-                                  if (legacyApplicant) {
-                                    // Convert legacy applicant to ApplicantDetailed format for modal
-                                    setModalApplicant({
-                                      firstName: legacyApplicant.firstName,
-                                      lastName: legacyApplicant.lastName,
-                                      status: legacyApplicant.status,
-                                      partitionKey: 'demo',
-                                      rowKey: legacyApplicant.id.toString(),
-                                      email: legacyApplicant.email,
-                                      phone: legacyApplicant.phone,
-                                      dateOfBirth: legacyApplicant.dateOfBirth,
-                                      gradeLevel: legacyApplicant.gradeLevel,
-                                      schoolName: legacyApplicant.schoolName,
-                                      location: legacyApplicant.location,
-                                      essay: legacyApplicant.essay
-                                    });
-                                  }
-                                }}
-                              >
-                                View
-                              </button>
-                            )}
                           </td>
                         </tr>
                       ))
@@ -463,22 +453,76 @@ const Dashboard: React.FC = () => {
             </aside>
           </div>
         ) : location.pathname === '/dashboard/student-verification' ? (
-          <StudentsTable applicants={applicants} />
+          <StudentsTable applicants={apiApplicants.map((a, idx) => ({
+            id: a.rowKey, // Use full rowKey as id
+            firstName: a.firstName,
+            lastName: a.lastName,
+            email: '',
+            phone: '',
+            dateOfBirth: '',
+            gradeLevel: 0,
+            schoolName: '',
+            location: '',
+            status: getStatusDisplay(a.status === undefined ? null : Number(a.status)),
+          }))} />
         ) : location.pathname === '/dashboard/pending' ? (
-          <PendingDetails
-            applicants={applicants.map(a => ({
-              ...a,
-              name: `${a.firstName} ${a.lastName}`,
-              school: a.schoolName,
-              submittedOn: a.dateOfBirth, // or use a real submission date if available
-              reason: '', // or provide a default/real reason
-              notes: '', // or provide a default/real notes
-            }))}
-          />
+          <PendingDetails applicants={apiApplicants.map((a, idx) => ({
+            id: a.rowKey, // Use full rowKey as id
+            name: `${a.firstName} ${a.lastName}`,
+            school: '',
+            status: getStatusDisplay(a.status === undefined ? null : Number(a.status)),
+            submittedOn: '',
+            reason: '',
+            notes: ''
+          }))} />
         ) : location.pathname === '/dashboard/applicants' ? (
-          <ApplicantList />
+          <ApplicantList
+            onAction={async (partitionKey, rowKey, newStatus) => {
+              // Map UI status to API action
+              let action;
+              if (newStatus === 'Approved') action = 'approve';
+              else if (newStatus === 'Denied') action = 'deny';
+              else return; // Only handle approve/deny for now
+
+              // Log the payload for debugging
+              console.log('Sending to API:', { partitionKey, rowKey, action });
+
+              try {
+                const response = await fetch('https://approval-function-6370.azurewebsites.net/api/changestatusfunction', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    partitionKey, // Use the actual partitionKey
+                    rowKey,
+                    action,
+                  }),
+                });
+                const data = await response.text();
+                if (response.ok) {
+                  // Refetch API data to show updated statuses
+                  const refetchResponse = await fetch(API_BASE_URL);
+                  if (refetchResponse.ok) {
+                    const refreshedData = await refetchResponse.json() as ApplicantBasic[];
+                    // Debug: Log the updated status values
+                    console.log('After status change - Updated status values:', refreshedData.map(a => ({ 
+                      name: `${a.firstName} ${a.lastName}`, 
+                      status: a.status, 
+                      statusType: typeof a.status,
+                      processedStatus: getStatusDisplay(a.status === undefined ? null : Number(a.status))
+                    })));
+                    setApiApplicants(refreshedData);
+                  }
+                  alert('Success: ' + data);
+                } else {
+                  alert('Error: ' + data);
+                }
+              } catch (error) {
+                alert('Error: ' + error);
+              }
+            }}
+          />
         ) : location.pathname === '/dashboard/admissions' ? (
-          <AdmissionsTable />
+          <AdmissionsTable applicants={apiApplicants} />
         ) : (
           <Outlet />
         )}

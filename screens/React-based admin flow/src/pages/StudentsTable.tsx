@@ -2,13 +2,13 @@
 // Shows all approved students in a table.
 // Backend engineers: Integrate API calls for fetching approved students where noted below.
 // For Azure Functions, connect data fetching to your HTTP triggers or function endpoints.
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import './ApplicantList.css';
 
 
 // Applicant type should match backend data model for a student
 type Applicant = {
-  id: number;
+  id: string; // changed from number to string
   firstName: string;
   lastName: string;
   email: string;
@@ -26,76 +26,128 @@ interface StudentsTableProps {
 }
 
 
-const StudentsTable: React.FC<StudentsTableProps> = ({ applicants }) => {
-  // TODO: Backend: Filter applicants in parent or fetch only approved students from API
-  const students = applicants.filter(a => a.status === 'Approved');
+const StudentsTable: React.FC<{ applicants: Applicant[] }> = ({ applicants }) => {
+  // Add state for pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const [applicantsPerPage, setApplicantsPerPage] = useState(10);
+  const [search, setSearch] = useState('');
+
+  // Dropdown options for applicants per page
+  const pageSizeOptions = [10, 25, 50, 100];
+
+  // Filter for approved students only
+  const approvedStudents = applicants.filter(a => a.status === 'Approved');
+
+  // Filter by search
+  const filteredStudents = approvedStudents.filter(a => {
+    const searchLower = search.toLowerCase();
+    return (
+      a.firstName.toLowerCase().includes(searchLower) ||
+      a.lastName.toLowerCase().includes(searchLower) ||
+      a.schoolName.toLowerCase().includes(searchLower)
+    );
+  });
+
+  // Pagination logic
+  const totalPages = Math.ceil(filteredStudents.length / applicantsPerPage);
+  const paginatedStudents = filteredStudents.slice(
+    (currentPage - 1) * applicantsPerPage,
+    currentPage * applicantsPerPage
+  );
+
+  // Reset to page 1 if search changes
+  useEffect(() => { setCurrentPage(1); }, [search]);
+
   return (
-    <div className="applicant-list-container" style={{maxWidth: 1100, width: '100%', minWidth: 0, margin: '2rem auto', padding: '0 1.5rem'}}>
-      <h2 className="applicant-list-title" style={{ color: '#ff3d00', fontWeight: 800, letterSpacing: 1 }}>Approved Students</h2>
+    <div className="students-table-container" style={{maxWidth: 1100, width: '100%', margin: '2rem auto'}}>
+      <h2>Approved Students</h2>
+      {/* Search bar */}
+      <div style={{ marginBottom: 16 }}>
+        <input
+          type="text"
+          placeholder="Search by name or school..."
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          style={{ padding: '8px 12px', borderRadius: 6, border: '1px solid #ccc', fontSize: 16, width: 240 }}
+        />
+      </div>
       <div style={{overflowX: 'auto'}}>
-        <table className="applicant-list-table" style={{minWidth: 900, borderCollapse: 'separate', borderSpacing: 0, boxShadow: '0 2px 16px 0 rgba(34,34,34,0.08)', borderRadius: 12, overflow: 'hidden', background: '#fff', border: '2px solid #ff3d00'}}>
-          <thead style={{ background: '#ff3d00' }}>
+        <table className="students-table" style={{minWidth: 700}}>
+          <thead>
             <tr>
-              <th style={{ color: '#fff', fontWeight: 700, padding: '12px 8px', border: 'none' }}>First Name</th>
-              <th style={{ color: '#fff', fontWeight: 700, padding: '12px 8px', border: 'none' }}>Last Name</th>
-              <th style={{ color: '#fff', fontWeight: 700, padding: '12px 8px', border: 'none' }}>Email</th>
-              <th style={{ color: '#fff', fontWeight: 700, padding: '12px 8px', border: 'none' }}>Phone</th>
-              <th style={{ color: '#fff', fontWeight: 700, padding: '12px 8px', border: 'none' }}>Date of Birth</th>
-              <th style={{ color: '#fff', fontWeight: 700, padding: '12px 8px', border: 'none' }}>Grade</th>
-              <th style={{ color: '#fff', fontWeight: 700, padding: '12px 8px', border: 'none' }}>School</th>
-              <th style={{ color: '#fff', fontWeight: 700, padding: '12px 8px', border: 'none' }}>Location</th>
-              <th style={{ color: '#fff', fontWeight: 700, padding: '12px 8px', border: 'none' }}>Status</th>
+              <th>Name</th>
+              <th>School</th>
+              <th>Grade Level</th>
+              <th>Contact</th>
+              <th>Status</th>
             </tr>
           </thead>
           <tbody>
-            {students.length === 0 ? (
-              <tr>
-                <td colSpan={9} style={{ textAlign: 'center', color: '#ff3d00', fontWeight: 600, padding: '2rem 0' }}>
-                  No approved students.
-                </td>
-              </tr>
+            {paginatedStudents.length === 0 ? (
+              <tr><td colSpan={5} style={{ textAlign: 'center', color: '#888' }}>No approved students found.</td></tr>
             ) : (
-              students.map(student => (
+              paginatedStudents.map(student => (
                 <tr key={student.id} style={{ borderBottom: '1.5px solid #ff9800', background: '#fff' }}>
                   <td style={{ color: '#222', fontWeight: 500 }}>{student.firstName}</td>
                   <td style={{ color: '#222', fontWeight: 500 }}>{student.lastName}</td>
+                  <td style={{ color: '#222', fontWeight: 500 }}>{student.schoolName}</td>
+                  <td style={{ color: '#222', fontWeight: 500 }}>{student.gradeLevel}</td>
                   <td style={{ color: '#222', fontWeight: 500 }}>{student.email}</td>
                   <td style={{ color: '#222', fontWeight: 500 }}>{student.phone}</td>
                   <td style={{ color: '#222', fontWeight: 500 }}>{student.dateOfBirth}</td>
-                  <td style={{ color: '#222', fontWeight: 500 }}>{student.gradeLevel}</td>
-                  <td style={{ color: '#222', fontWeight: 500 }}>{student.schoolName}</td>
                   <td style={{ color: '#222', fontWeight: 500 }}>{student.location}</td>
-                  <td>
-                    <span
-                      className={`status-badge ${student.status.toLowerCase().replace(' ', '-')}`}
-                      style={{
-                        background:
-                          student.status === 'Approved'
-                            ? 'linear-gradient(90deg, #ff3d00 60%, #ff9800 100%)'
-                            : student.status === 'Pending'
-                            ? '#ff9800'
-                            : '#222',
-                        color: '#fff',
-                        borderRadius: 6,
-                        padding: '2px 10px',
-                        fontWeight: 700,
-                        letterSpacing: 0.5,
-                        fontSize: '0.98em',
-                        display: 'inline-block',
-                        minWidth: 80,
-                        textAlign: 'center',
-                        boxShadow: '0 1px 6px 0 rgba(255,61,0,0.08)',
-                        border: '1.5px solid #ff9800',
-                      }}
-                    >
-                      {student.status}
-                    </span>
+                  <td style={{
+                    padding: '4px 12px',
+                    borderRadius: '20px',
+                    fontSize: '0.875rem',
+                    fontWeight: 600,
+                    textAlign: 'center',
+                    color: 'white',
+                    background: '#4caf50'
+                  }}>
+                    {student.status}
                   </td>
                 </tr>
               ))
             )}
           </tbody>
         </table>
+      </div>
+      {/* Pagination controls */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 24 }}>
+        {/* Page size dropdown */}
+        <div>
+          <label htmlFor="pageSize" style={{ marginRight: 8 }}>Rows per page:</label>
+          <select
+            id="pageSize"
+            value={applicantsPerPage}
+            onChange={e => {
+              setCurrentPage(1);
+              setApplicantsPerPage(Number(e.target.value));
+            }}
+            style={{ padding: '4px 8px', borderRadius: 4, border: '1px solid #bbb' }}
+          >
+            {pageSizeOptions.map(size => (
+              <option key={size} value={size}>{size}</option>
+            ))}
+          </select>
+        </div>
+        {/* Page navigation dropdown */}
+        {totalPages > 1 && (
+          <div>
+            <label htmlFor="pageNav" style={{ marginRight: 8 }}>Page:</label>
+            <select
+              id="pageNav"
+              value={currentPage}
+              onChange={e => setCurrentPage(Number(e.target.value))}
+              style={{ padding: '4px 8px', borderRadius: 4, border: '1px solid #bbb' }}
+            >
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                <option key={page} value={page}>{page}</option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
     </div>
   );

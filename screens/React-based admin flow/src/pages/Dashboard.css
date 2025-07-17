@@ -40,6 +40,10 @@
   margin: 2rem auto;
   display: block;
   overflow-x: auto;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 2px 16px 0 rgba(34,34,34,0.08);
+  padding: 2rem 1.5rem;
 }
 .dashboard-table, .pending-table, .applicant-list-table {
   min-width: 700px;
@@ -90,6 +94,14 @@
 @keyframes modalIn {
   from { transform: translateY(40px); opacity: 0; }
   to { transform: translateY(0); opacity: 1; }
+}
+/* 6. Subtle modal entrance/exit animations (already present, but enhance) */
+@keyframes modalFadeIn {
+  from { opacity: 0; transform: translateY(40px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.modal-content {
+  animation: modalFadeIn 0.25s;
 }
 .modal-close {
   position: absolute;
@@ -764,4 +776,173 @@ th, td {
   .dashboard-recent-table, .applicant-list-container, .pending-details-container, .admissions-table-container {
     padding: 0 0.1rem !important;
   }
+}
+body, html {
+  background: #f7fafd;
+}
+
+.admin-main {
+  min-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  justify-content: flex-start;
+  align-items: stretch;
+  padding: 0 0 2rem 0;
+  background: #f7fafd;
+}
+
+.dashboard-recent-table, .pending-details-container, .applicant-list-container, .admissions-table-container {
+  max-width: 1100px;
+  margin: 2rem auto;
+  display: block;
+  overflow-x: auto;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 2px 16px 0 rgba(34,34,34,0.08);
+  padding: 2rem 1.5rem;
+}
+
+.dashboard-table, .pending-table, .applicant-list-table {
+  min-width: 700px;
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  background: #f7fafd;
+  border-radius: 10px;
+  box-shadow: 0 1px 8px 0 rgba(2,60,105,0.04);
+  overflow-x: auto;
+  margin-top: 1.5rem;
+}
+
+.dashboard-table tbody tr:nth-child(even),
+.pending-table tbody tr:nth-child(even),
+.applicant-list-table tbody tr:nth-child(even) {
+  background: #f3f6fa;
+}
+
+.dashboard-table tbody tr:hover,
+.pending-table tbody tr:hover,
+.applicant-list-table tbody tr:hover {
+  background: #e0f7fa !important;
+  transition: background 0.2s;
+  cursor: pointer;
+}
+.dashboard-table tbody tr:hover td,
+.pending-table tbody tr:hover td,
+.applicant-list-table tbody tr:hover td {
+  background: inherit !important;
+}
+
+.dashboard-table th, .pending-table th, .applicant-list-table th {
+  position: sticky;
+  top: 0;
+  background: #fff;
+  z-index: 2;
+}
+
+.sidebar-nav button, .sidebar-nav .active {
+  background: #fff;
+  border: none;
+  border-left: 4px solid #ff9800;
+  color: #222;
+  font-weight: 600;
+  padding: 10px 18px;
+  border-radius: 8px 0 0 8px;
+  margin-bottom: 4px;
+  transition: background 0.2s, border-color 0.2s;
+}
+.sidebar-nav button.active, .sidebar-nav .active {
+  background: #ffe0b2;
+  border-left: 4px solid #ff3d00;
+  color: #ff3d00;
+}
+.sidebar-nav button:hover {
+  background: #fff3e0;
+  color: #ff9800;
+}
+
+/* 8. User initials avatar (circle) for missing profile images */
+.avatar-initials {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #eee;
+  color: #888;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 18px;
+  text-transform: uppercase;
+  margin-right: 8px;
+}
+
+/* 9. Action buttons (edit/delete/view) with tooltips, no icons */
+.action-btn {
+  background: #fff;
+  border: 1.5px solid #ff9800;
+  color: #ff9800;
+  border-radius: 6px;
+  padding: 4px 14px;
+  font-weight: 600;
+  font-size: 1em;
+  margin-right: 6px;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+  position: relative;
+}
+.action-btn:hover {
+  background: #ff9800;
+  color: #fff;
+  border-color: #ff3d00;
+}
+.action-btn[title]:hover:after {
+  content: attr(title);
+  position: absolute;
+  left: 50%;
+  bottom: 120%;
+  transform: translateX(-50%);
+  background: #222;
+  color: #fff;
+  padding: 3px 10px;
+  border-radius: 4px;
+  font-size: 0.95em;
+  white-space: nowrap;
+  z-index: 10;
+  opacity: 1;
+  pointer-events: none;
+}
+
+/* 10. Dark mode toggle (CSS only, no icons) */
+.dark-mode body, .dark-mode .admin-main {
+  background: #181c1f !important;
+  color: #f7fafd !important;
+}
+.dark-mode .dashboard-recent-table, .dark-mode .pending-details-container, .dark-mode .applicant-list-container, .dark-mode .admissions-table-container {
+  background: #23272b !important;
+  color: #f7fafd !important;
+  box-shadow: 0 2px 16px 0 rgba(0,0,0,0.18);
+}
+.dark-mode .dashboard-table, .dark-mode .pending-table, .dark-mode .applicant-list-table {
+  background: #23272b !important;
+  color: #f7fafd !important;
+}
+.dark-mode th, .dark-mode td {
+  background: transparent !important;
+  color: #f7fafd !important;
+}
+.dark-mode .sidebar-nav button, .dark-mode .sidebar-nav .active {
+  background: #23272b !important;
+  color: #ff9800 !important;
+  border-color: #ff9800 !important;
+}
+.dark-mode .sidebar-nav button.active, .dark-mode .sidebar-nav .active {
+  background: #333 !important;
+  color: #ff3d00 !important;
+  border-color: #ff3d00 !important;
+}
+.dark-mode .modal-content {
+  background: #23272b !important;
+  color: #f7fafd !important;
 }
