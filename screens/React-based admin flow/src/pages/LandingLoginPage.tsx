@@ -15,17 +15,159 @@ const LandingLoginPage: React.FC = () => {
   const [error, setError] = useState("");
   const [idImage, setIdImage] = useState<string | null>(null);
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [generatedCode, setGeneratedCode] = useState("");
+  const [codeTimestamp, setCodeTimestamp] = useState<number | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const cameraInputRef = useRef<HTMLInputElement | null>(null);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const sendVerificationCode = async () => {
+    setIsLoading(true);
+    setError("");
+
+    try {
+      // Call Power Automate flow to generate and send code
+      const response = await fetch('https://prod-112.westus.logic.azure.com:443/workflows/e103eb24d613469abfd4180e12a25b93/triggers/manual/paths/invoke?api-version=2016-06-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=e5Kt_H9u3KqBmou7PCtZkOlJVBkaiRwuSNQjerNeICg', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          recipient: email
+        })
+      });
+
+      if (response.ok) {
+        const responseText = await response.text();
+        
+        let data;
+        let code = '';
+        
+        try {
+          // Clean the response text of control characters before parsing
+          const cleanedText = responseText.replace(/[\x00-\x1F\x7F]/g, '');
+          data = JSON.parse(cleanedText);
+        } catch (parseError) {
+          // If JSON parsing fails, try to extract the code directly from the response
+          // Try different patterns for 6-character codes
+          const patterns = [
+            /[A-Z0-9]{6}/g,           // 6 alphanumeric characters
+            /[A-Z]{6}/g,              // 6 letters
+            /[0-9]{6}/g,              // 6 numbers
+            /"([A-Z0-9]{6})"/g,       // 6 characters in quotes
+            /:\s*"([A-Z0-9]{6})"/g    // 6 characters after colon and quotes
+          ];
+          
+          for (const pattern of patterns) {
+            const matches = responseText.match(pattern);
+            if (matches && matches.length > 0) {
+              code = matches[0].replace(/[^A-Z0-9]/g, ''); // Clean any extra characters
+              break;
+            }
+          }
+          
+          if (!code) {
+            // If no pattern matches, try to get any 6-character string
+            const trimmed = responseText.trim();
+            if (trimmed.length === 6 && /^[A-Z0-9]+$/.test(trimmed)) {
+              code = trimmed;
+            }
+          }
+        }
+        
+        // Handle different possible response formats if JSON parsing succeeded
+        if (data && !code) {
+          if (typeof data === 'string') {
+            code = data.trim();
+          } else if (data.confirmationCode && typeof data.confirmationCode === 'string') {
+            code = data.confirmationCode.trim();
+          } else if (data.code && typeof data.code === 'string') {
+            code = data.code.trim();
+          } else if (data.value && typeof data.value === 'string') {
+            code = data.value.trim();
+          }
+        }
+        
+        if (code && code.length >= 4) { // Accept codes that are at least 4 characters
+          setGeneratedCode(code);
+          setCodeTimestamp(Date.now());
+          return true;
+        } else {
+          setError("Failed to extract verification code from response.");
+          return false;
+        }
+      } else {
+        setError("Authentication service unavailable. Please try again later.");
+        return false;
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      setError("Network error. Please check your connection and try again.");
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const verifyLoginCredentials = async (username: string, password: string) => {
+    try {
+      const response = await fetch('https://simbaloginverification-buekhfdhdba5esdn.westus-01.azurewebsites.net/api/verify-login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          username: username,
+          password: password
+        })
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        // Assuming the API returns a success field or similar indicator
+        return result.success === true || result.valid === true || result.authenticated === true || response.status === 200;
+      } else {
+        return false;
+      }
+    } catch (error) {
+      console.error('Login verification error:', error);
+      return false;
+    }
+  };
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (email === "admin@redp.com" && password === "admin123" && idImage) {
-      setShowConfirmation(true);
-      setError("");
-    } else {
+    setError("");
+    setIsLoading(true);
+
+    // Basic validation
+    if (!email || !password || !idImage) {
       setError("Please provide valid credentials and upload or capture your ID.");
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      // Verify credentials with Azure function
+      const isValidLogin = await verifyLoginCredentials(email, password);
+      
+      if (!isValidLogin) {
+        setError("Invalid email or password. Please try again.");
+        setIsLoading(false);
+        return;
+      }
+
+      // If login is valid, proceed to send verification code
+      const success = await sendVerificationCode();
+      if (success) {
+        setShowConfirmation(true);
+      }
+    } catch (error) {
+      console.error('Login process error:', error);
+      setError("Login verification failed. Please try again.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -49,7 +191,13 @@ const LandingLoginPage: React.FC = () => {
     return (
       <div className="landing-login-root" style={{ background: BG }}>
         <div className="login-section" style={{ flex: 1, width: "100vw", justifyContent: "center", alignItems: "center", display: "flex" }}>
-          <ConfirmationCode onSuccess={handleConfirmationSuccess} email={email} />
+          <ConfirmationCode 
+            onSuccess={handleConfirmationSuccess} 
+            email={email} 
+            expectedCode={generatedCode}
+            codeTimestamp={codeTimestamp}
+            onResend={sendVerificationCode}
+          />
         </div>
       </div>
     );
@@ -96,7 +244,7 @@ const LandingLoginPage: React.FC = () => {
               onChange={e => setEmail(e.target.value)}
               required
               autoFocus
-              placeholder="admin@redp.com"
+              placeholder="admin1@red-p.org"
               style={{ borderColor: ACCENT }}
             />
           </label>
@@ -107,7 +255,7 @@ const LandingLoginPage: React.FC = () => {
               value={password}
               onChange={e => setPassword(e.target.value)}
               required
-              placeholder="Enter your password"
+              placeholder="admin123"
               style={{ borderColor: ACCENT }}
             />
           </label>
@@ -184,19 +332,21 @@ const LandingLoginPage: React.FC = () => {
           <button
             type="submit"
             className="login-btn"
+            disabled={isLoading}
             style={{
-              background: PRIMARY,
+              background: isLoading ? "#ccc" : PRIMARY,
               color: "#fff",
-              border: `1.5px solid ${PRIMARY}`,
+              border: `1.5px solid ${isLoading ? "#ccc" : PRIMARY}`,
               borderRadius: 6,
               padding: "0.8rem 0",
               fontWeight: 700,
               fontSize: "1.1rem",
               marginTop: "0.5rem",
-              transition: "background 0.2s, border-color 0.2s"
+              transition: "background 0.2s, border-color 0.2s",
+              cursor: isLoading ? "not-allowed" : "pointer"
             }}
           >
-            Login
+            {isLoading ? "Sending code..." : "Login"}
           </button>
         </form>
       </div>
