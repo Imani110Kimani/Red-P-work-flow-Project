@@ -1,6 +1,6 @@
 import React from 'react';
 import './AdminProfile.css';
-import logo from '../assets/react.svg'; // Replace with your actual logo path
+import logo from '../assets/redp-logo.png'; // Replace with your actual logo path
 
 const AdminProfile: React.FC = () => {
   return (

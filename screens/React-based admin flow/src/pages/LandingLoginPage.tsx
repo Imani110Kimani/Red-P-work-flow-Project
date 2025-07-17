@@ -1,6 +1,6 @@
 import React, { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import logo from "../assets/redp-logo (2).png";
+import logo from "../assets/redp-logo.png";
 import ConfirmationCode from "./ConfirmationCode";
 import "./LandingLoginPage.css";
 

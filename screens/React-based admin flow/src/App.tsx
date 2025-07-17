@@ -1,4 +1,4 @@
-import redpLogo from './assets/redp-logo (2).png';
+import redpLogo from './assets/redp-logo.png';
 import React from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Dashboard from "./pages/Dashboard";

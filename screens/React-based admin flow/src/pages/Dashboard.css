@@ -693,6 +693,12 @@ th, td {
 .dashboard-viewall-btn:hover {
   color: #ff7a00;
 }
+
+/* Loading spinner animation */
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
 /* Responsive: Extra Small Devices */
 @media (max-width: 600px) {
   .dashboard-content-flex {
