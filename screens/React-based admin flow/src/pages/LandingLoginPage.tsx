@@ -110,25 +110,64 @@ const LandingLoginPage: React.FC = () => {
     }
   };
 
+  const verifyLoginCredentials = async (username: string, password: string) => {
+    try {
+      const response = await fetch('https://simbaloginverification-buekhfdhdba5esdn.westus-01.azurewebsites.net/api/verify-login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          username: username,
+          password: password
+        })
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        // Assuming the API returns a success field or similar indicator
+        return result.success === true || result.valid === true || result.authenticated === true || response.status === 200;
+      } else {
+        return false;
+      }
+    } catch (error) {
+      console.error('Login verification error:', error);
+      return false;
+    }
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setIsLoading(true);
 
     // Basic validation
     if (!email || !password || !idImage) {
       setError("Please provide valid credentials and upload or capture your ID.");
+      setIsLoading(false);
       return;
     }
 
-    // Validate accepted credentials
-    if ((email !== "justinlee@red-p.org" && email !== "admin@redp.com") || password !== "admin123") {
-      setError("Invalid email or password. Please try again.");
-      return;
-    }
+    try {
+      // Verify credentials with Azure function
+      const isValidLogin = await verifyLoginCredentials(email, password);
+      
+      if (!isValidLogin) {
+        setError("Invalid email or password. Please try again.");
+        setIsLoading(false);
+        return;
+      }
 
-    const success = await sendVerificationCode();
-    if (success) {
-      setShowConfirmation(true);
+      // If login is valid, proceed to send verification code
+      const success = await sendVerificationCode();
+      if (success) {
+        setShowConfirmation(true);
+      }
+    } catch (error) {
+      console.error('Login process error:', error);
+      setError("Login verification failed. Please try again.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -205,7 +244,7 @@ const LandingLoginPage: React.FC = () => {
               onChange={e => setEmail(e.target.value)}
               required
               autoFocus
-              placeholder="justinlee@red-p.org"
+              placeholder="admin1@red-p.org"
               style={{ borderColor: ACCENT }}
             />
           </label>
@@ -216,7 +255,7 @@ const LandingLoginPage: React.FC = () => {
               value={password}
               onChange={e => setPassword(e.target.value)}
               required
-              placeholder="Enter your password"
+              placeholder="admin123"
               style={{ borderColor: ACCENT }}
             />
           </label>
