@@ -1,21 +1,98 @@
 import React from 'react';
 import './Notifications.css';
+// Import legacy applicants and API applicants logic from Dashboard
+import { initialApplicants } from './Dashboard';
 
-const notifications = [
-  { id: 1, message: 'New application received from Jane Doe.', date: '2025-07-10' },
-  { id: 2, message: 'School verification approved for Maasai Primary School.', date: '2025-07-09' },
-  { id: 3, message: 'Student verification completed for Amina Njeri.', date: '2025-07-08' },
-];
+// Add this helper at the top (after imports)
+function statusToString(status: string | number | null | undefined): string {
+  if (status === null || status === undefined) return 'Pending';
+  if (typeof status === 'number') {
+    if (status === 1) return 'Pending';
+    if (status === 2) return 'Approved';
+    if (status === 3) return 'Denied';
+    return 'Pending';
+  }
+  if (typeof status === 'string') {
+    if (['Pending', 'Approved', 'Denied'].includes(status)) return status;
+    // Try to parse string numbers
+    const num = Number(status);
+    if (!isNaN(num)) return statusToString(num);
+    return 'Pending';
+  }
+  return 'Pending';
+}
+
+// If you want to share logic, you could refactor Dashboard to export a helper, but for now, duplicate the logic here
+const getRecentNotifications = (apiApplicants: any[], applicants: any[]) => {
+  let dataSource: any[] = [];
+  if (apiApplicants.length > 0) {
+    dataSource = apiApplicants;
+  } else {
+    dataSource = applicants;
+  }
+  // Type guards
+  const hasDateOfBirth = (a: any): a is { dateOfBirth: string } => typeof a.dateOfBirth === 'string';
+  const hasDate = (a: any): a is { date: string } => typeof a.date === 'string';
+  const hasName = (a: any): a is { name: string } => typeof a.name === 'string';
+  // Sort by date if available, else fallback to order
+  let sorted = dataSource;
+  if (dataSource.length > 0 && (hasDateOfBirth(dataSource[0]) || hasDate(dataSource[0]))) {
+    sorted = [...dataSource].sort((a, b) => {
+      const da = hasDateOfBirth(a) ? new Date(a.dateOfBirth) : hasDate(a) ? new Date(a.date) : new Date(0);
+      const db = hasDateOfBirth(b) ? new Date(b.dateOfBirth) : hasDate(b) ? new Date(b.date) : new Date(0);
+      return db.getTime() - da.getTime();
+    });
+  }
+  // Show up to 10 most recent
+  return sorted.slice(0, 10).map((a, idx) => {
+    let msg = '';
+    const status = statusToString(a.status).toLowerCase();
+    const firstName = (a as any).firstName || (hasName(a) ? a.name.split(' ')[0] : '');
+    const lastName = (a as any).lastName || (hasName(a) ? a.name.split(' ').slice(1).join(' ') : '');
+    if (status === 'approved') {
+      msg = `${firstName} ${lastName} was approved.`;
+    } else if (status === 'pending') {
+      msg = `New application received from ${firstName} ${lastName}.`;
+    } else if (status === 'denied') {
+      msg = `${firstName} ${lastName} was denied.`;
+    } else {
+      msg = `${firstName} ${lastName} application is in progress.`;
+    }
+    // Date string
+    let dateStr = hasDateOfBirth(a) ? a.dateOfBirth : hasDate(a) ? a.date : '';
+    return {
+      id: idx + 1,
+      message: msg,
+      date: dateStr,
+      status,
+    };
+  });
+};
 
 const Notifications: React.FC = () => {
+  // Only use real API data for logs
+  let apiApplicants: any[] = [];
+  if (window && (window as any).apiApplicants) {
+    apiApplicants = (window as any).apiApplicants;
+  }
+  const notifications = getRecentNotifications(apiApplicants, []);
   return (
-    <div className="notifications-container">
-      <h2 className="notifications-title">Notifications</h2>
-      <div className="notifications-list">
-        {notifications.map((n) => (
-          <div className="notification-item" key={n.id}>
-            <div className="notification-message">{n.message}</div>
-            <div className="notification-date">{n.date}</div>
+    <div className="logs-container">
+      <h2 className="logs-title">Logs</h2>
+      <div className="logs-list">
+        {notifications.length === 0 ? (
+          <div style={{textAlign:'center', color:'#888', padding:'2rem'}}>No logs available.</div>
+        ) : notifications.map((n) => (
+          <div className="log-item" key={n.id}>
+            <div className="log-message" style={{color: n.status === 'approved' ? '#ff9800' : n.status === 'denied' ? '#f44336' : '#ff3d00', fontWeight: 700}}>
+              {n.message}
+              {n.status === 'approved' && (
+                <span style={{color:'#222', fontWeight:400, marginLeft:8, fontSize:'0.97em'}}>
+                  — Approved by Admin
+                </span>
+              )}
+            </div>
+            {n.date && <div className="log-date">{n.date}</div>}
           </div>
         ))}
       </div>

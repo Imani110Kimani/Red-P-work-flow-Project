@@ -36,7 +36,7 @@ type ApplicantDetailed = {
 };
 
 // Legacy initial data for fallback
-const initialApplicants = [
+export const initialApplicants = [
   {
     id: 1,
     firstName: 'Jane',
@@ -95,6 +95,23 @@ export function shouldShowButtons(status: number | null) {
     return status === null || status === 1 || status !== 2 && status !== 3;
 }
 
+function statusToString(status: string | number | null | undefined): string {
+  if (status === null || status === undefined) return 'Pending';
+  if (typeof status === 'number') {
+    if (status === 1) return 'Pending';
+    if (status === 2) return 'Approved';
+    if (status === 3) return 'Denied';
+    return 'Pending';
+  }
+  if (typeof status === 'string') {
+    if (['Pending', 'Approved', 'Denied'].includes(status)) return status;
+    // Try to parse string numbers
+    const num = Number(status);
+    if (!isNaN(num)) return statusToString(num);
+    return 'Pending';
+  }
+  return 'Pending';
+}
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -156,7 +173,7 @@ const Dashboard: React.FC = () => {
         id: index + 1, // Generate a simple ID for key
         name: `${a.firstName} ${a.lastName}`,
         school: 'School info not available', // API doesn't include school info in basic response
-        status: a.status || 'Pending',
+        status: statusToString(a.status),
         date: 'Date not available', // API doesn't include date in basic response
         details: `${a.partitionKey} - ${a.rowKey}`, // Show keys as temporary details
         partitionKey: a.partitionKey,
@@ -178,11 +195,11 @@ const Dashboard: React.FC = () => {
   // Stats based on API data if available, otherwise use legacy data
   const stats = React.useMemo(() => {
     const dataSource = apiApplicants.length > 0 ? apiApplicants : applicants;
-    const approvedCount = dataSource.filter(a => (a.status || 'Pending') === 'Approved').length;
-    const pendingCount = dataSource.filter(a => (a.status || 'Pending') === 'Pending').length;
-    
+    const admissionsCount = dataSource.length;
+    const approvedCount = dataSource.filter(a => statusToString(a.status) === 'Approved').length;
+    const pendingCount = dataSource.filter(a => statusToString(a.status) === 'Pending').length;
     return [
-      { label: 'Admissions', value: 4, color: '#ff3d00', route: '/dashboard/admissions', icon: <FaTachometerAlt /> },
+      { label: 'Admissions', value: admissionsCount, color: '#ff3d00', route: '/dashboard/admissions', icon: <FaTachometerAlt /> },
       { label: 'Students', value: approvedCount, color: '#ff9800', route: '/dashboard/student-verification', icon: <FaUserGraduate /> },
       { label: 'Pending', value: pendingCount, color: '#222', route: '/dashboard/pending', icon: <FaUsers /> },
     ];
@@ -284,7 +301,7 @@ const Dashboard: React.FC = () => {
           <button onClick={() => { navigate('/dashboard/admissions'); setSidebarOpen(false); }} style={{ width: '100%', textAlign: 'left', padding: '1rem 2rem', border: 'none', background: 'none' }}><FaTachometerAlt /> Admissions</button>
           <button onClick={() => { navigate('/dashboard/student-verification'); setSidebarOpen(false); }} style={{ width: '100%', textAlign: 'left', padding: '1rem 2rem', border: 'none', background: 'none' }}><FaUserGraduate /> Students</button>
           <button onClick={() => { navigate('/dashboard/pending'); setSidebarOpen(false); }} style={{ width: '100%', textAlign: 'left', padding: '1rem 2rem', border: 'none', background: 'none' }}><FaUsers /> Pending</button>
-          <button onClick={() => { navigate('/dashboard/notifications'); setSidebarOpen(false); }} style={{ width: '100%', textAlign: 'left', padding: '1rem 2rem', border: 'none', background: 'none' }}><FaBell /> Notifications</button>
+          <button onClick={() => { navigate('/dashboard/logs'); setSidebarOpen(false); }} style={{ width: '100%', textAlign: 'left', padding: '1rem 2rem', border: 'none', background: 'none' }}><FaBell /> Logs</button>
           <button className="sidebar-logout" onClick={() => { navigate('/'); setSidebarOpen(false); }} style={{ width: '100%', textAlign: 'left', padding: '1rem 2rem', border: 'none', background: 'none' }}><FaSignOutAlt /> Logout</button>
         </nav>
       )}
@@ -311,7 +328,7 @@ const Dashboard: React.FC = () => {
           <button onClick={() => navigate('/dashboard/admissions')}><FaTachometerAlt /> Admissions</button>
           <button onClick={() => navigate('/dashboard/student-verification')}><FaUserGraduate /> Students</button>
           <button onClick={() => navigate('/dashboard/pending')}><FaUsers /> Pending</button>
-          <button onClick={() => navigate('/dashboard/notifications')}><FaBell /> Notifications</button>
+          <button onClick={() => navigate('/dashboard/logs')}><FaBell /> Logs</button>
           <button className="sidebar-logout" onClick={() => navigate('/')}><FaSignOutAlt /> Logout</button>
         </nav>
       </aside>
@@ -359,8 +376,8 @@ const Dashboard: React.FC = () => {
                 ))}
               </section>
               <section className="dashboard-actions">
-                <button className="dashboard-action-btn primary" onClick={() => setShowAdmissionForm(true)}>📝 New Admission</button>
-                <button className="dashboard-action-btn" onClick={() => navigate('/notifications')}>📢 Notify</button>
+                <button className="dashboard-action-btn primary" disabled style={{opacity:0.5, cursor:'not-allowed'}}>📝 New Admission</button>
+                <button className="dashboard-action-btn" disabled style={{opacity:0.5, cursor:'not-allowed'}}>📢 Notify</button>
               </section>
               <section className="dashboard-recent-table">
                 <div className="dashboard-table-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
@@ -406,11 +423,11 @@ const Dashboard: React.FC = () => {
                               fontWeight: 600,
                               textAlign: 'center',
                               color: 'white',
-                              background: Number(item.status) === 2 ? '#4caf50' : Number(item.status) === 3 ? '#f44336' : '#ff9800',
+                              background: statusToString(item.status) === 'Approved' ? '#4caf50' : statusToString(item.status) === 'Denied' ? '#f44336' : '#ff9800',
                               minWidth: 90,
                               display: 'inline-block',
                             }}>
-                              {getStatusDisplay(item.status === undefined ? null : Number(item.status))}
+                              {statusToString(item.status)}
                             </span>
                           </td>
                         </tr>
@@ -432,22 +449,78 @@ const Dashboard: React.FC = () => {
               {/* Analytics Card */}
               <div style={{background: '#fff', borderRadius: 14, boxShadow: '0 1px 8px 0 rgba(255,61,0,0.07)', padding: '1.1rem 1rem 1.2rem 1rem', marginBottom: 18}}>
                 <div style={{fontWeight: 700, color: '#ff3d00', marginBottom: 10}}>Admissions Progress</div>
-                <div style={{display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8}}>
-                  <span style={{fontWeight: 700, color: '#ff3d00'}}>4</span>
-                  <span style={{color: '#222', fontSize: '0.97em'}}>of 10 target</span>
-                </div>
-                <div style={{background: '#ff9800', borderRadius: 8, height: 10, width: '100%', marginBottom: 4}}>
-                  <div style={{background: 'linear-gradient(90deg, #ff3d00 60%, #ff9800 100%)', width: '40%', height: '100%', borderRadius: 8}}></div>
-                </div>
-                <div style={{fontSize: '0.93em', color: '#ff9800'}}>Keep going! </div>
+                {(() => {
+                  const dataSource = apiApplicants.length > 0 ? apiApplicants : applicants;
+                  const approvedCount = dataSource.filter(a => statusToString(a.status) === 'Approved').length;
+                  const totalCount = dataSource.length;
+                  const pendingCount = dataSource.filter(a => statusToString(a.status) === 'Pending').length;
+                  const deniedCount = dataSource.filter(a => statusToString(a.status) === 'Denied').length;
+                  const percent = totalCount > 0 ? Math.round((approvedCount / totalCount) * 100) : 0;
+                  return (
+                    <>
+                      <div style={{display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8}}>
+                        <span style={{fontWeight: 700, color: '#ff3d00'}}>{approvedCount}</span>
+                        <span style={{color: '#222', fontSize: '0.97em'}}>of {totalCount} admissions approved</span>
+                      </div>
+                      <div style={{background: '#ff9800', borderRadius: 8, height: 10, width: '100%', marginBottom: 4}}>
+                        <div style={{background: 'linear-gradient(90deg, #ff3d00 60%, #ff9800 100%)', width: `${percent}%`, height: '100%', borderRadius: 8}}></div>
+                      </div>
+                      <div style={{fontSize: '0.93em', color: '#ff9800'}}>
+                        {pendingCount > 0 ? `${pendingCount} pending` : deniedCount > 0 ? `${deniedCount} denied` : 'All done!'}
+                      </div>
+                    </>
+                  );
+                })()}
               </div>
               {/* Modern Notifications Feed */}
               <div style={{background: '#fff', borderRadius: 14, boxShadow: '0 1px 8px 0 rgba(255,61,0,0.07)', padding: '1.1rem 1rem 1.2rem 1rem'}}>
                 <div style={{fontWeight: 700, color: '#ff3d00', marginBottom: 10}}>Recent Notifications</div>
                 <ul style={{listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 12}}>
-                  <li style={{color: '#ff3d00', fontWeight: 700, marginBottom: 2}}>New applicant Jane Doe submitted an application.</li>
-                  <li style={{color: '#ff9800', fontWeight: 700, marginBottom: 2}}>Rajombol Siayho was approved.</li>
-                  <li style={{color: '#222', fontWeight: 700}}>Amina Njeri application is in progress.</li>
+                  {(() => {
+                    // Always use a consistent array type for notifications
+                    let dataSource: any[] = [];
+                    if (apiApplicants.length > 0) {
+                      dataSource = apiApplicants;
+                    } else {
+                      dataSource = applicants;
+                    }
+                    // Type guards
+                    const hasDateOfBirth = (a: any): a is { dateOfBirth: string } => typeof a.dateOfBirth === 'string';
+                    const hasDate = (a: any): a is { date: string } => typeof a.date === 'string';
+                    const hasName = (a: any): a is { name: string } => typeof a.name === 'string';
+                    // Sort by date if available, else fallback to order
+                    let sorted = dataSource;
+                    if (dataSource.length > 0 && (hasDateOfBirth(dataSource[0]) || hasDate(dataSource[0]))) {
+                      sorted = [...dataSource].sort((a, b) => {
+                        const da = hasDateOfBirth(a) ? new Date(a.dateOfBirth) : hasDate(a) ? new Date(a.date) : new Date(0);
+                        const db = hasDateOfBirth(b) ? new Date(b.dateOfBirth) : hasDate(b) ? new Date(b.date) : new Date(0);
+                        return db.getTime() - da.getTime();
+                      });
+                    }
+                    // Show up to 5 most recent
+                    return sorted.slice(0, 5).map((a, idx) => {
+                      let msg = '';
+                      const status = statusToString(a.status).toLowerCase();
+                      const firstName = (a as any).firstName || (hasName(a) ? a.name.split(' ')[0] : '');
+                      const lastName = (a as any).lastName || (hasName(a) ? a.name.split(' ').slice(1).join(' ') : '');
+                      if (status === 'approved') {
+                        msg = `${firstName} ${lastName} was approved.`;
+                      } else if (status === 'pending') {
+                        msg = `New application received from ${firstName} ${lastName}.`;
+                      } else if (status === 'denied') {
+                        msg = `${firstName} ${lastName} was denied.`;
+                      } else {
+                        msg = `${firstName} ${lastName} application is in progress.`;
+                      }
+                      // Date string
+                      let dateStr = hasDateOfBirth(a) ? a.dateOfBirth : hasDate(a) ? a.date : '';
+                      return (
+                        <li key={idx} style={{color: status === 'approved' ? '#ff9800' : status === 'denied' ? '#f44336' : '#ff3d00', fontWeight: 700, marginBottom: 2}}>
+                          {msg} {dateStr && <span style={{color:'#5a6a85', fontWeight:400, marginLeft:8, fontSize:'0.97em'}}>({dateStr})</span>}
+                        </li>
+                      );
+                    });
+                  })()}
                 </ul>
               </div>
             </aside>
