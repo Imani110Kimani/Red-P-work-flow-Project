@@ -2,27 +2,8 @@ import React from 'react';
 import './Notifications.css';
 // Import legacy applicants and API applicants logic from Dashboard
 import { initialApplicants } from './Dashboard';
+import { statusToString, joinName, notificationMessage } from './utils';
 
-// Add this helper at the top (after imports)
-function statusToString(status: string | number | null | undefined): string {
-  if (status === null || status === undefined) return 'Pending';
-  if (typeof status === 'number') {
-    if (status === 1) return 'Pending';
-    if (status === 2) return 'Approved';
-    if (status === 3) return 'Denied';
-    return 'Pending';
-  }
-  if (typeof status === 'string') {
-    if (['Pending', 'Approved', 'Denied'].includes(status)) return status;
-    // Try to parse string numbers
-    const num = Number(status);
-    if (!isNaN(num)) return statusToString(num);
-    return 'Pending';
-  }
-  return 'Pending';
-}
-
-// If you want to share logic, you could refactor Dashboard to export a helper, but for now, duplicate the logic here
 const getRecentNotifications = (apiApplicants: any[], applicants: any[]) => {
   let dataSource: any[] = [];
   if (apiApplicants.length > 0) {

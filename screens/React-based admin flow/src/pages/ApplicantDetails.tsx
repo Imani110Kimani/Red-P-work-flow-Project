@@ -2,6 +2,7 @@
 import React from 'react';
 import { useParams, Link } from 'react-router-dom';
 import './ApplicantDetails.css';
+import { joinName, statusToString } from './utils';
 
 // Placeholder data (in a real app, fetch by ID)
 const applicants = [
@@ -116,7 +117,7 @@ const ApplicantDetails: React.FC = () => {
             textTransform: 'uppercase',
             letterSpacing: '0.5px'
           }}>
-            {currentStatus}
+            {statusToString(currentStatus)}
           </span>
         </div>
         
@@ -202,7 +203,7 @@ const ApplicantDetails: React.FC = () => {
       </div>
 
       <div className="applicant-details-card">
-        <div><strong>Name:</strong> {applicant.name}</div>
+        <div><strong>Name:</strong> {joinName(applicant.name)}</div>
         <div><strong>School:</strong> {applicant.school} {' '}
           <Link to={`/school-verification/1`} className="related-link">(View School Verification)</Link>
         </div>

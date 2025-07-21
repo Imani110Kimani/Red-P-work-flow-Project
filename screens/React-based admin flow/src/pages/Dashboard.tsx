@@ -12,6 +12,7 @@ import './Dashboard.css';
 import logo from '../assets/redp-logo.png';
 import { FaTachometerAlt, FaUsers, FaUserGraduate, FaBell, FaSignOutAlt, FaBars, FaTimes } from 'react-icons/fa';
 import NewAdmissionForm from './NewAdmissionForm';
+import { statusToString, joinName, notificationMessage, paginate } from './utils';
 
 // API Configuration
 const API_BASE_URL = 'https://simbagetapplicants-hcf5cffbcccmgsbn.westus-01.azurewebsites.net/api/httptablefunction';
@@ -93,24 +94,6 @@ export function getStatusDisplay(status: number | null) {
 export function shouldShowButtons(status: number | null) {
     // Allow approve/deny for any unknown status
     return status === null || status === 1 || status !== 2 && status !== 3;
-}
-
-function statusToString(status: string | number | null | undefined): string {
-  if (status === null || status === undefined) return 'Pending';
-  if (typeof status === 'number') {
-    if (status === 1) return 'Pending';
-    if (status === 2) return 'Approved';
-    if (status === 3) return 'Denied';
-    return 'Pending';
-  }
-  if (typeof status === 'string') {
-    if (['Pending', 'Approved', 'Denied'].includes(status)) return status;
-    // Try to parse string numbers
-    const num = Number(status);
-    if (!isNaN(num)) return statusToString(num);
-    return 'Pending';
-  }
-  return 'Pending';
 }
 
 const Dashboard: React.FC = () => {

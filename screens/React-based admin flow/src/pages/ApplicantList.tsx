@@ -53,7 +53,7 @@ interface ApplicantListProps {
 const API_BASE_URL = 'https://simbagetapplicants-hcf5cffbcccmgsbn.westus-01.azurewebsites.net/api/httptablefunction';
 
 // Import helpers from Dashboard
-import { getStatusDisplay, shouldShowButtons } from './Dashboard';
+import { statusToString, joinName, paginate } from './utils';
 
 const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
   // State for storing the basic applicants list
@@ -320,7 +320,7 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
             }
           }
           // Use the actual API status instead of calculating from approvedBy
-          const status = getStatusDisplay(applicant.status === undefined ? null : Number(applicant.status));
+          const status = statusToString(applicant.status === undefined ? null : Number(applicant.status));
           // Handler for toggling admin approval
           const toggleAdmin = (admin: string) => {
             setDemoApprovals(prev => {
@@ -559,7 +559,7 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
                 minWidth: 90,
                 display: 'inline-block',
               }}>
-                {getStatusDisplay(modalApplicant.status === undefined ? null : Number(modalApplicant.status))}
+                {statusToString(modalApplicant.status === undefined ? null : Number(modalApplicant.status))}
               </span>
               <span style={{ fontWeight: 700, fontSize: 20 }}>{modalApplicant.firstName} {modalApplicant.lastName}</span>
             </div>
@@ -594,10 +594,10 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
                   if (lowerKey === 'partitionkey' || lowerKey === 'rowkey' || lowerKey === 'profileimage') {
                     return null;
                   }
-                  // Use getStatusDisplay for status field
+                  // Use statusToString for status field
                   let displayValue;
                   if (key === 'status') {
-                    displayValue = getStatusDisplay(value === undefined ? null : Number(value));
+                    displayValue = statusToString(value === undefined ? null : Number(value));
                   } else {
                     displayValue = value === null || value === undefined ? '' : String(value);
                   }

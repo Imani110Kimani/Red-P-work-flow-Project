@@ -4,6 +4,7 @@
 // For Azure Functions, connect data fetching to your HTTP triggers or function endpoints.
 import React from 'react';
 import './Dashboard.css';
+import { statusToString } from './utils';
 
 // Type for API applicant data
 type ApplicantBasic = {
@@ -14,18 +15,6 @@ type ApplicantBasic = {
   rowKey: string;
   [key: string]: any; // Additional fields from API
 };
-
-// Helper function to get status display
-function getStatusDisplay(status: number | null) {
-  if (status === null || status === 1) {
-    return 'Pending';
-  } else if (status === 2) {
-    return 'Approved';
-  } else if (status === 3) {
-    return 'Denied';
-  }
-  return 'Pending';
-}
 
 interface AdmissionsTableProps {
   applicants: ApplicantBasic[];
@@ -67,8 +56,8 @@ const AdmissionsTable: React.FC<AdmissionsTableProps> = ({ applicants }) => {
                   <td>{applicant.location || 'N/A'}</td>
                   <td>{applicant.essay || 'N/A'}</td>
                   <td>
-                    <span className={`status-badge ${getStatusDisplay(applicant.status === undefined ? null : Number(applicant.status)).toLowerCase().replace(' ', '-')}`}>
-                      {getStatusDisplay(applicant.status === undefined ? null : Number(applicant.status))}
+                    <span className={`status-badge ${statusToString(applicant.status).toLowerCase().replace(' ', '-')}`}>
+                      {statusToString(applicant.status)}
                     </span>
                   </td>
                 </tr>

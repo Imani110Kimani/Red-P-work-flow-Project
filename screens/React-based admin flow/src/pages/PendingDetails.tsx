@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import "./PendingDetails.css";
+import { statusToString, joinName, paginate } from './utils';
 
 // Accepts applicants as prop and filters for status === 'Pending'
 
