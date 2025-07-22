@@ -1,0 +1,108 @@
+.admissions-details-container {
+  max-width: 900px;
+  margin: 2.5rem auto;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 4px 24px rgba(2,60,105,0.09);
+  padding: 2.5rem 2.5rem 2rem 2.5rem;
+}
+.admissions-details-card {
+  background: #f7fafd;
+  border-radius: 12px;
+  padding: 2rem 1.5rem;
+  box-shadow: 0 2px 8px rgba(44, 62, 80, 0.06);
+  margin-top: 1.5rem;
+}
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 1.1rem;
+  font-size: 1.08rem;
+  padding: 0.7em 0;
+  border-bottom: 1px solid #e5e7eb;
+}
+.detail-row .label {
+  color: #6b7280;
+  font-weight: 500;
+}
+/* Related links styling */
+.related-link {
+  color: #2d72d9;
+  text-decoration: underline;
+  margin-left: 0.5em;
+  font-size: 0.97em;
+  transition: color 0.2s;
+}
+.related-link:hover {
+  color: #174ea6;
+  text-decoration: underline;
+}
+.details-nav-links {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+.admissions-details-container {
+  max-width: 520px;
+  margin: 2rem auto;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+  padding: 2rem 2.5rem 2.5rem 2.5rem;
+}
+
+.back-btn {
+  background: none;
+  border: none;
+  color: #2d72d9;
+  font-size: 1rem;
+  cursor: pointer;
+  margin-bottom: 1.5rem;
+  padding: 0;
+  transition: color 0.2s;
+}
+.back-btn:hover {
+  color: #174ea6;
+}
+
+h2 {
+  margin-bottom: 1.5rem;
+  color: #2d2d2d;
+  font-weight: 600;
+}
+
+.admissions-details-card {
+  background: #f7fafd;
+  border-radius: 8px;
+  padding: 1.5rem 1.2rem;
+  box-shadow: 0 1px 4px rgba(44, 62, 80, 0.04);
+}
+
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 1.1rem;
+  font-size: 1.05rem;
+}
+.detail-row .label {
+  color: #6b7280;
+  font-weight: 500;
+}
+.status-badge {
+  padding: 0.2em 0.8em;
+  border-radius: 1em;
+  font-size: 0.98em;
+  font-weight: 600;
+  color: #fff;
+  background: #bdbdbd;
+  text-transform: capitalize;
+}
+.status-badge.approved {
+  background: #4caf50;
+}
+.status-badge.pending {
+  background: #ff9800;
+}
+.status-badge.rejected {
+  background: #e53935;
+}

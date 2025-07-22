@@ -1,0 +1,108 @@
+.applicant-list-container {
+  max-width: 700px;
+  margin: 48px auto 0 auto;
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 2px 8px 0 rgba(2,60,105,0.04);
+  padding: 32px 18px 24px 18px;
+}
+.applicant-list-title {
+  font-size: 1.4rem;
+  font-weight: bold;
+  color: #023c69;
+  margin-bottom: 18px;
+  text-align: center;
+}
+.applicant-list-table {
+  width: 100%;
+}
+.applicant-list-header,
+.applicant-list-row {
+  display: grid;
+  grid-template-columns: 2fr 2fr 1fr 1fr;
+  gap: 12px;
+  align-items: center;
+}
+.applicant-list-header {
+  font-weight: bold;
+  color: #5a6a85;
+  border-bottom: 2px solid #e3e8ee;
+  padding-bottom: 8px;
+  margin-bottom: 8px;
+}
+.applicant-list-row {
+  background: #f7fafd;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  padding: 10px 0;
+  font-size: 1rem;
+}
+.status-badge {
+  padding: 4px 12px;
+  border-radius: 8px;
+  font-weight: bold;
+  color: #fff;
+  font-size: 0.95rem;
+  display: inline-block;
+}
+.status-badge.pending {
+  background: #ffb300;
+}
+.status-badge.approved {
+  background: #00c853;
+}
+.status-badge.in-progress {
+  background: #2979ff;
+}
+.details-link {
+  color: #ff7a00;
+  text-decoration: underline;
+  font-weight: 500;
+  cursor: pointer;
+}
+.details-link:hover {
+  color: #023c69;
+}
+.applicant-img-placeholder {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: #eee;
+  display: block;
+}
+
+@media (max-width: 700px) {
+  .applicant-list-container {
+    max-width: 98vw;
+    padding: 12px 2vw 12px 2vw;
+  }
+  .applicant-list-header,
+  .applicant-list-row {
+    grid-template-columns: 0.8fr 1.2fr 1.2fr 1fr;
+    font-size: 0.97em;
+    gap: 8px;
+    padding: 8px 0;
+  }
+  .applicant-img-placeholder {
+    width: 32px;
+    height: 32px;
+  }
+  .applicant-list-title {
+    font-size: 1.1rem;
+  }
+}
+@media (max-width: 480px) {
+  .applicant-list-header,
+  .applicant-list-row {
+    grid-template-columns: 0.7fr 1fr 1fr;
+    /* Hide Actions column for very small screens */
+  }
+  .applicant-img-placeholder {
+    width: 24px;
+    height: 24px;
+  }
+  .applicant-list-title {
+    font-size: 1rem;
+  }
+}
