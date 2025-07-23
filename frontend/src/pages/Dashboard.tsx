@@ -571,7 +571,7 @@ const Dashboard: React.FC = () => {
         ) : location.pathname === '/dashboard/applicants' ? (
           <ApplicantList
             onAction={async (partitionKey, rowKey, newStatus, adminEmail) => {
-              // Handle approval workflow with dual approval system
+              // Handle approval and denial workflows with dual tracking system
               if (newStatus === 'Approved') {
                 // Call the dual approval Azure Function
                 try {
@@ -582,6 +582,7 @@ const Dashboard: React.FC = () => {
                       email: adminEmail || 'admin@company.com', // Use provided admin email or default
                       partitionKey,
                       rowKey,
+                      action: 'approve', // Specify approval action
                     }),
                   });
 
@@ -619,25 +620,51 @@ const Dashboard: React.FC = () => {
                   alert('Approval Error: ' + error);
                 }
               } else if (newStatus === 'Denied') {
-                // Handle denial - bypass dual approval for denials
+                // Handle denial with dual denial system
                 try {
-                  const response = await fetch('https://approval-function-6370.azurewebsites.net/api/changestatusfunction', {
+                  const denialResponse = await fetch('https://simbaaddapproval-f8h7g2ffe2cefchh.westus-01.azurewebsites.net/api/addApproval', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
+                      email: adminEmail || 'admin@company.com', // Use provided admin email or default
                       partitionKey,
                       rowKey,
-                      action: 'deny',
+                      action: 'deny', // Specify denial action
                     }),
                   });
-                  const data = await response.text();
-                  if (response.ok) {
-                    alert('Success: Application denied');
+
+                  const denialData = await denialResponse.json();
+                  
+                  if (denialResponse.ok) {
+                    // Check if both denials are now complete
+                    if (denialResponse.status === 201 && denialData.isDenialComplete) {
+                      // Both denials received - update the final status to denied
+                      console.log('Both denials received, updating status to Denied');
+                      
+                      const statusResponse = await fetch('https://approval-function-6370.azurewebsites.net/api/changestatusfunction', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          partitionKey,
+                          rowKey,
+                          action: 'deny',
+                        }),
+                      });
+
+                      if (statusResponse.ok) {
+                        alert(`Success: Both denials received!\nDenier 1: ${denialData.denial1} (${denialData.timeOfDenial1})\nDenier 2: ${denialData.denial2} (${denialData.timeOfDenial2})\nApplication has been denied!`);
+                      } else {
+                        alert(`Denials complete but status update failed: ${await statusResponse.text()}`);
+                      }
+                    } else {
+                      // First denial received, waiting for second
+                      alert(`Success: ${denialData.message}\nDenier: ${denialData.denial1}\nTime: ${denialData.timeOfDenial1}\nWaiting for second denial...`);
+                    }
                   } else {
-                    alert('Error: ' + data);
+                    alert(`Denial Error: ${denialData.error || await denialResponse.text()}`);
                   }
                 } catch (error) {
-                  alert('Error: ' + error);
+                  alert('Denial Error: ' + error);
                 }
               }
 
