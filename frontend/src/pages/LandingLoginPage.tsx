@@ -1,5 +1,6 @@
 import React, { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { useUser } from "../contexts/UserContext";
 import logo from "../assets/redp-logo.png";
 import ConfirmationCode from "./ConfirmationCode";
 import "./LandingLoginPage.css";
@@ -10,6 +11,7 @@ const BG = "#fff"; // White background
 
 const LandingLoginPage: React.FC = () => {
   const navigate = useNavigate();
+  const { setUserEmail } = useUser();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -184,6 +186,8 @@ const LandingLoginPage: React.FC = () => {
   };
 
   const handleConfirmationSuccess = () => {
+    // Store the logged-in user's email in context
+    setUserEmail(email);
     navigate("/dashboard");
   };
 

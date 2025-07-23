@@ -7,6 +7,7 @@
 import React, { useState, useEffect } from 'react';
 import './ApplicantList.css';
 import { FaUserCircle } from 'react-icons/fa';
+import { useUser } from '../contexts/UserContext';
 
 // Basic applicant type from the API (GET with no params)
 type ApplicantBasic = {
@@ -46,7 +47,7 @@ type Applicant = {
 // Props:
 // - onAction: Handler for status change (should call backend API/Azure Function to update status or delete)
 interface ApplicantListProps {
-  onAction?: (partitionKey: string, rowKey: string, newStatus: 'Approved' | 'Pending' | 'Denied') => void;
+  onAction?: (partitionKey: string, rowKey: string, newStatus: 'Approved' | 'Pending' | 'Denied', adminEmail?: string) => void;
 }
 
 // API base URL
@@ -56,6 +57,8 @@ const API_BASE_URL = 'https://simbagetapplicants-hcf5cffbcccmgsbn.westus-01.azur
 import { statusToString, joinName, paginate } from './utils';
 
 const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
+  const { userEmail } = useUser();
+  
   // State for storing the basic applicants list
   const [applicants, setApplicants] = useState<ApplicantBasic[]>([]);
   // State for storing detailed applicant data for modal
@@ -81,8 +84,18 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
   // Remove modalAction state
   // const [modalAction, setModalAction] = useState<null | (() => void)>(null);
 
-  // Add local state for demo approvals
-  const [demoApprovals, setDemoApprovals] = useState<{ [key: string]: string[] }>({});
+  // Add state for admin email - use logged-in user's email as default
+  const [adminEmail, setAdminEmail] = useState<string>(userEmail || 'admin@company.com');
+  
+  // Update admin email when user context changes
+  useEffect(() => {
+    if (userEmail) {
+      setAdminEmail(userEmail);
+    }
+  }, [userEmail]);
+  
+  // Add state for storing actual approval data from the API
+  const [approvalData, setApprovalData] = useState<{ [key: string]: { approval1?: string, approval2?: string } }>({});
 
   // Refetch function to update data after status changes
   const refetchApplicants = async () => {
@@ -97,11 +110,55 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
       
       const data: ApplicantBasic[] = await response.json();
       setApplicants(data);
+      
+      // Fetch approval data for all applicants
+      await fetchApprovalDataForApplicants(data);
     } catch (err) {
       console.error('Error fetching applicants:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch applicants');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Function to fetch approval data for multiple applicants
+  const fetchApprovalDataForApplicants = async (applicantsList: ApplicantBasic[]) => {
+    const approvalPromises = applicantsList.map(async (applicant) => {
+      try {
+        const url = `${API_BASE_URL}?partitionKey=${encodeURIComponent(applicant.partitionKey)}&rowKey=${encodeURIComponent(applicant.rowKey)}`;
+        const response = await fetch(url);
+        
+        if (response.ok) {
+          const detailedData: ApplicantDetailed = await response.json();
+          const key = `${applicant.partitionKey}|${applicant.rowKey}`;
+          return {
+            key,
+            approval1: detailedData.approval1 || '',
+            approval2: detailedData.approval2 || ''
+          };
+        }
+      } catch (error) {
+        console.error(`Error fetching approval data for ${applicant.partitionKey}|${applicant.rowKey}:`, error);
+      }
+      return null;
+    });
+
+    try {
+      const results = await Promise.all(approvalPromises);
+      const newApprovalData: { [key: string]: { approval1?: string, approval2?: string } } = {};
+      
+      results.forEach(result => {
+        if (result) {
+          newApprovalData[result.key] = {
+            approval1: result.approval1,
+            approval2: result.approval2
+          };
+        }
+      });
+      
+      setApprovalData(newApprovalData);
+    } catch (error) {
+      console.error('Error processing approval data:', error);
     }
   };
 
@@ -142,7 +199,7 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
   const handleActionClick = (partitionKey: string, rowKey: string) => {
     const status = statusSelect[`${partitionKey}-${rowKey}`] || 'Approved';
     if (onAction) {
-      onAction(partitionKey, rowKey, status);
+      onAction(partitionKey, rowKey, status, adminEmail);
     }
   };
 
@@ -154,12 +211,12 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
     // Call onAction for each selected applicant
     selectedKeys.forEach(key => {
       const [partitionKey, rowKey] = key.split('|');
-      console.log('Processing applicant:', { partitionKey, rowKey, action });
-      if (onAction) onAction(partitionKey, rowKey, action);
+      console.log('Processing applicant:', { partitionKey, rowKey, action, adminEmail });
+      if (onAction) onAction(partitionKey, rowKey, action, adminEmail);
     });
     // Optionally clear selection after action
     setSelected({});
-    // Refetch data after bulk action to show updated statuses
+    // Refetch data after bulk action to show updated statuses and approvals
     setTimeout(() => refetchApplicants(), 1000);
   };
 
@@ -252,6 +309,32 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
       flexGrow: 1
     }}>
       <h2 className="applicant-list-title">All Applications</h2>
+      
+      {/* Admin Email Input */}
+      <div style={{ marginBottom: 16, padding: '12px', background: '#f8f9fa', borderRadius: 8, border: '1px solid #dee2e6' }}>
+        <label style={{ display: 'block', marginBottom: 8, fontWeight: 600, color: '#495057' }}>
+          Logged in as (for approvals):
+        </label>
+        <input
+          type="email"
+          placeholder="No user logged in"
+          value={adminEmail}
+          onChange={e => setAdminEmail(e.target.value)}
+          style={{ 
+            padding: '8px 12px', 
+            borderRadius: 6, 
+            border: userEmail ? '1px solid #28a745' : '1px solid #ced4da', 
+            fontSize: 14, 
+            width: '300px',
+            background: userEmail ? '#f8fff9' : '#fff',
+            color: userEmail ? '#155724' : '#495057'
+          }}
+        />
+        <small style={{ display: 'block', marginTop: 4, color: userEmail ? '#155724' : '#6c757d' }}>
+          {userEmail ? '✓ Using your logged-in email for approvals' : 'Please log in to use your email for approvals'}
+        </small>
+      </div>
+      
       {/* Search/filter bar */}
       <div style={{ display: 'flex', gap: 12, marginBottom: 16, alignItems: 'center' }}>
         <input
@@ -308,30 +391,18 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
         {/* Table rows: map over paginatedApplicants array */}
         {paginatedApplicants.map((applicant, idx) => {
           const applicantKey = `${applicant.partitionKey}|${applicant.rowKey}`;
-          // Use local state for approvedBy, fallback to dummy data
-          let approvedBy = demoApprovals[applicantKey];
-          if (!approvedBy) {
-            if ((applicant.status === undefined ? null : Number(applicant.status)) === 2) {
-              approvedBy = ['Admin1', 'Admin2'];
-            } else if ((applicant.status === undefined ? null : Number(applicant.status)) === 1 || applicant.status === null) {
-              approvedBy = ['Admin1'];
-            } else {
-              approvedBy = [];
-            }
+          
+          // Get actual approval data from API or fallback to empty array
+          const actualApprovalData = approvalData[applicantKey];
+          const approvedByEmails: string[] = [];
+          
+          if (actualApprovalData) {
+            if (actualApprovalData.approval1) approvedByEmails.push(actualApprovalData.approval1);
+            if (actualApprovalData.approval2) approvedByEmails.push(actualApprovalData.approval2);
           }
+          
           // Use the actual API status instead of calculating from approvedBy
           const status = statusToString(applicant.status === undefined ? null : Number(applicant.status));
-          // Handler for toggling admin approval
-          const toggleAdmin = (admin: string) => {
-            setDemoApprovals(prev => {
-              const current = prev[applicantKey] || approvedBy;
-              if (current.includes(admin)) {
-                return { ...prev, [applicantKey]: current.filter(a => a !== admin) };
-              } else {
-                return { ...prev, [applicantKey]: [...current, admin] };
-              }
-            });
-          };
           return (
             <div className="applicant-list-row" key={applicantKey} style={{display: 'grid', gridTemplateColumns: '0.5fr 0.7fr 1.5fr 1.5fr 1fr 2fr 1.5fr', gap: 16, alignItems: 'center', padding: '1rem', borderBottom: '1px solid #eee', background: idx % 2 === 0 ? '#fff' : '#f7f7f7'}}>
               {/* Checkbox */}
@@ -373,13 +444,7 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
                 {status}
               </span>
               <span style={{ minWidth: 120 }}>
-                <select
-                  multiple
-                  value={approvedBy}
-                  onChange={e => {
-                    const options = Array.from(e.target.selectedOptions).map(opt => opt.value);
-                    setDemoApprovals(prev => ({ ...prev, [applicantKey]: options }));
-                  }}
+                <div
                   style={{
                     border: '1.5px solid #ff9800',
                     borderRadius: 6,
@@ -389,14 +454,25 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
                     background: '#fff',
                     minWidth: 110,
                     marginRight: 8,
-                    cursor: 'pointer',
+                    fontSize: '0.8rem',
+                    minHeight: '24px',
+                    display: 'flex',
+                    alignItems: 'center',
                   }}
-                  title="Select admins who have approved"
+                  title={`Approvals: ${approvedByEmails.length > 0 ? approvedByEmails.join(', ') : 'None'}`}
                 >
-                  {['Admin1', 'Admin2', 'Admin3'].map(admin => (
-                    <option key={admin} value={admin}>{admin}</option>
-                  ))}
-                </select>
+                  {approvedByEmails.length > 0 ? (
+                    <div style={{ lineHeight: '1.2' }}>
+                      {approvedByEmails.map((email, emailIdx) => (
+                        <div key={emailIdx} style={{ marginBottom: emailIdx < approvedByEmails.length - 1 ? '2px' : '0' }}>
+                          {email}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <span style={{ color: '#999', fontStyle: 'italic' }}>None</span>
+                  )}
+                </div>
               </span>
               <span style={{display: 'flex', gap: 8, alignItems: 'center'}}>
                 {/* Only show View button */}
