@@ -50,7 +50,11 @@ const getRecentNotifications = (apiApplicants: any[], applicants: any[]) => {
   });
 };
 
+
+const API_BASE_URL = 'https://simbagetapplicants-hcf5cffbcccmgsbn.westus-01.azurewebsites.net/api/httptablefunction';
+
 const Notifications: React.FC = () => {
+<<<<<<< HEAD
   // Use the same applicants state as Dashboard for consistent notifications
   // Try to access the applicants from Dashboard if possible
   const [apiApplicants, setApiApplicants] = React.useState<any[]>([]);
@@ -65,11 +69,41 @@ const Notifications: React.FC = () => {
   }, []);
 
   const notifications = getRecentNotifications(apiApplicants, applicants);
+=======
+  const [apiApplicants, setApiApplicants] = React.useState<any[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState<string|null>(null);
+
+  React.useEffect(() => {
+    const fetchApplicants = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await fetch(API_BASE_URL);
+        if (!response.ok) throw new Error('Failed to fetch applicants');
+        const data = await response.json();
+        setApiApplicants(data);
+      } catch (err) {
+        setError('Could not load logs.');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchApplicants();
+  }, []);
+
+  const notifications = getRecentNotifications(apiApplicants, initialApplicants);
+
+>>>>>>> main
   return (
     <div className="logs-container">
       <h2 className="logs-title">Logs</h2>
       <div className="logs-list">
-        {notifications.length === 0 ? (
+        {loading ? (
+          <div style={{textAlign:'center', color:'#888', padding:'2rem'}}>Loading logs...</div>
+        ) : error ? (
+          <div style={{textAlign:'center', color:'#f44336', padding:'2rem'}}>{error}</div>
+        ) : notifications.length === 0 ? (
           <div style={{textAlign:'center', color:'#888', padding:'2rem'}}>No logs available.</div>
         ) : notifications.map((n) => (
           <div className="log-item" key={n.id}>

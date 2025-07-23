@@ -41,6 +41,7 @@ const PendingDetailsWithFetch: React.FC = () => {
   return <PendingDetails applicants={applicants} />;
 };
 
+
 const App: React.FC = () => (
   <div style={{ background: '#fff', minHeight: '100vh' }}>
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '2rem 0 1rem 0' }}>
@@ -76,6 +77,7 @@ const App: React.FC = () => (
         <Route path="*" element={<div style={{padding: '2rem', textAlign: 'center'}}><h2>404 - Page Not Found</h2></div>} />
       </Routes>
     </BrowserRouter>
+    {/* Notifications are now only shown on /dashboard/logs route */}
   </div>
 );
 

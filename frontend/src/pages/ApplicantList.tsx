@@ -1,4 +1,4 @@
-
+import { statusToString } from './utils';
 // ApplicantList.tsx
 // This component displays all scholarship applications in a table with action controls for admin workflow.
 // Backend engineers: Integrate API calls for fetching applicants, updating status, and deleting applicants where noted below.
@@ -54,10 +54,12 @@ interface ApplicantListProps {
 const API_BASE_URL = 'https://simbagetapplicants-hcf5cffbcccmgsbn.westus-01.azurewebsites.net/api/httptablefunction';
 
 // Import helpers from Dashboard
-import { statusToString, joinName, paginate } from './utils';
+
+import { useNotification } from '../contexts/NotificationContext';
 
 const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
   const { userEmail } = useUser();
+  const { addNotification } = useNotification();
   
   // State for storing the basic applicants list
   const [applicants, setApplicants] = useState<ApplicantBasic[]>([]);
@@ -79,11 +81,20 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
   const [applicantsPerPage, setApplicantsPerPage] = useState(10);
 
   // Add modal state
+<<<<<<< HEAD
   // (Removed unused modalOpen state)
   // Bulk comment modal state
   const [bulkActionType, setBulkActionType] = useState<null | 'Approved' | 'Denied'>(null);
   const [bulkComment, setBulkComment] = useState('');
   const [bulkProcessing, setBulkProcessing] = useState(false);
+=======
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalMessage, setModalMessage] = useState('');
+  // Reason modal state
+  const [reasonModalOpen, setReasonModalOpen] = useState(false);
+  const [reasonValue, setReasonValue] = useState('');
+  const [pendingAction, setPendingAction] = useState<null | { action: 'Approved' | 'Denied', keys: string[] }>(null);
+>>>>>>> main
   // Remove modalAction state
   // const [modalAction, setModalAction] = useState<null | (() => void)>(null);
 
@@ -97,8 +108,13 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
     }
   }, [userEmail]);
   
-  // Add state for storing actual approval data from the API
-  const [approvalData, setApprovalData] = useState<{ [key: string]: { approval1?: string, approval2?: string } }>({});
+  // Add state for storing actual approval and denial data from the API
+  const [approvalData, setApprovalData] = useState<{ [key: string]: { 
+    approval1?: string, 
+    approval2?: string,
+    denial1?: string,
+    denial2?: string
+  } }>({});
 
   // Refetch function to update data after status changes
   const refetchApplicants = async () => {
@@ -137,7 +153,9 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
           return {
             key,
             approval1: detailedData.approval1 || '',
-            approval2: detailedData.approval2 || ''
+            approval2: detailedData.approval2 || '',
+            denial1: detailedData.denial1 || '',
+            denial2: detailedData.denial2 || ''
           };
         }
       } catch (error) {
@@ -148,13 +166,20 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
 
     try {
       const results = await Promise.all(approvalPromises);
-      const newApprovalData: { [key: string]: { approval1?: string, approval2?: string } } = {};
+      const newApprovalData: { [key: string]: { 
+        approval1?: string, 
+        approval2?: string,
+        denial1?: string,
+        denial2?: string
+      } } = {};
       
       results.forEach(result => {
         if (result) {
           newApprovalData[result.key] = {
             approval1: result.approval1,
-            approval2: result.approval2
+            approval2: result.approval2,
+            denial1: result.denial1,
+            denial2: result.denial2
           };
         }
       });
@@ -201,6 +226,7 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
   // Handle action button click
   // (Removed unused handleActionClick function)
 
+<<<<<<< HEAD
   // Bulk action handler (show comment modal)
   const handleBulkAction = (action: 'Approved' | 'Pending' | 'Denied') => {
     if (action === 'Approved' || action === 'Denied') {
@@ -232,6 +258,31 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
     setBulkActionType(null);
     setBulkComment('');
     setSelected({});
+=======
+  // Bulk action handler (now opens reason modal)
+  const handleBulkAction = (action: 'Approved' | 'Denied') => {
+    const selectedKeys = Object.keys(selected).filter(k => selected[k]);
+    if (selectedKeys.length === 0) return;
+    setPendingAction({ action, keys: selectedKeys });
+    setReasonValue('');
+    setReasonModalOpen(true);
+  };
+
+  // Confirm bulk/single action with reason
+  const confirmActionWithReason = () => {
+    if (!pendingAction) return;
+    pendingAction.keys.forEach(key => {
+      const [partitionKey, rowKey] = key.split('|');
+      if (onAction) onAction(partitionKey, rowKey, pendingAction.action, adminEmail /*, reasonValue */);
+    });
+    addNotification(
+      `${pendingAction.keys.length} applicant${pendingAction.keys.length > 1 ? 's' : ''} ${pendingAction.action === 'Approved' ? 'approved' : 'denied'} by ${adminEmail}${reasonValue ? ` (Reason: ${reasonValue})` : ''}`,
+      pendingAction.action === 'Approved' ? 'success' : 'error'
+    );
+    setSelected({});
+    setReasonModalOpen(false);
+    setPendingAction(null);
+>>>>>>> main
     setTimeout(() => refetchApplicants(), 1000);
   };
 
@@ -386,7 +437,7 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
         background: '#fafbfc'
       }}>
         {/* Table header: consistently show 5 columns */}
-        <div className="applicant-list-header" style={{display: 'grid', gridTemplateColumns: '0.5fr 0.7fr 1.5fr 1.5fr 1fr 2fr 1.5fr', gap: 16, fontWeight: 600, padding: '1rem', background: '#fafafa', borderBottom: '1px solid #eee'}}>
+        <div className="applicant-list-header" style={{display: 'grid', gridTemplateColumns: '0.5fr 0.7fr 1.5fr 1.5fr 1fr 2fr 2fr 1.5fr', gap: 16, fontWeight: 600, padding: '1rem', background: '#fafafa', borderBottom: '1px solid #eee'}}>
           <span>
             <input
               type="checkbox"
@@ -401,22 +452,32 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
           <span>Last Name</span>
           <span>Status</span>
           <span>Approved By</span>
+          <span>Denied By</span>
           <span>Actions</span>
         </div>
         {/* Table rows: map over paginatedApplicants array */}
         {paginatedApplicants.map((applicant, idx) => {
           const applicantKey = `${applicant.partitionKey}|${applicant.rowKey}`;
+<<<<<<< HEAD
           // Get actual approval data from API or fallback to empty array
           const actualApprovalData = approvalData[applicantKey];
           const approvedByEmails: string[] = [];
+=======
+          // Get actual approval and denial data from API
+          const actualApprovalData = approvalData[applicantKey];
+          const approvedByEmails: string[] = [];
+          const deniedByEmails: string[] = [];
+>>>>>>> main
           if (actualApprovalData) {
             if (actualApprovalData.approval1) approvedByEmails.push(actualApprovalData.approval1);
             if (actualApprovalData.approval2) approvedByEmails.push(actualApprovalData.approval2);
+            if (actualApprovalData.denial1) deniedByEmails.push(actualApprovalData.denial1);
+            if (actualApprovalData.denial2) deniedByEmails.push(actualApprovalData.denial2);
           }
           // Use backend status for display
           const status = statusToString(applicant.status === undefined ? null : Number(applicant.status));
           return (
-            <div className="applicant-list-row" key={applicantKey} style={{display: 'grid', gridTemplateColumns: '0.5fr 0.7fr 1.5fr 1.5fr 1fr 2fr 1.5fr', gap: 16, alignItems: 'center', padding: '1rem', borderBottom: '1px solid #eee', background: idx % 2 === 0 ? '#fff' : '#f7f7f7'}}>
+            <div className="applicant-list-row" key={applicantKey} style={{display: 'grid', gridTemplateColumns: '0.5fr 0.7fr 1.5fr 1.5fr 1fr 2fr 2fr 1.5fr', gap: 16, alignItems: 'center', padding: '1rem', borderBottom: '1px solid #eee', background: idx % 2 === 0 ? '#fff' : '#f7f7f7'}}>
               {/* Checkbox */}
               <span>
                 <input
@@ -427,6 +488,76 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
                   disabled={status === 'Approved'}
                 />
               </span>
+              {/* Approve/Deny buttons for single action (show only if not approved) */}
+              {/*
+              <span>
+                <button onClick={() => {
+                  setPendingAction({ action: 'Approved', keys: [applicantKey] });
+                  setReasonValue('');
+                  setReasonModalOpen(true);
+                }} disabled={status === 'Approved'}>Approve</button>
+                <button onClick={() => {
+                  setPendingAction({ action: 'Denied', keys: [applicantKey] });
+                  setReasonValue('');
+                  setReasonModalOpen(true);
+                }} disabled={status === 'Approved'}>Deny</button>
+              </span>
+              */}
+      {/* Reason Modal for approve/deny actions */}
+      {reasonModalOpen && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100vh',
+          background: 'rgba(0,0,0,0.18)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 99999
+        }}>
+          <div style={{
+            background: '#fff',
+            borderRadius: 16,
+            boxShadow: '0 4px 32px 0 rgba(34,34,34,0.18)',
+            padding: '2.5rem 2.5rem 2rem 2.5rem',
+            minWidth: 320,
+            maxWidth: '90vw',
+            textAlign: 'center',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: 24
+          }}>
+            <div style={{ fontSize: 22, fontWeight: 700, color: '#ff3d00', marginBottom: 12 }}>
+              {pendingAction?.action === 'Approved' ? 'Approve' : 'Deny'} {pendingAction?.keys.length > 1 ? `${pendingAction.keys.length} applicants` : 'applicant'}
+            </div>
+            <textarea
+              value={reasonValue}
+              onChange={e => setReasonValue(e.target.value)}
+              rows={4}
+              style={{ width: 320, borderRadius: 8, border: '1.5px solid #ff9800', padding: 10, fontSize: 16, resize: 'vertical' }}
+              placeholder="Enter reason or comment (required)"
+            />
+            <div style={{ display: 'flex', gap: 16 }}>
+              <button
+                style={{ background: '#ff3d00', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 32px', fontWeight: 600, fontSize: 16, cursor: 'pointer' }}
+                onClick={confirmActionWithReason}
+                disabled={!reasonValue.trim()}
+              >
+                {pendingAction?.action === 'Approved' ? 'Approve' : 'Deny'}
+              </button>
+              <button
+                style={{ background: '#eee', color: '#333', border: 'none', borderRadius: 8, padding: '10px 32px', fontWeight: 600, fontSize: 16, cursor: 'pointer' }}
+                onClick={() => { setReasonModalOpen(false); setPendingAction(null); }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
               {/* Avatar/Initials */}
               <span>
                 {applicant.profileImage ? (
@@ -478,6 +609,37 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
                     <div style={{ lineHeight: '1.2' }}>
                       {approvedByEmails.map((email, emailIdx) => (
                         <div key={emailIdx} style={{ marginBottom: emailIdx < approvedByEmails.length - 1 ? '2px' : '0' }}>
+                          {email}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <span style={{ color: '#999', fontStyle: 'italic' }}>None</span>
+                  )}
+                </div>
+              </span>
+              <span style={{ minWidth: 120 }}>
+                <div
+                  style={{
+                    border: '1.5px solid #f44336',
+                    borderRadius: 6,
+                    padding: '4px 8px',
+                    fontWeight: 600,
+                    color: '#f44336',
+                    background: '#fff',
+                    minWidth: 110,
+                    marginRight: 8,
+                    fontSize: '0.8rem',
+                    minHeight: '24px',
+                    display: 'flex',
+                    alignItems: 'center',
+                  }}
+                  title={`Denials: ${deniedByEmails.length > 0 ? deniedByEmails.join(', ') : 'None'}`}
+                >
+                  {deniedByEmails.length > 0 ? (
+                    <div style={{ lineHeight: '1.2' }}>
+                      {deniedByEmails.map((email, emailIdx) => (
+                        <div key={emailIdx} style={{ marginBottom: emailIdx < deniedByEmails.length - 1 ? '2px' : '0' }}>
                           {email}
                         </div>
                       ))}
@@ -749,6 +911,17 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
                     </div>
                   );
                 })}
+                {/* Reason/Comment box for admin to leave a note when approving/denying */}
+                <div style={{ marginTop: 18 }}>
+                  <label htmlFor="admin-reason" style={{ fontWeight: 600, color: '#023c69', marginBottom: 4, display: 'block' }}>Reason/Comment (for approval/denial):</label>
+                  <textarea
+                    id="admin-reason"
+                    rows={3}
+                    style={{ width: '100%', borderRadius: 6, border: '1.5px solid #ff9800', padding: 8, fontSize: '1em', resize: 'vertical' }}
+                    placeholder="Enter your reason or comment here..."
+                    // value and onChange to be implemented in next step
+                  />
+                </div>
               </div>
             )}
           </div>

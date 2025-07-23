@@ -52,6 +52,11 @@ const PendingDetails: React.FC<{ applicants: Applicant[] }> = ({ applicants }) =
               <th>Name</th>
               <th>School</th>
               <th>Submitted On</th>
+<<<<<<< HEAD
+=======
+              {/* <th>Reason</th> */}
+              <th>Notes</th>
+>>>>>>> main
             </tr>
           </thead>
           <tbody>
@@ -63,6 +68,21 @@ const PendingDetails: React.FC<{ applicants: Applicant[] }> = ({ applicants }) =
                   <td>{applicant.name}</td>
                   <td>{applicant.school}</td>
                   <td>{applicant.submittedOn}</td>
+<<<<<<< HEAD
+=======
+                  {/* Reason column removed as per new requirements */}
+                  <td>
+                    {/* Editable Notes. Backend: Save onBlur or onChange as needed. */}
+                    <textarea
+                      value={edits[applicant.id]?.notes ?? applicant.notes}
+                      onChange={e => handleEdit(applicant.id, 'notes', e.target.value)}
+                      onBlur={() => handleSave(applicant.id, 'notes')}
+                      rows={2}
+                      style={{ width: '100%', minWidth: 120, borderRadius: 6, border: '1.5px solid #ff9800', padding: 4, fontSize: '1em', resize: 'vertical' }}
+                      placeholder="Enter notes..."
+                    />
+                  </td>
+>>>>>>> main
                 </tr>
               ))
             )}
