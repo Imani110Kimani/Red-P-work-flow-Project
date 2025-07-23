@@ -40,7 +40,7 @@ const getRecentNotifications = (apiApplicants: any[], applicants: any[]) => {
       msg = `${firstName} ${lastName} application is in progress.`;
     }
     // Date string
-    let dateStr = hasDateOfBirth(a) ? a.dateOfBirth : hasDate(a) ? a.date : '';
+    const dateStr = hasDateOfBirth(a) ? a.dateOfBirth : hasDate(a) ? a.date : '';
     return {
       id: idx + 1,
       message: msg,
@@ -51,12 +51,20 @@ const getRecentNotifications = (apiApplicants: any[], applicants: any[]) => {
 };
 
 const Notifications: React.FC = () => {
-  // Only use real API data for logs
-  let apiApplicants: any[] = [];
-  if (window && (window as any).apiApplicants) {
-    apiApplicants = (window as any).apiApplicants;
-  }
-  const notifications = getRecentNotifications(apiApplicants, []);
+  // Use the same applicants state as Dashboard for consistent notifications
+  // Try to access the applicants from Dashboard if possible
+  const [apiApplicants, setApiApplicants] = React.useState<any[]>([]);
+  const [applicants, setApplicants] = React.useState<any[]>(initialApplicants);
+
+  React.useEffect(() => {
+    // Try to fetch the same API applicants as Dashboard
+    fetch('https://simbagetapplicants-hcf5cffbcccmgsbn.westus-01.azurewebsites.net/api/httptablefunction')
+      .then(res => res.ok ? res.json() : Promise.reject(res))
+      .then(data => setApiApplicants(data))
+      .catch(() => setApiApplicants([]));
+  }, []);
+
+  const notifications = getRecentNotifications(apiApplicants, applicants);
   return (
     <div className="logs-container">
       <h2 className="logs-title">Logs</h2>

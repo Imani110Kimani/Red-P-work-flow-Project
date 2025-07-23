@@ -347,7 +347,6 @@ const Dashboard: React.FC = () => {
           <button onClick={() => navigate('/dashboard/applicants')}><FaUsers /> Applicants</button>
           <button onClick={() => navigate('/dashboard/admissions')}><FaTachometerAlt /> Admissions</button>
           <button onClick={() => navigate('/dashboard/student-verification')}><FaUserGraduate /> Students</button>
-          <button onClick={() => navigate('/dashboard/pending')}><FaUsers /> Pending</button>
           <button onClick={() => navigate('/dashboard/logs')}><FaBell /> Logs</button>
           <button className="sidebar-logout" onClick={handleLogout}><FaSignOutAlt /> Logout</button>
         </nav>
@@ -460,11 +459,31 @@ const Dashboard: React.FC = () => {
             <aside className="dashboard-right-panel" style={{flex: 1, minWidth: 280, maxWidth: 370, background: 'linear-gradient(135deg, #fff 60%, #ff9800 100%)', borderRadius: 18, boxShadow: '0 2px 16px 0 rgba(255,61,0,0.10)', padding: '2rem 1.5rem 1.5rem 1.5rem', marginTop: 8, display: 'flex', flexDirection: 'column', gap: 28}}>
               {/* Welcome Card */}
               <div style={{background: '#fff', borderRadius: 14, boxShadow: '0 1px 8px 0 rgba(255,61,0,0.07)', padding: '1.2rem 1rem 1rem 1rem', marginBottom: 18, display: 'flex', alignItems: 'center', gap: 16}}>
-                <div style={{width: 48, height: 48, borderRadius: '50%', background: '#ff9800', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, color: '#fff', fontWeight: 700}}>A</div>
-                <div>
-                  <div style={{fontWeight: 700, fontSize: '1.08em', color: '#222'}}>Welcome, <span style={{color:'#ff3d00'}}>Admin</span>!</div>
-                  <div style={{fontSize: '0.98em', color: '#ff9800'}}>Have a productive day</div>
-                </div>
+                {(() => {
+                  // Get admin name from email (before @, capitalize first letter)
+                  let adminName = 'Admin';
+                  if (userEmail) {
+                    const namePart = userEmail.split('@')[0];
+                    // Split by dot/underscore/hyphen, capitalize each part
+                    adminName = namePart
+                      .split(/[._-]/)
+                      .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+                      .join(' ');
+                  }
+                  return (
+                    <>
+                      <div style={{width: 48, height: 48, borderRadius: '50%', background: '#ff9800', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, color: '#fff', fontWeight: 700}}>
+                        {adminName.charAt(0)}
+                      </div>
+                      <div>
+                        <div style={{fontWeight: 700, fontSize: '1.08em', color: '#222'}}>
+                          Welcome, <span style={{color:'#ff3d00'}}>{adminName}</span>!
+                        </div>
+                        <div style={{fontSize: '0.98em', color: '#ff9800'}}>Have a productive day</div>
+                      </div>
+                    </>
+                  );
+                })()}
               </div>
               {/* Analytics Card */}
               <div style={{background: '#fff', borderRadius: 14, boxShadow: '0 1px 8px 0 rgba(255,61,0,0.07)', padding: '1.1rem 1rem 1.2rem 1rem', marginBottom: 18}}>
@@ -533,7 +552,7 @@ const Dashboard: React.FC = () => {
                         msg = `${firstName} ${lastName} application is in progress.`;
                       }
                       // Date string
-                      let dateStr = hasDateOfBirth(a) ? a.dateOfBirth : hasDate(a) ? a.date : '';
+                      const dateStr = hasDateOfBirth(a) ? a.dateOfBirth : hasDate(a) ? a.date : '';
                       return (
                         <li key={idx} style={{color: status === 'approved' ? '#ff9800' : status === 'denied' ? '#f44336' : '#ff3d00', fontWeight: 700, marginBottom: 2}}>
                           {msg} {dateStr && <span style={{color:'#5a6a85', fontWeight:400, marginLeft:8, fontSize:'0.97em'}}>({dateStr})</span>}

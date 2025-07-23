@@ -69,7 +69,7 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
   // State for error handling
   const [error, setError] = useState<string | null>(null);
   // statusSelect: stores the selected status for each applicant row (for dropdown)
-  const [statusSelect, setStatusSelect] = useState<{ [key: string]: 'Approved' | 'Pending' | 'Denied' }>({});
+  // (Removed unused statusSelect state)
   // State for selected applicants (for bulk actions)
   const [selected, setSelected] = React.useState<{ [key: string]: boolean }>({});
   const [copiedKey, setCopiedKey] = React.useState<string | null>(null);
@@ -79,8 +79,11 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
   const [applicantsPerPage, setApplicantsPerPage] = useState(10);
 
   // Add modal state
-  const [modalOpen, setModalOpen] = useState(false);
-  const [modalMessage, setModalMessage] = useState('');
+  // (Removed unused modalOpen state)
+  // Bulk comment modal state
+  const [bulkActionType, setBulkActionType] = useState<null | 'Approved' | 'Denied'>(null);
+  const [bulkComment, setBulkComment] = useState('');
+  const [bulkProcessing, setBulkProcessing] = useState(false);
   // Remove modalAction state
   // const [modalAction, setModalAction] = useState<null | (() => void)>(null);
 
@@ -196,27 +199,39 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
   };
 
   // Handle action button click
-  const handleActionClick = (partitionKey: string, rowKey: string) => {
-    const status = statusSelect[`${partitionKey}-${rowKey}`] || 'Approved';
-    if (onAction) {
-      onAction(partitionKey, rowKey, status, adminEmail);
-    }
-  };
+  // (Removed unused handleActionClick function)
 
-  // Bulk action handler
+  // Bulk action handler (show comment modal)
   const handleBulkAction = (action: 'Approved' | 'Pending' | 'Denied') => {
-    console.log('Bulk action clicked:', action);
+    if (action === 'Approved' || action === 'Denied') {
+      setBulkActionType(action);
+      setBulkComment('');
+      return;
+    }
+    // For other actions, proceed as before
     const selectedKeys = Object.keys(selected).filter(k => selected[k]);
-    console.log('Selected keys:', selectedKeys);
-    // Call onAction for each selected applicant
     selectedKeys.forEach(key => {
       const [partitionKey, rowKey] = key.split('|');
-      console.log('Processing applicant:', { partitionKey, rowKey, action, adminEmail });
       if (onAction) onAction(partitionKey, rowKey, action, adminEmail);
     });
-    // Optionally clear selection after action
     setSelected({});
-    // Refetch data after bulk action to show updated statuses and approvals
+    setTimeout(() => refetchApplicants(), 1000);
+  };
+
+  // Confirm bulk action with comment
+  const handleConfirmBulkAction = async () => {
+    if (!bulkComment.trim()) return;
+    setBulkProcessing(true);
+    const selectedKeys = Object.keys(selected).filter(k => selected[k]);
+    for (const key of selectedKeys) {
+      const [partitionKey, rowKey] = key.split('|');
+      if (onAction) onAction(partitionKey, rowKey, bulkActionType!, adminEmail /*, bulkComment*/);
+      // TODO: Pass bulkComment to backend if needed
+    }
+    setBulkProcessing(false);
+    setBulkActionType(null);
+    setBulkComment('');
+    setSelected({});
     setTimeout(() => refetchApplicants(), 1000);
   };
 
@@ -391,17 +406,14 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
         {/* Table rows: map over paginatedApplicants array */}
         {paginatedApplicants.map((applicant, idx) => {
           const applicantKey = `${applicant.partitionKey}|${applicant.rowKey}`;
-          
           // Get actual approval data from API or fallback to empty array
           const actualApprovalData = approvalData[applicantKey];
           const approvedByEmails: string[] = [];
-          
           if (actualApprovalData) {
             if (actualApprovalData.approval1) approvedByEmails.push(actualApprovalData.approval1);
             if (actualApprovalData.approval2) approvedByEmails.push(actualApprovalData.approval2);
           }
-          
-          // Use the actual API status instead of calculating from approvedBy
+          // Use backend status for display
           const status = statusToString(applicant.status === undefined ? null : Number(applicant.status));
           return (
             <div className="applicant-list-row" key={applicantKey} style={{display: 'grid', gridTemplateColumns: '0.5fr 0.7fr 1.5fr 1.5fr 1fr 2fr 1.5fr', gap: 16, alignItems: 'center', padding: '1rem', borderBottom: '1px solid #eee', background: idx % 2 === 0 ? '#fff' : '#f7f7f7'}}>
@@ -412,6 +424,7 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
                   checked={!!selected[applicantKey]}
                   onChange={() => toggleSelect(applicantKey)}
                   aria-label={`Select applicant ${applicant.firstName} ${applicant.lastName}`}
+                  disabled={status === 'Approved'}
                 />
               </span>
               {/* Avatar/Initials */}
@@ -508,8 +521,8 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
           );
         })}
       </div>
-      {/* Stylish Modal for feedback */}
-      {modalOpen && (
+      {/* Modal for bulk approve/deny comment */}
+      {bulkActionType && (
         <div style={{
           position: 'fixed',
           top: 0,
@@ -527,36 +540,48 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
             borderRadius: 16,
             boxShadow: '0 4px 32px 0 rgba(34,34,34,0.18)',
             padding: '2.5rem 2.5rem 2rem 2.5rem',
-            minWidth: 320,
-            maxWidth: '90vw',
+            minWidth: 340,
+            maxWidth: '95vw',
             textAlign: 'center',
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
-            gap: 24
+            gap: 18
           }}>
-            <div style={{ fontSize: 28, fontWeight: 700, color: '#ff3d00', marginBottom: 12 }}>
-              {modalMessage}
+            <div style={{ fontSize: 22, fontWeight: 700, color: bulkActionType === 'Approved' ? '#43a047' : '#f44336', marginBottom: 8 }}>
+              {bulkActionType === 'Approved' ? 'Approve' : 'Deny'} Selected Applicants
             </div>
-            <button
-              style={{
-                background: '#ff3d00',
-                color: '#fff',
-                border: 'none',
-                borderRadius: 8,
-                padding: '10px 32px',
-                fontWeight: 600,
-                fontSize: 18,
-                cursor: 'pointer',
-                marginTop: 8
-              }}
-              onClick={() => {
-                setModalOpen(false);
-                window.location.reload();
-              }}
-            >
-              OK
-            </button>
+            <div style={{ fontSize: 15, color: '#444', marginBottom: 8 }}>
+              Please provide a reason or comment (required):
+            </div>
+            <textarea
+              value={bulkComment}
+              onChange={e => setBulkComment(e.target.value)}
+              rows={4}
+              style={{ width: 260, borderRadius: 6, border: '1px solid #bbb', padding: 8, fontSize: 15, resize: 'vertical' }}
+              placeholder={bulkActionType === 'Approved' ? 'Reason for approval...' : 'Reason for denial...'}
+              disabled={bulkProcessing}
+              autoFocus
+            />
+            <div style={{ display: 'flex', gap: 16, marginTop: 8 }}>
+              <button
+                onClick={() => {
+                  setBulkActionType(null);
+                  setBulkComment('');
+                }}
+                style={{ padding: '8px 22px', borderRadius: 6, border: '1.5px solid #bbb', background: '#fff', color: '#444', fontWeight: 600, fontSize: 16, cursor: 'pointer' }}
+                disabled={bulkProcessing}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmBulkAction}
+                style={{ padding: '8px 22px', borderRadius: 6, border: 'none', background: bulkActionType === 'Approved' ? '#43a047' : '#f44336', color: '#fff', fontWeight: 600, fontSize: 16, cursor: bulkComment.trim() && !bulkProcessing ? 'pointer' : 'not-allowed', opacity: bulkComment.trim() ? 1 : 0.7 }}
+                disabled={!bulkComment.trim() || bulkProcessing}
+              >
+                {bulkProcessing ? 'Processing...' : bulkActionType === 'Approved' ? 'Approve' : 'Deny'}
+              </button>
+            </div>
           </div>
         </div>
       )}
