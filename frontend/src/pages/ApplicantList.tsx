@@ -94,8 +94,13 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
     }
   }, [userEmail]);
   
-  // Add state for storing actual approval data from the API
-  const [approvalData, setApprovalData] = useState<{ [key: string]: { approval1?: string, approval2?: string } }>({});
+  // Add state for storing actual approval and denial data from the API
+  const [approvalData, setApprovalData] = useState<{ [key: string]: { 
+    approval1?: string, 
+    approval2?: string,
+    denial1?: string,
+    denial2?: string
+  } }>({});
 
   // Refetch function to update data after status changes
   const refetchApplicants = async () => {
@@ -134,7 +139,9 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
           return {
             key,
             approval1: detailedData.approval1 || '',
-            approval2: detailedData.approval2 || ''
+            approval2: detailedData.approval2 || '',
+            denial1: detailedData.denial1 || '',
+            denial2: detailedData.denial2 || ''
           };
         }
       } catch (error) {
@@ -145,13 +152,20 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
 
     try {
       const results = await Promise.all(approvalPromises);
-      const newApprovalData: { [key: string]: { approval1?: string, approval2?: string } } = {};
+      const newApprovalData: { [key: string]: { 
+        approval1?: string, 
+        approval2?: string,
+        denial1?: string,
+        denial2?: string
+      } } = {};
       
       results.forEach(result => {
         if (result) {
           newApprovalData[result.key] = {
             approval1: result.approval1,
-            approval2: result.approval2
+            approval2: result.approval2,
+            denial1: result.denial1,
+            denial2: result.denial2
           };
         }
       });
@@ -371,7 +385,7 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
         background: '#fafbfc'
       }}>
         {/* Table header: consistently show 5 columns */}
-        <div className="applicant-list-header" style={{display: 'grid', gridTemplateColumns: '0.5fr 0.7fr 1.5fr 1.5fr 1fr 2fr 1.5fr', gap: 16, fontWeight: 600, padding: '1rem', background: '#fafafa', borderBottom: '1px solid #eee'}}>
+        <div className="applicant-list-header" style={{display: 'grid', gridTemplateColumns: '0.5fr 0.7fr 1.5fr 1.5fr 1fr 2fr 2fr 1.5fr', gap: 16, fontWeight: 600, padding: '1rem', background: '#fafafa', borderBottom: '1px solid #eee'}}>
           <span>
             <input
               type="checkbox"
@@ -386,25 +400,29 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
           <span>Last Name</span>
           <span>Status</span>
           <span>Approved By</span>
+          <span>Denied By</span>
           <span>Actions</span>
         </div>
         {/* Table rows: map over paginatedApplicants array */}
         {paginatedApplicants.map((applicant, idx) => {
           const applicantKey = `${applicant.partitionKey}|${applicant.rowKey}`;
           
-          // Get actual approval data from API or fallback to empty array
+          // Get actual approval and denial data from API
           const actualApprovalData = approvalData[applicantKey];
           const approvedByEmails: string[] = [];
+          const deniedByEmails: string[] = [];
           
           if (actualApprovalData) {
             if (actualApprovalData.approval1) approvedByEmails.push(actualApprovalData.approval1);
             if (actualApprovalData.approval2) approvedByEmails.push(actualApprovalData.approval2);
+            if (actualApprovalData.denial1) deniedByEmails.push(actualApprovalData.denial1);
+            if (actualApprovalData.denial2) deniedByEmails.push(actualApprovalData.denial2);
           }
           
           // Use the actual API status instead of calculating from approvedBy
           const status = statusToString(applicant.status === undefined ? null : Number(applicant.status));
           return (
-            <div className="applicant-list-row" key={applicantKey} style={{display: 'grid', gridTemplateColumns: '0.5fr 0.7fr 1.5fr 1.5fr 1fr 2fr 1.5fr', gap: 16, alignItems: 'center', padding: '1rem', borderBottom: '1px solid #eee', background: idx % 2 === 0 ? '#fff' : '#f7f7f7'}}>
+            <div className="applicant-list-row" key={applicantKey} style={{display: 'grid', gridTemplateColumns: '0.5fr 0.7fr 1.5fr 1.5fr 1fr 2fr 2fr 1.5fr', gap: 16, alignItems: 'center', padding: '1rem', borderBottom: '1px solid #eee', background: idx % 2 === 0 ? '#fff' : '#f7f7f7'}}>
               {/* Checkbox */}
               <span>
                 <input
@@ -465,6 +483,37 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
                     <div style={{ lineHeight: '1.2' }}>
                       {approvedByEmails.map((email, emailIdx) => (
                         <div key={emailIdx} style={{ marginBottom: emailIdx < approvedByEmails.length - 1 ? '2px' : '0' }}>
+                          {email}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <span style={{ color: '#999', fontStyle: 'italic' }}>None</span>
+                  )}
+                </div>
+              </span>
+              <span style={{ minWidth: 120 }}>
+                <div
+                  style={{
+                    border: '1.5px solid #f44336',
+                    borderRadius: 6,
+                    padding: '4px 8px',
+                    fontWeight: 600,
+                    color: '#f44336',
+                    background: '#fff',
+                    minWidth: 110,
+                    marginRight: 8,
+                    fontSize: '0.8rem',
+                    minHeight: '24px',
+                    display: 'flex',
+                    alignItems: 'center',
+                  }}
+                  title={`Denials: ${deniedByEmails.length > 0 ? deniedByEmails.join(', ') : 'None'}`}
+                >
+                  {deniedByEmails.length > 0 ? (
+                    <div style={{ lineHeight: '1.2' }}>
+                      {deniedByEmails.map((email, emailIdx) => (
+                        <div key={emailIdx} style={{ marginBottom: emailIdx < deniedByEmails.length - 1 ? '2px' : '0' }}>
                           {email}
                         </div>
                       ))}
