@@ -1,0 +1,329 @@
+# ===========================================
+# Combined .gitignore for Full-Stack Project
+# Frontend: React/TypeScript/Vite
+# Backend: Python Azure Functions
+# ===========================================
+
+# ============ LOGS ============
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ============ DEPENDENCIES ============
+# Node.js
+node_modules/
+jspm_packages/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# ============ BUILD OUTPUTS ============
+# Frontend builds
+dist/
+dist-ssr/
+build/
+*.tsbuildinfo
+
+# Python distribution / packaging
+.Python
+develop-eggs/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# ============ ENVIRONMENT VARIABLES & SECRETS ============
+# Environment files (all variants)
+.env
+.env.*
+.env.local
+.env.development
+.env.development.local
+.env.staging
+.env.staging.local
+.env.production
+.env.production.local
+.env.test
+.env.test.local
+*.local
+
+# Azure specific environment files
+local.settings.json
+.azure/
+settings.json
+
+# AWS credentials
+.aws/
+credentials
+
+# Google Cloud credentials
+.gcloud/
+gcloud-service-key.json
+service-account*.json
+
+# Other cloud credentials
+digitalocean.json
+heroku.json
+
+# ============ VIRTUAL ENVIRONMENTS ============
+.venv/
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# ============ AZURE FUNCTIONS ============
+bin/
+obj/
+appsettings.json
+local.settings.json
+.azure/
+
+# Azure specific secrets and configs
+*.publishsettings
+*.azurePubxml
+ServiceConfiguration.Cloud.cscfg
+ServiceConfiguration.Local.cscfg
+*.azurePubxml
+
+# Function app secrets
+host.json.user
+functions.json
+
+# ============ TESTING & COVERAGE ============
+# Python testing
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+
+# JavaScript testing
+coverage/
+.nyc_output
+
+# ============ IDE & EDITORS ============
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+*.swp
+*.swo
+*~
+
+# ============ OS GENERATED FILES ============
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# ============ RUNTIME DATA ============
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# ============ PYTHON SPECIFIC ============
+# PyInstaller
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Translations
+*.mo
+*.pot
+
+# Django stuff
+*.log
+local_settings.py
+db.sqlite3
+
+# Flask stuff
+instance/
+.webassets-cache
+
+# Scrapy stuff
+.scrapy
+
+# Sphinx documentation
+docs/_build/
+
+# PyBuilder
+target/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# pyenv
+.python-version
+
+# celery beat schedule file
+celerybeat-schedule
+
+# SageMath parsed files
+*.sage.py
+
+# Spyder project settings
+.spyderproject
+.spyproject
+
+# Rope project settings
+.ropeproject
+
+# mkdocs documentation
+/site
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# ============ FRONTEND SPECIFIC ============
+# Build tools
+.parcel-cache
+.cache
+
+# Next.js
+.next
+out
+
+# Nuxt.js
+.nuxt
+
+# Vuepress
+.vuepress/dist
+
+# Serverless directories
+.serverless/
+
+# FuseBox cache
+.fusebox/
+
+# DynamoDB Local files
+.dynamodb/
+
+# TernJS port file
+.tern-port
+
+# ============ DEVELOPMENT & TEST FILES ============
+# Documentation and examples
+test-examples.md
+test_approvals.*
+setup.md
+README.md
+start.ps1
+
+# Test outputs and temp files
+*.tmp
+*.temp
+.tmp/
+.temp/
+
+# ============ SECURITY & SENSITIVE FILES ============
+# Avoid accidentally committing sensitive files
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+*.cer
+*.der
+id_rsa*
+.ssh/
+.gnupg/
+
+# API keys and secrets
+secrets.json
+config.json
+*.secret
+*secret*
+*password*
+*credentials*
+api-keys.json
+.apikey
+.token
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+database.json
+db.json
+
+# Configuration files that might contain secrets
+settings.local.json
+appsettings.local.json
+web.config
+.htaccess
+
+# Docker secrets
+.docker/
+docker-compose.override.yml
+
+# Kubernetes secrets
+*.kubeconfig
+kube-config
+
+# CI/CD sensitive files
+.travis.yml
+.github/workflows/*.yml
+.circleci/config.yml
+
+# Application specific sensitive files
+connectionStrings.json
+appSettings.json
+
+# ============ MISC ============
+# Backup files
+*.bak
+*.backup
+*.old
+
+# Compressed files
+*.zip
+*.rar
+*.7z
+*.tar.gz
+*.tgz
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Yarn Integrity file
+.yarn-integrity
+
+# Stores VSCode versions used for testing VSCode extensions
+.vscode-test
+
+test_endpoint.bat

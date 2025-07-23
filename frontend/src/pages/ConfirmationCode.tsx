@@ -98,6 +98,10 @@ const ConfirmationCode: React.FC<ConfirmationCodeProps> = ({ onSuccess, email, e
         <h2>Email Confirmation</h2>
         <p className="confirmation-instructions">
           Enter the 6-character code sent to {email}.
+          <br />
+          <span style={{ fontSize: '0.9rem', color: '#666' }}>
+            This code will expire in 10 minutes.
+          </span>
         </p>
         <form onSubmit={handleSubmit} className="confirmation-form">
           <div className="code-inputs">
