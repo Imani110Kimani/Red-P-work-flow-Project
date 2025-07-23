@@ -1,4 +1,3 @@
-
 // ApplicantList.tsx
 // This component displays all scholarship applications in a table with action controls for admin workflow.
 // Backend engineers: Integrate API calls for fetching applicants, updating status, and deleting applicants where noted below.
@@ -406,20 +405,17 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
         {/* Table rows: map over paginatedApplicants array */}
         {paginatedApplicants.map((applicant, idx) => {
           const applicantKey = `${applicant.partitionKey}|${applicant.rowKey}`;
-          
           // Get actual approval and denial data from API
           const actualApprovalData = approvalData[applicantKey];
           const approvedByEmails: string[] = [];
           const deniedByEmails: string[] = [];
-          
           if (actualApprovalData) {
             if (actualApprovalData.approval1) approvedByEmails.push(actualApprovalData.approval1);
             if (actualApprovalData.approval2) approvedByEmails.push(actualApprovalData.approval2);
             if (actualApprovalData.denial1) deniedByEmails.push(actualApprovalData.denial1);
             if (actualApprovalData.denial2) deniedByEmails.push(actualApprovalData.denial2);
           }
-          
-          // Use the actual API status instead of calculating from approvedBy
+          // Use backend status for display
           const status = statusToString(applicant.status === undefined ? null : Number(applicant.status));
           return (
             <div className="applicant-list-row" key={applicantKey} style={{display: 'grid', gridTemplateColumns: '0.5fr 0.7fr 1.5fr 1.5fr 1fr 2fr 2fr 1.5fr', gap: 16, alignItems: 'center', padding: '1rem', borderBottom: '1px solid #eee', background: idx % 2 === 0 ? '#fff' : '#f7f7f7'}}>
@@ -430,6 +426,7 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
                   checked={!!selected[applicantKey]}
                   onChange={() => toggleSelect(applicantKey)}
                   aria-label={`Select applicant ${applicant.firstName} ${applicant.lastName}`}
+                  disabled={status === 'Approved'}
                 />
               </span>
               {/* Avatar/Initials */}
