@@ -1,0 +1,127 @@
+/* Related links styling */
+.related-link {
+  color: #2d72d9;
+  text-decoration: underline;
+  margin-left: 0.5em;
+  font-size: 0.97em;
+  transition: color 0.2s;
+}
+.related-link:hover {
+  color: #174ea6;
+  text-decoration: underline;
+}
+.details-nav-links {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+.student-verification-details-container {
+  max-width: 1440px;         /* Match your dashboard's max width */
+  margin: 0 auto;
+  padding: 2rem 2vw;
+  min-height: 100vh;
+  background: #f4f6fa;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.details-card {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+  padding: 2rem;
+  max-width: 600px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.back-btn {
+  background: none;
+  border: none;
+  color: #2d72d9;
+  font-size: 1rem;
+  cursor: pointer;
+  margin-bottom: 1rem;
+  transition: color 0.2s;
+}
+.back-btn:hover {
+  color: #174ea6;
+}
+
+.details-card h2 {
+  margin-bottom: 1.5rem;
+  color: #2d2d2d;
+  font-size: 1.6rem;
+  font-weight: 600;
+}
+
+.info-row {
+  display: flex;
+  margin-bottom: 1rem;
+  align-items: flex-start;
+}
+.label {
+  width: 160px;
+  font-weight: 500;
+  color: #555;
+  flex-shrink: 0;
+}
+.status-badge {
+  padding: 0.2em 0.8em;
+  border-radius: 16px;
+  font-size: 0.95em;
+  font-weight: 500;
+  color: #fff;
+  background: #bdbdbd;
+  display: inline-block;
+}
+.status-badge.verified {
+  background: #4caf50;
+}
+.status-badge.pending {
+  background: #ff9800;
+}
+.status-badge.rejected {
+  background: #e53935;
+}
+.documents-list {
+  margin: 0;
+  padding-left: 1.2em;
+}
+.documents-list li {
+  margin-bottom: 0.3em;
+}
+.documents-list a {
+  color: #2d72d9;
+  text-decoration: underline;
+  transition: color 0.2s;
+}
+.documents-list a:hover {
+  color: #174ea6;
+}
+.notes-row span:last-child {
+  color: #333;
+  font-style: italic;
+}
+
+/* Responsive styles */
+@media (max-width: 600px) {
+  .student-verification-details-container {
+    padding: 0.5rem;
+    max-width: 98vw;
+  }
+  .details-card h2 {
+    font-size: 1.2rem;
+  }
+  .info-row {
+    flex-direction: column;
+    align-items: flex-start;
+    margin-bottom: 0.7rem;
+  }
+  .label {
+    width: auto;
+    margin-bottom: 0.2em;
+  }
+}

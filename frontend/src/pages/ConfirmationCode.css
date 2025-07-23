@@ -1,0 +1,74 @@
+.confirmation-code-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f7fafd;
+}
+.confirmation-card {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 4px 24px rgba(2,60,105,0.10);
+  padding: 2.5rem 2.5rem 2rem 2.5rem;
+  max-width: 370px;
+  width: 100%;
+  text-align: center;
+}
+.confirmation-card h2 {
+  margin-bottom: 0.7rem;
+  color: #ff7a00;
+  font-size: 1.4rem;
+  font-weight: 700;
+}
+.confirmation-instructions {
+  color: #555;
+  font-size: 1.05rem;
+  margin-bottom: 1.5rem;
+}
+.code-inputs {
+  display: flex;
+  gap: 0.7rem;
+  justify-content: center;
+  margin-bottom: 1.2rem;
+}
+.code-input {
+  width: 2.3rem;
+  height: 2.3rem;
+  font-size: 1.5rem;
+  text-align: center;
+  border: 1.5px solid #ddd;
+  border-radius: 8px;
+  outline: none;
+  transition: border 0.2s;
+  background: #f7fafd;
+}
+.code-input:focus {
+  border: 1.5px solid #ff7a00;
+  background: #fffbe6;
+}
+.confirmation-error {
+  color: #e53935;
+  margin-bottom: 0.7rem;
+  font-size: 1rem;
+}
+.confirmation-submit {
+  width: 100%;
+  background: #ff7a00;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 0.7rem 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 0.5rem;
+  transition: background 0.2s;
+}
+.confirmation-submit:hover {
+  background: #ff9000;
+}
+.confirmation-hint {
+  margin-top: 1.2rem;
+  color: #888;
+  font-size: 0.97rem;
+}
