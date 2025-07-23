@@ -4,6 +4,7 @@
 // For Azure Functions, connect the action handlers to your HTTP triggers or function endpoints.
 import React, { useEffect } from 'react';
 import { useNavigate, Outlet, useLocation } from 'react-router-dom';
+import { useUser } from '../contexts/UserContext';
 import StudentsTable from './StudentsTable';
 import PendingDetails from './PendingDetails';
 import ApplicantList from './ApplicantList';
@@ -98,6 +99,7 @@ export function shouldShowButtons(status: number | null) {
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
+  const { userEmail, logout } = useUser();
   
   // State for API data
   const [apiApplicants, setApiApplicants] = React.useState<ApplicantBasic[]>([]);
@@ -114,6 +116,12 @@ const Dashboard: React.FC = () => {
   // Hamburger menu state
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
   const [showAdmissionForm, setShowAdmissionForm] = React.useState(false);
+
+  // Handle logout
+  const handleLogout = () => {
+    logout();
+    navigate('/');
+  };
 
   // Fetch applicants from API
   useEffect(() => {
@@ -285,7 +293,21 @@ const Dashboard: React.FC = () => {
           <button onClick={() => { navigate('/dashboard/student-verification'); setSidebarOpen(false); }} style={{ width: '100%', textAlign: 'left', padding: '1rem 2rem', border: 'none', background: 'none' }}><FaUserGraduate /> Students</button>
           <button onClick={() => { navigate('/dashboard/pending'); setSidebarOpen(false); }} style={{ width: '100%', textAlign: 'left', padding: '1rem 2rem', border: 'none', background: 'none' }}><FaUsers /> Pending</button>
           <button onClick={() => { navigate('/dashboard/logs'); setSidebarOpen(false); }} style={{ width: '100%', textAlign: 'left', padding: '1rem 2rem', border: 'none', background: 'none' }}><FaBell /> Logs</button>
-          <button className="sidebar-logout" onClick={() => { navigate('/'); setSidebarOpen(false); }} style={{ width: '100%', textAlign: 'left', padding: '1rem 2rem', border: 'none', background: 'none' }}><FaSignOutAlt /> Logout</button>
+          
+          {/* User info in mobile menu */}
+          {userEmail && (
+            <div style={{ 
+              padding: '1rem 2rem', 
+              borderTop: '1px solid #eee',
+              fontSize: '0.85rem',
+              color: '#666'
+            }}>
+              <strong>Logged in as:</strong><br />
+              <span style={{ color: '#ff3d00' }}>{userEmail}</span>
+            </div>
+          )}
+          
+          <button className="sidebar-logout" onClick={() => { handleLogout(); setSidebarOpen(false); }} style={{ width: '100%', textAlign: 'left', padding: '1rem 2rem', border: 'none', background: 'none' }}><FaSignOutAlt /> Logout</button>
         </nav>
       )}
       {/* Sidebar for desktop only */}
@@ -305,6 +327,21 @@ const Dashboard: React.FC = () => {
           <img src={logo} alt="RED(P) Logo" />
           <span>RED(P) Admin</span>
         </div>
+        
+        {/* User info section */}
+        {userEmail && (
+          <div style={{ 
+            padding: '1rem', 
+            borderBottom: '1px solid #eee', 
+            margin: '0 1rem',
+            fontSize: '0.85rem',
+            color: '#666'
+          }}>
+            <strong>Logged in as:</strong><br />
+            <span style={{ color: '#ff3d00' }}>{userEmail}</span>
+          </div>
+        )}
+        
         <nav className="sidebar-nav">
           <button onClick={() => navigate('/dashboard')}><FaTachometerAlt /> Dashboard</button>
           <button onClick={() => navigate('/dashboard/applicants')}><FaUsers /> Applicants</button>
@@ -312,7 +349,7 @@ const Dashboard: React.FC = () => {
           <button onClick={() => navigate('/dashboard/student-verification')}><FaUserGraduate /> Students</button>
           <button onClick={() => navigate('/dashboard/pending')}><FaUsers /> Pending</button>
           <button onClick={() => navigate('/dashboard/logs')}><FaBell /> Logs</button>
-          <button className="sidebar-logout" onClick={() => navigate('/')}><FaSignOutAlt /> Logout</button>
+          <button className="sidebar-logout" onClick={handleLogout}><FaSignOutAlt /> Logout</button>
         </nav>
       </aside>
       {/* Main content */}
@@ -533,47 +570,92 @@ const Dashboard: React.FC = () => {
           }))} />
         ) : location.pathname === '/dashboard/applicants' ? (
           <ApplicantList
-            onAction={async (partitionKey, rowKey, newStatus) => {
-              // Map UI status to API action
-              let action;
-              if (newStatus === 'Approved') action = 'approve';
-              else if (newStatus === 'Denied') action = 'deny';
-              else return; // Only handle approve/deny for now
+            onAction={async (partitionKey, rowKey, newStatus, adminEmail) => {
+              // Handle approval workflow with dual approval system
+              if (newStatus === 'Approved') {
+                // Call the dual approval Azure Function
+                try {
+                  const approvalResponse = await fetch('https://simbaaddapproval-f8h7g2ffe2cefchh.westus-01.azurewebsites.net/api/addApproval', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      email: adminEmail || 'admin@company.com', // Use provided admin email or default
+                      partitionKey,
+                      rowKey,
+                    }),
+                  });
 
-              // Log the payload for debugging
-              console.log('Sending to API:', { partitionKey, rowKey, action });
+                  const approvalData = await approvalResponse.json();
+                  
+                  if (approvalResponse.ok) {
+                    // Check if both approvals are now complete
+                    if (approvalResponse.status === 201 && approvalData.isComplete) {
+                      // Both approvals received - update the final status to approved
+                      console.log('Both approvals received, updating status to Approved');
+                      
+                      const statusResponse = await fetch('https://approval-function-6370.azurewebsites.net/api/changestatusfunction', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          partitionKey,
+                          rowKey,
+                          action: 'approve',
+                        }),
+                      });
 
-              try {
-                const response = await fetch('https://approval-function-6370.azurewebsites.net/api/changestatusfunction', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    partitionKey, // Use the actual partitionKey
-                    rowKey,
-                    action,
-                  }),
-                });
-                const data = await response.text();
-                if (response.ok) {
-                  // Refetch API data to show updated statuses
-                  const refetchResponse = await fetch(API_BASE_URL);
-                  if (refetchResponse.ok) {
-                    const refreshedData = await refetchResponse.json() as ApplicantBasic[];
-                    // Debug: Log the updated status values
-                    console.log('After status change - Updated status values:', refreshedData.map(a => ({ 
-                      name: `${a.firstName} ${a.lastName}`, 
-                      status: a.status, 
-                      statusType: typeof a.status,
-                      processedStatus: getStatusDisplay(a.status === undefined ? null : Number(a.status))
-                    })));
-                    setApiApplicants(refreshedData);
+                      if (statusResponse.ok) {
+                        alert(`Success: Both approvals received!\nApprover 1: ${approvalData.approval1} (${approvalData.timeOfApproval1})\nApprover 2: ${approvalData.approval2} (${approvalData.timeOfApproval2})\nApplication has been approved!`);
+                      } else {
+                        alert(`Approvals complete but status update failed: ${await statusResponse.text()}`);
+                      }
+                    } else {
+                      // First approval received, waiting for second
+                      alert(`Success: ${approvalData.message}\nApprover: ${approvalData.approval1}\nTime: ${approvalData.timeOfApproval1}\nWaiting for second approval...`);
+                    }
+                  } else {
+                    alert(`Approval Error: ${approvalData.error || await approvalResponse.text()}`);
                   }
-                  alert('Success: ' + data);
-                } else {
-                  alert('Error: ' + data);
+                } catch (error) {
+                  alert('Approval Error: ' + error);
+                }
+              } else if (newStatus === 'Denied') {
+                // Handle denial - bypass dual approval for denials
+                try {
+                  const response = await fetch('https://approval-function-6370.azurewebsites.net/api/changestatusfunction', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      partitionKey,
+                      rowKey,
+                      action: 'deny',
+                    }),
+                  });
+                  const data = await response.text();
+                  if (response.ok) {
+                    alert('Success: Application denied');
+                  } else {
+                    alert('Error: ' + data);
+                  }
+                } catch (error) {
+                  alert('Error: ' + error);
+                }
+              }
+
+              // Refetch API data to show updated statuses
+              try {
+                const refetchResponse = await fetch(API_BASE_URL);
+                if (refetchResponse.ok) {
+                  const refreshedData = await refetchResponse.json() as ApplicantBasic[];
+                  console.log('After action - Updated data:', refreshedData.map(a => ({ 
+                    name: `${a.firstName} ${a.lastName}`, 
+                    status: a.status, 
+                    statusType: typeof a.status,
+                    processedStatus: getStatusDisplay(a.status === undefined ? null : Number(a.status))
+                  })));
+                  setApiApplicants(refreshedData);
                 }
               } catch (error) {
-                alert('Error: ' + error);
+                console.error('Error refetching data:', error);
               }
             }}
           />
