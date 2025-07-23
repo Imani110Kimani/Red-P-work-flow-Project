@@ -1,3 +1,4 @@
+import { statusToString } from './utils';
 // ApplicantList.tsx
 // This component displays all scholarship applications in a table with action controls for admin workflow.
 // Backend engineers: Integrate API calls for fetching applicants, updating status, and deleting applicants where noted below.
@@ -53,10 +54,12 @@ interface ApplicantListProps {
 const API_BASE_URL = 'https://simbagetapplicants-hcf5cffbcccmgsbn.westus-01.azurewebsites.net/api/httptablefunction';
 
 // Import helpers from Dashboard
-import { statusToString, joinName, paginate } from './utils';
+
+import { useNotification } from '../contexts/NotificationContext';
 
 const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
   const { userEmail } = useUser();
+  const { addNotification } = useNotification();
   
   // State for storing the basic applicants list
   const [applicants, setApplicants] = useState<ApplicantBasic[]>([]);
@@ -80,6 +83,10 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
   // Add modal state
   const [modalOpen, setModalOpen] = useState(false);
   const [modalMessage, setModalMessage] = useState('');
+  // Reason modal state
+  const [reasonModalOpen, setReasonModalOpen] = useState(false);
+  const [reasonValue, setReasonValue] = useState('');
+  const [pendingAction, setPendingAction] = useState<null | { action: 'Approved' | 'Denied', keys: string[] }>(null);
   // Remove modalAction state
   // const [modalAction, setModalAction] = useState<null | (() => void)>(null);
 
@@ -216,20 +223,29 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
     }
   };
 
-  // Bulk action handler
-  const handleBulkAction = (action: 'Approved' | 'Pending' | 'Denied') => {
-    console.log('Bulk action clicked:', action);
+  // Bulk action handler (now opens reason modal)
+  const handleBulkAction = (action: 'Approved' | 'Denied') => {
     const selectedKeys = Object.keys(selected).filter(k => selected[k]);
-    console.log('Selected keys:', selectedKeys);
-    // Call onAction for each selected applicant
-    selectedKeys.forEach(key => {
+    if (selectedKeys.length === 0) return;
+    setPendingAction({ action, keys: selectedKeys });
+    setReasonValue('');
+    setReasonModalOpen(true);
+  };
+
+  // Confirm bulk/single action with reason
+  const confirmActionWithReason = () => {
+    if (!pendingAction) return;
+    pendingAction.keys.forEach(key => {
       const [partitionKey, rowKey] = key.split('|');
-      console.log('Processing applicant:', { partitionKey, rowKey, action, adminEmail });
-      if (onAction) onAction(partitionKey, rowKey, action, adminEmail);
+      if (onAction) onAction(partitionKey, rowKey, pendingAction.action, adminEmail /*, reasonValue */);
     });
-    // Optionally clear selection after action
+    addNotification(
+      `${pendingAction.keys.length} applicant${pendingAction.keys.length > 1 ? 's' : ''} ${pendingAction.action === 'Approved' ? 'approved' : 'denied'} by ${adminEmail}${reasonValue ? ` (Reason: ${reasonValue})` : ''}`,
+      pendingAction.action === 'Approved' ? 'success' : 'error'
+    );
     setSelected({});
-    // Refetch data after bulk action to show updated statuses and approvals
+    setReasonModalOpen(false);
+    setPendingAction(null);
     setTimeout(() => refetchApplicants(), 1000);
   };
 
@@ -429,6 +445,76 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
                   disabled={status === 'Approved'}
                 />
               </span>
+              {/* Approve/Deny buttons for single action (show only if not approved) */}
+              {/*
+              <span>
+                <button onClick={() => {
+                  setPendingAction({ action: 'Approved', keys: [applicantKey] });
+                  setReasonValue('');
+                  setReasonModalOpen(true);
+                }} disabled={status === 'Approved'}>Approve</button>
+                <button onClick={() => {
+                  setPendingAction({ action: 'Denied', keys: [applicantKey] });
+                  setReasonValue('');
+                  setReasonModalOpen(true);
+                }} disabled={status === 'Approved'}>Deny</button>
+              </span>
+              */}
+      {/* Reason Modal for approve/deny actions */}
+      {reasonModalOpen && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100vh',
+          background: 'rgba(0,0,0,0.18)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 99999
+        }}>
+          <div style={{
+            background: '#fff',
+            borderRadius: 16,
+            boxShadow: '0 4px 32px 0 rgba(34,34,34,0.18)',
+            padding: '2.5rem 2.5rem 2rem 2.5rem',
+            minWidth: 320,
+            maxWidth: '90vw',
+            textAlign: 'center',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: 24
+          }}>
+            <div style={{ fontSize: 22, fontWeight: 700, color: '#ff3d00', marginBottom: 12 }}>
+              {pendingAction?.action === 'Approved' ? 'Approve' : 'Deny'} {pendingAction?.keys.length > 1 ? `${pendingAction.keys.length} applicants` : 'applicant'}
+            </div>
+            <textarea
+              value={reasonValue}
+              onChange={e => setReasonValue(e.target.value)}
+              rows={4}
+              style={{ width: 320, borderRadius: 8, border: '1.5px solid #ff9800', padding: 10, fontSize: 16, resize: 'vertical' }}
+              placeholder="Enter reason or comment (required)"
+            />
+            <div style={{ display: 'flex', gap: 16 }}>
+              <button
+                style={{ background: '#ff3d00', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 32px', fontWeight: 600, fontSize: 16, cursor: 'pointer' }}
+                onClick={confirmActionWithReason}
+                disabled={!reasonValue.trim()}
+              >
+                {pendingAction?.action === 'Approved' ? 'Approve' : 'Deny'}
+              </button>
+              <button
+                style={{ background: '#eee', color: '#333', border: 'none', borderRadius: 8, padding: '10px 32px', fontWeight: 600, fontSize: 16, cursor: 'pointer' }}
+                onClick={() => { setReasonModalOpen(false); setPendingAction(null); }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
               {/* Avatar/Initials */}
               <span>
                 {applicant.profileImage ? (
@@ -770,6 +856,17 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
                     </div>
                   );
                 })}
+                {/* Reason/Comment box for admin to leave a note when approving/denying */}
+                <div style={{ marginTop: 18 }}>
+                  <label htmlFor="admin-reason" style={{ fontWeight: 600, color: '#023c69', marginBottom: 4, display: 'block' }}>Reason/Comment (for approval/denial):</label>
+                  <textarea
+                    id="admin-reason"
+                    rows={3}
+                    style={{ width: '100%', borderRadius: 6, border: '1.5px solid #ff9800', padding: 8, fontSize: '1em', resize: 'vertical' }}
+                    placeholder="Enter your reason or comment here..."
+                    // value and onChange to be implemented in next step
+                  />
+                </div>
               </div>
             )}
           </div>
