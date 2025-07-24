@@ -52,6 +52,34 @@ const ConfirmationCode: React.FC<ConfirmationCodeProps> = ({ onSuccess, email, e
     }
   };
 
+  const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    const pastedData = e.clipboardData.getData('text').trim();
+    
+    // Only process if it's a valid code (6 alphanumeric characters)
+    if (!/^[0-9A-Za-z]{6}$/.test(pastedData)) {
+      setError('Please paste a valid 6-character code.');
+      return;
+    }
+    
+    // Clear any existing error
+    setError('');
+    
+    // Split the pasted code into individual characters and update state
+    const newCode = pastedData.split('').slice(0, CODE_LENGTH);
+    
+    // Pad with empty strings if needed (though our regex check should prevent this)
+    while (newCode.length < CODE_LENGTH) {
+      newCode.push('');
+    }
+    
+    setCode(newCode);
+    
+    // Focus on the last input field
+    const lastFilledIndex = Math.min(pastedData.length - 1, CODE_LENGTH - 1);
+    inputsRef.current[lastFilledIndex]?.focus();
+  };
+
   const handleKeyDown = (idx: number, e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Backspace' && !code[idx] && idx > 0) {
       inputsRef.current[idx - 1]?.focus();
@@ -115,6 +143,7 @@ const ConfirmationCode: React.FC<ConfirmationCodeProps> = ({ onSuccess, email, e
                 ref={el => { inputsRef.current[idx] = el; }}
                 onChange={e => handleChange(idx, e.target.value)}
                 onKeyDown={e => handleKeyDown(idx, e)}
+                onPaste={e => handlePaste(e)}
                 className="code-input"
                 autoFocus={idx === 0}
                 disabled={isExpired}

@@ -54,22 +54,6 @@ const getRecentNotifications = (apiApplicants: any[], applicants: any[]) => {
 const API_BASE_URL = 'https://simbagetapplicants-hcf5cffbcccmgsbn.westus-01.azurewebsites.net/api/httptablefunction';
 
 const Notifications: React.FC = () => {
-<<<<<<< HEAD
-  // Use the same applicants state as Dashboard for consistent notifications
-  // Try to access the applicants from Dashboard if possible
-  const [apiApplicants, setApiApplicants] = React.useState<any[]>([]);
-  const [applicants, setApplicants] = React.useState<any[]>(initialApplicants);
-
-  React.useEffect(() => {
-    // Try to fetch the same API applicants as Dashboard
-    fetch('https://simbagetapplicants-hcf5cffbcccmgsbn.westus-01.azurewebsites.net/api/httptablefunction')
-      .then(res => res.ok ? res.json() : Promise.reject(res))
-      .then(data => setApiApplicants(data))
-      .catch(() => setApiApplicants([]));
-  }, []);
-
-  const notifications = getRecentNotifications(apiApplicants, applicants);
-=======
   const [apiApplicants, setApiApplicants] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string|null>(null);
@@ -93,8 +77,6 @@ const Notifications: React.FC = () => {
   }, []);
 
   const notifications = getRecentNotifications(apiApplicants, initialApplicants);
-
->>>>>>> main
   return (
     <div className="logs-container">
       <h2 className="logs-title">Logs</h2>
