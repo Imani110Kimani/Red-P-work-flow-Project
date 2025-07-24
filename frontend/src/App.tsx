@@ -1,5 +1,5 @@
 import redpLogo from './assets/redp-logo.png';
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Dashboard from "./pages/Dashboard";
 import Notifications from "./pages/Notifications";
@@ -10,35 +10,28 @@ import ApplicantList from "./pages/ApplicantList";
 import ApplicantDetails from "./pages/ApplicantDetails";
 import AdmissionDetails from "./pages/AdmissionsDetails";
 import PendingDetails from "./pages/PendingDetails";
+import { useApplicantData } from "./contexts/ApplicantDataContext";
 
 
-// Wrapper to fetch applicants and pass to PendingDetails
+// Wrapper to fetch applicants and pass to PendingDetails using cached data
 const PendingDetailsWithFetch: React.FC = () => {
-  const [applicants, setApplicants] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  useEffect(() => {
-    fetch("https://simbagetapplicants-hcf5cffbcccmgsbn.westus-01.azurewebsites.net/api/httptablefunction")
-      .then(res => res.json())
-      .then(data => {
-        // Map API data to PendingDetails expected shape
-        const mapped = data.map((a: any) => ({
-          id: a.rowKey || a.id || Math.random().toString(),
-          name: `${a.firstName || ''} ${a.lastName || ''}`.trim(),
-          school: a.schoolName || a.school || '',
-          status: typeof a.status === 'number' ? (a.status === 1 ? 'Pending' : a.status === 2 ? 'Approved' : a.status === 3 ? 'Denied' : 'Pending') : a.status || 'Pending',
-          submittedOn: a.dateOfBirth || a.date || '',
-          reason: a.reason || '',
-          notes: a.notes || ''
-        }));
-        setApplicants(mapped);
-        setLoading(false);
-      })
-      .catch(err => { setError(err); setLoading(false); });
-  }, []);
+  const { applicants, loading, error } = useApplicantData();
+
   if (loading) return <div style={{padding:'2rem',textAlign:'center'}}>Loading pending applicants...</div>;
-  if (error) return <div style={{padding:'2rem',color:'#f44336',textAlign:'center'}}>Failed to load applicants.</div>;
-  return <PendingDetails applicants={applicants} />;
+  if (error) return <div style={{padding:'2rem',color:'#f44336',textAlign:'center'}}>Failed to load applicants: {error}</div>;
+  
+  // Map API data to PendingDetails expected shape
+  const mapped = applicants.map((a: any) => ({
+    id: a.rowKey || a.id || Math.random().toString(),
+    name: `${a.firstName || ''} ${a.lastName || ''}`.trim(),
+    school: a.schoolName || a.school || '',
+    status: typeof a.status === 'number' ? (a.status === 1 ? 'Pending' : a.status === 2 ? 'Approved' : a.status === 3 ? 'Denied' : 'Pending') : a.status || 'Pending',
+    submittedOn: a.dateOfBirth || a.date || '',
+    reason: a.reason || '',
+    notes: a.notes || ''
+  }));
+
+  return <PendingDetails applicants={mapped} />;
 };
 
 

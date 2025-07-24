@@ -2,9 +2,10 @@
 // Main admin dashboard page. Handles navigation, summary, and renders all major admin tables.
 // Backend engineers: Integrate API calls for fetching applicants, updating status, and admissions where noted below.
 // For Azure Functions, connect the action handlers to your HTTP triggers or function endpoints.
-import React, { useEffect } from 'react';
+import React from 'react';
 import { useNavigate, Outlet, useLocation } from 'react-router-dom';
 import { useUser } from '../contexts/UserContext';
+import { useApplicantData } from '../contexts/ApplicantDataContext';
 import StudentsTable from './StudentsTable';
 import PendingDetails from './PendingDetails';
 import ApplicantList from './ApplicantList';
@@ -13,29 +14,7 @@ import './Dashboard.css';
 import logo from '../assets/redp-logo.png';
 import { FaTachometerAlt, FaUsers, FaUserGraduate, FaBell, FaSignOutAlt, FaBars, FaTimes } from 'react-icons/fa';
 import NewAdmissionForm from './NewAdmissionForm';
-import { statusToString, joinName, notificationMessage, paginate } from './utils';
-
-// API Configuration
-const API_BASE_URL = 'https://simbagetapplicants-hcf5cffbcccmgsbn.westus-01.azurewebsites.net/api/httptablefunction';
-
-// API Response Types
-type ApplicantBasic = {
-  firstName: string;
-  lastName: string;
-  status: string;
-  partitionKey: string;
-  rowKey: string;
-};
-
-// Detailed applicant type from the API (GET with partitionKey and rowKey)
-type ApplicantDetailed = {
-  firstName: string;
-  lastName: string;
-  status: string;
-  partitionKey: string;
-  rowKey: string;
-  [key: string]: any; // Additional fields that come from the detailed API
-};
+import { statusToString } from './utils';
 
 // Legacy initial data for fallback
 export const initialApplicants = [
@@ -100,6 +79,8 @@ export function shouldShowButtons(status: number | null) {
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const { userEmail, logout } = useUser();
+  const { applicants: apiApplicants, loading, error, onStatusChange } = useApplicantData();
+  
   // Try to get actual name from user context if available, fallback to email parsing
   let adminName = 'Admin';
   // If your user context provides a name, use it here. For now, parse from email as fallback.
@@ -114,15 +95,8 @@ const Dashboard: React.FC = () => {
     }
   }
   
-  // State for API data
-  const [apiApplicants, setApiApplicants] = React.useState<ApplicantBasic[]>([]);
-  const [loading, setLoading] = React.useState<boolean>(true);
-  const [error, setError] = React.useState<string | null>(null);
-  
-  // Modal state removed: modalApplicant, modalLoading
-  
   // Legacy state for compatibility (using fallback data)
-  const [applicants, setLegacyApplicants] = React.useState(initialApplicants);
+  const [applicants] = React.useState(initialApplicants);
 
   // Hamburger menu state
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
@@ -133,39 +107,6 @@ const Dashboard: React.FC = () => {
     logout();
     navigate('/');
   };
-
-  // Fetch applicants from API
-  useEffect(() => {
-    const fetchApplicants = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const response = await fetch(API_BASE_URL);
-        
-        if (!response.ok) {
-          throw new Error(`Failed to fetch applicants: ${response.status} ${response.statusText}`);
-        }
-        
-        const data: ApplicantBasic[] = await response.json();
-        // Debug: Log the status values to see what the API returns
-        console.log('API Response - Status values:', data.map(a => ({ 
-          name: `${a.firstName} ${a.lastName}`, 
-          status: a.status, 
-          statusType: typeof a.status,
-          processedStatus: getStatusDisplay(a.status === undefined ? null : Number(a.status))
-        })));
-        setApiApplicants(data);
-      } catch (err) {
-        console.error('Error fetching applicants:', err);
-        setError(err instanceof Error ? err.message : 'Failed to fetch applicants');
-        // Continue using fallback data on error
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchApplicants();
-  }, []);
 
   // Create recent applicants from API data (first 3) or fallback to legacy data
   const recent = React.useMemo(() => {
@@ -207,7 +148,6 @@ const Dashboard: React.FC = () => {
     ];
   }, [apiApplicants, applicants]);
 
-  type Applicant = typeof initialApplicants[0];
   const [statusFilter, setStatusFilter] = React.useState('');
   const statusOptions = Array.from(new Set(recent.map(item => item.status)));
   const filteredRecent = statusFilter
@@ -220,16 +160,7 @@ const Dashboard: React.FC = () => {
   const isDashboardHome = location.pathname === '/dashboard' || location.pathname === '/dashboard/';
 
   // Centralized status update handler for workflow actions
-  // TODO: Backend: Call API/Azure Function to update status or delete applicant here
-  const handleApplicantStatus = (id: number, newStatus: 'Approved' | 'Pending' | 'Denied') => {
-    setLegacyApplicants((prev: Applicant[]) => {
-      if (newStatus === 'Denied') {
-        return prev.filter((a: Applicant) => a.id !== id);
-      }
-      return prev.map((a: Applicant) => a.id === id ? { ...a, status: newStatus } : a);
-    });
-    // Modal update removed (modal no longer used)
-  };
+  // This is legacy code kept for compatibility but not used in cached version
 
   // Helper: is mobile
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 900;
@@ -533,7 +464,7 @@ const Dashboard: React.FC = () => {
             </aside>
           </div>
         ) : location.pathname === '/dashboard/student-verification' ? (
-          <StudentsTable applicants={apiApplicants.map((a, idx) => ({
+          <StudentsTable applicants={apiApplicants.map((a) => ({
             id: a.rowKey, // Use full rowKey as id
             firstName: a.firstName,
             lastName: a.lastName,
@@ -546,7 +477,7 @@ const Dashboard: React.FC = () => {
             status: getStatusDisplay(a.status === undefined ? null : Number(a.status)),
           }))} />
         ) : location.pathname === '/dashboard/pending' ? (
-          <PendingDetails applicants={apiApplicants.map((a, idx) => ({
+          <PendingDetails applicants={apiApplicants.map((a) => ({
             id: a.rowKey, // Use full rowKey as id
             name: `${a.firstName} ${a.lastName}`,
             school: '',
@@ -566,10 +497,10 @@ const Dashboard: React.FC = () => {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                      email: adminEmail || 'admin@company.com', // Use provided admin email or default
+                      email: adminEmail || 'admin@company.com',
                       partitionKey,
                       rowKey,
-                      action: 'approve', // Specify approval action
+                      action: 'approve',
                     }),
                   });
 
@@ -613,10 +544,10 @@ const Dashboard: React.FC = () => {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                      email: adminEmail || 'admin@company.com', // Use provided admin email or default
+                      email: adminEmail || 'admin@company.com',
                       partitionKey,
                       rowKey,
-                      action: 'deny', // Specify denial action
+                      action: 'deny',
                     }),
                   });
 
@@ -655,22 +586,8 @@ const Dashboard: React.FC = () => {
                 }
               }
 
-              // Refetch API data to show updated statuses
-              try {
-                const refetchResponse = await fetch(API_BASE_URL);
-                if (refetchResponse.ok) {
-                  const refreshedData = await refetchResponse.json() as ApplicantBasic[];
-                  console.log('After action - Updated data:', refreshedData.map(a => ({ 
-                    name: `${a.firstName} ${a.lastName}`, 
-                    status: a.status, 
-                    statusType: typeof a.status,
-                    processedStatus: getStatusDisplay(a.status === undefined ? null : Number(a.status))
-                  })));
-                  setApiApplicants(refreshedData);
-                }
-              } catch (error) {
-                console.error('Error refetching data:', error);
-              }
+              // Notify the cache context that a status change occurred
+              onStatusChange(partitionKey, rowKey, newStatus);
             }}
           />
         ) : location.pathname === '/dashboard/admissions' ? (

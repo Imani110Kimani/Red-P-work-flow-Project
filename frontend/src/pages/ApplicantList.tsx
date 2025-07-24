@@ -8,26 +8,8 @@ import React, { useState, useEffect } from 'react';
 import './ApplicantList.css';
 import { FaUserCircle } from 'react-icons/fa';
 import { useUser } from '../contexts/UserContext';
-
-// Basic applicant type from the API (GET with no params)
-type ApplicantBasic = {
-  firstName: string;
-  lastName: string;
-  status: string;
-  partitionKey: string;
-  rowKey: string;
-  profileImage?: string; // Optional profile image URL
-};
-
-// Detailed applicant type from the API (GET with partitionKey and rowKey)
-type ApplicantDetailed = {
-  firstName: string;
-  lastName: string;
-  status: string;
-  partitionKey: string;
-  rowKey: string;
-  [key: string]: any; // Additional fields that come from the detailed API
-};
+import { useApplicantData } from '../contexts/ApplicantDataContext';
+import type { ApplicantDetailed } from '../contexts/ApplicantDataContext';
 
 // Legacy type for compatibility with existing props (unused but kept for reference)
 // type Applicant = {
@@ -50,28 +32,24 @@ interface ApplicantListProps {
   onAction?: (partitionKey: string, rowKey: string, newStatus: 'Approved' | 'Pending' | 'Denied', adminEmail?: string) => void;
 }
 
-// API base URL
-const API_BASE_URL = 'https://simbagetapplicants-hcf5cffbcccmgsbn.westus-01.azurewebsites.net/api/httptablefunction';
-
-// Import helpers from Dashboard
-
 import { useNotification } from '../contexts/NotificationContext';
 
 const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
   const { userEmail } = useUser();
   const { addNotification } = useNotification();
+  const { 
+    applicants, 
+    loading, 
+    error, 
+    detailedApplicants, 
+    fetchApplicantDetails,
+    fetchAllApplicantDetails
+  } = useApplicantData();
   
-  // State for storing the basic applicants list
-  const [applicants, setApplicants] = useState<ApplicantBasic[]>([]);
   // State for storing detailed applicant data for modal
   const [modalApplicant, setModalApplicant] = useState<ApplicantDetailed | null>(null);
-  // State for loading states
-  const [loading, setLoading] = useState<boolean>(true);
+  // State for modal loading (separate from main loading)
   const [modalLoading, setModalLoading] = useState<boolean>(false);
-  // State for error handling
-  const [error, setError] = useState<string | null>(null);
-  // statusSelect: stores the selected status for each applicant row (for dropdown)
-  // (Removed unused statusSelect state)
   // State for selected applicants (for bulk actions)
   const [selected, setSelected] = React.useState<{ [key: string]: boolean }>({});
   const [copiedKey, setCopiedKey] = React.useState<string | null>(null);
@@ -103,103 +81,54 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
     denial2?: string
   } }>({});
 
-  // Refetch function to update data after status changes
-  const refetchApplicants = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await fetch(API_BASE_URL);
-      
-      if (!response.ok) {
-        throw new Error(`Failed to fetch applicants: ${response.status} ${response.statusText}`);
-      }
-      
-      const data: ApplicantBasic[] = await response.json();
-      setApplicants(data);
-      
-      // Fetch approval data for all applicants
-      await fetchApprovalDataForApplicants(data);
-    } catch (err) {
-      console.error('Error fetching applicants:', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch applicants');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Function to fetch approval data for multiple applicants
-  const fetchApprovalDataForApplicants = async (applicantsList: ApplicantBasic[]) => {
-    const approvalPromises = applicantsList.map(async (applicant) => {
-      try {
-        const url = `${API_BASE_URL}?partitionKey=${encodeURIComponent(applicant.partitionKey)}&rowKey=${encodeURIComponent(applicant.rowKey)}`;
-        const response = await fetch(url);
-        
-        if (response.ok) {
-          const detailedData: ApplicantDetailed = await response.json();
-          const key = `${applicant.partitionKey}|${applicant.rowKey}`;
-          return {
-            key,
-            approval1: detailedData.approval1 || '',
-            approval2: detailedData.approval2 || '',
-            denial1: detailedData.denial1 || '',
-            denial2: detailedData.denial2 || ''
-          };
-        }
-      } catch (error) {
-        console.error(`Error fetching approval data for ${applicant.partitionKey}|${applicant.rowKey}:`, error);
-      }
-      return null;
-    });
-
-    try {
-      const results = await Promise.all(approvalPromises);
-      const newApprovalData: { [key: string]: { 
-        approval1?: string, 
-        approval2?: string,
-        denial1?: string,
-        denial2?: string
-      } } = {};
-      
-      results.forEach(result => {
-        if (result) {
-          newApprovalData[result.key] = {
-            approval1: result.approval1,
-            approval2: result.approval2,
-            denial1: result.denial1,
-            denial2: result.denial2
-          };
-        }
-      });
-      
-      setApprovalData(newApprovalData);
-    } catch (error) {
-      console.error('Error processing approval data:', error);
-    }
-  };
-
-  // Fetch all applicants on component mount
+  // Update approval data when detailed applicants change
   useEffect(() => {
-    refetchApplicants();
-  }, []);
+    const newApprovalData: { [key: string]: { 
+      approval1?: string, 
+      approval2?: string,
+      denial1?: string,
+      denial2?: string
+    } } = {};
+    
+    Object.entries(detailedApplicants).forEach(([key, applicant]) => {
+      newApprovalData[key] = {
+        approval1: applicant.approval1 || '',
+        approval2: applicant.approval2 || '',
+        denial1: applicant.denial1 || '',
+        denial2: applicant.denial2 || ''
+      };
+    });
+    
+    setApprovalData(newApprovalData);
+  }, [detailedApplicants]);
 
-  // Fetch detailed applicant data for modal
-  const fetchApplicantDetails = async (partitionKey: string, rowKey: string) => {
+  // Fetch detailed data for all applicants when component mounts or applicants change
+  useEffect(() => {
+    const fetchAllDetails = async () => {
+      if (applicants.length === 0) return;
+
+      console.log('ApplicantList: Triggering batch fetch for all applicants');
+      await fetchAllApplicantDetails(applicants);
+    };
+
+    // Fetch detailed data for all applicants using the efficient batch method
+    fetchAllDetails();
+  }, [applicants, fetchAllApplicantDetails]);
+
+  // Fetch detailed applicant data for modal using cached context
+  const openApplicantModal = async (partitionKey: string, rowKey: string) => {
     try {
       setModalLoading(true);
-      setError(null);
       
-      const url = `${API_BASE_URL}?partitionKey=${encodeURIComponent(partitionKey)}&rowKey=${encodeURIComponent(rowKey)}`;
-      const response = await fetch(url);
+      const data = await fetchApplicantDetails(partitionKey, rowKey);
       
-      if (!response.ok) {
-        throw new Error(`Failed to fetch applicant details: ${response.status} ${response.statusText}`);
+      if (data) {
+        setModalApplicant(data);
+      } else {
+        console.error('Failed to fetch applicant details');
       }
-      
-      const data: ApplicantDetailed = await response.json();
-      setModalApplicant(data);
     } catch (err) {
       console.error('Error fetching applicant details:', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch applicant details');
     } finally {
       setModalLoading(false);
     }
@@ -207,7 +136,7 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
 
   // Handle view button click
   const handleViewApplicant = (partitionKey: string, rowKey: string) => {
-    fetchApplicantDetails(partitionKey, rowKey);
+    openApplicantModal(partitionKey, rowKey);
   };
 
   // Handle action button click
@@ -227,51 +156,11 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
     if (!pendingAction) return;
     
     // Call onAction for each applicant to handle the approval/denial logic
-    pendingAction.keys.forEach(key => {
-      const [partitionKey, rowKey] = key.split('|');
-      if (onAction) onAction(partitionKey, rowKey, pendingAction.action, adminEmail);
-    });
-
-    // For each applicant, trigger the Power Automate flow directly
+    // The Dashboard component will handle the backend API calls and Power Automate triggers
     for (const key of pendingAction.keys) {
       const [partitionKey, rowKey] = key.split('|');
-      
-      // Find the applicant details to get name and email
-      try {
-        const url = `${API_BASE_URL}?partitionKey=${encodeURIComponent(partitionKey)}&rowKey=${encodeURIComponent(rowKey)}`;
-        const response = await fetch(url);
-        
-        if (response.ok) {
-          const applicantData = await response.json();
-          const recipient = `${applicantData.firstName || 'Unknown'} ${applicantData.lastName || 'Applicant'}`;
-          const address = applicantData.email || 'unknown@email.com';
-          const verdict = pendingAction.action === 'Approved' ? 'Approved' : 'Denied';
-          
-          // Call Power Automate flow directly
-          try {
-            const powerAutomateResponse = await fetch('https://prod-37.westus.logic.azure.com:443/workflows/c2a9b1269e53415197930e5fffcb788a/triggers/manual/paths/invoke?api-version=2016-06-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=9KZ72xAJyzhzneU7_ntAIL8P-x-InfvHh613oiHyA2w', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify({
-                recipient: recipient,
-                address: address,
-                verdict: verdict
-              })
-            });
-            
-            if (powerAutomateResponse.ok) {
-              console.log(`Power Automate flow triggered successfully for ${recipient} with verdict: ${verdict}`);
-            } else {
-              console.warn(`Power Automate flow failed for ${recipient}: ${powerAutomateResponse.status}`);
-            }
-          } catch (flowError) {
-            console.error(`Error triggering Power Automate flow for ${recipient}:`, flowError);
-          }
-        }
-      } catch (error) {
-        console.error(`Error fetching applicant data for Power Automate trigger:`, error);
+      if (onAction) {
+        await onAction(partitionKey, rowKey, pendingAction.action, adminEmail);
       }
     }
 
@@ -282,7 +171,7 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
     setSelected({});
     setReasonModalOpen(false);
     setPendingAction(null);
-    setTimeout(() => refetchApplicants(), 1000);
+    // No need to manually refetch - the cache context will handle updates automatically
   };
 
   // Helper: select all visible applicants
