@@ -52,27 +52,19 @@ const PendingDetails: React.FC<{ applicants: Applicant[] }> = ({ applicants }) =
               <th>Name</th>
               <th>School</th>
               <th>Submitted On</th>
-<<<<<<< HEAD
-=======
-              {/* <th>Reason</th> */}
               <th>Notes</th>
->>>>>>> main
             </tr>
           </thead>
           <tbody>
             {paginatedPending.length === 0 ? (
-              <tr><td colSpan={3} style={{ textAlign: 'center', color: '#888' }}>No pending applications.</td></tr>
+              <tr><td colSpan={4} style={{ textAlign: 'center', color: '#888' }}>No pending applications.</td></tr>
             ) : (
               paginatedPending.map(applicant => (
                 <tr key={applicant.id}>
                   <td>{applicant.name}</td>
                   <td>{applicant.school}</td>
                   <td>{applicant.submittedOn}</td>
-<<<<<<< HEAD
-=======
-                  {/* Reason column removed as per new requirements */}
                   <td>
-                    {/* Editable Notes. Backend: Save onBlur or onChange as needed. */}
                     <textarea
                       value={edits[applicant.id]?.notes ?? applicant.notes}
                       onChange={e => handleEdit(applicant.id, 'notes', e.target.value)}
@@ -82,7 +74,6 @@ const PendingDetails: React.FC<{ applicants: Applicant[] }> = ({ applicants }) =
                       placeholder="Enter notes..."
                     />
                   </td>
->>>>>>> main
                 </tr>
               ))
             )}

@@ -29,20 +29,20 @@ type ApplicantDetailed = {
   [key: string]: any; // Additional fields that come from the detailed API
 };
 
-// Legacy type for compatibility with existing props
-type Applicant = {
-  id: number;
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone: string;
-  dateOfBirth: string;
-  gradeLevel: number;
-  schoolName: string;
-  location: string;
-  status: string;
-  // Add any additional fields from backend as needed
-};
+// Legacy type for compatibility with existing props (unused but kept for reference)
+// type Applicant = {
+//   id: number;
+//   firstName: string;
+//   lastName: string;
+//   email: string;
+//   phone: string;
+//   dateOfBirth: string;
+//   gradeLevel: number;
+//   schoolName: string;
+//   location: string;
+//   status: string;
+//   // Add any additional fields from backend as needed
+// };
 
 // Props:
 // - onAction: Handler for status change (should call backend API/Azure Function to update status or delete)
@@ -80,23 +80,10 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [applicantsPerPage, setApplicantsPerPage] = useState(10);
 
-  // Add modal state
-<<<<<<< HEAD
-  // (Removed unused modalOpen state)
-  // Bulk comment modal state
-  const [bulkActionType, setBulkActionType] = useState<null | 'Approved' | 'Denied'>(null);
-  const [bulkComment, setBulkComment] = useState('');
-  const [bulkProcessing, setBulkProcessing] = useState(false);
-=======
-  const [modalOpen, setModalOpen] = useState(false);
-  const [modalMessage, setModalMessage] = useState('');
   // Reason modal state
   const [reasonModalOpen, setReasonModalOpen] = useState(false);
   const [reasonValue, setReasonValue] = useState('');
   const [pendingAction, setPendingAction] = useState<null | { action: 'Approved' | 'Denied', keys: string[] }>(null);
->>>>>>> main
-  // Remove modalAction state
-  // const [modalAction, setModalAction] = useState<null | (() => void)>(null);
 
   // Add state for admin email - use logged-in user's email as default
   const [adminEmail, setAdminEmail] = useState<string>(userEmail || 'admin@company.com');
@@ -226,39 +213,6 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
   // Handle action button click
   // (Removed unused handleActionClick function)
 
-<<<<<<< HEAD
-  // Bulk action handler (show comment modal)
-  const handleBulkAction = (action: 'Approved' | 'Pending' | 'Denied') => {
-    if (action === 'Approved' || action === 'Denied') {
-      setBulkActionType(action);
-      setBulkComment('');
-      return;
-    }
-    // For other actions, proceed as before
-    const selectedKeys = Object.keys(selected).filter(k => selected[k]);
-    selectedKeys.forEach(key => {
-      const [partitionKey, rowKey] = key.split('|');
-      if (onAction) onAction(partitionKey, rowKey, action, adminEmail);
-    });
-    setSelected({});
-    setTimeout(() => refetchApplicants(), 1000);
-  };
-
-  // Confirm bulk action with comment
-  const handleConfirmBulkAction = async () => {
-    if (!bulkComment.trim()) return;
-    setBulkProcessing(true);
-    const selectedKeys = Object.keys(selected).filter(k => selected[k]);
-    for (const key of selectedKeys) {
-      const [partitionKey, rowKey] = key.split('|');
-      if (onAction) onAction(partitionKey, rowKey, bulkActionType!, adminEmail /*, bulkComment*/);
-      // TODO: Pass bulkComment to backend if needed
-    }
-    setBulkProcessing(false);
-    setBulkActionType(null);
-    setBulkComment('');
-    setSelected({});
-=======
   // Bulk action handler (now opens reason modal)
   const handleBulkAction = (action: 'Approved' | 'Denied') => {
     const selectedKeys = Object.keys(selected).filter(k => selected[k]);
@@ -269,12 +223,58 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
   };
 
   // Confirm bulk/single action with reason
-  const confirmActionWithReason = () => {
+  const confirmActionWithReason = async () => {
     if (!pendingAction) return;
+    
+    // Call onAction for each applicant to handle the approval/denial logic
     pendingAction.keys.forEach(key => {
       const [partitionKey, rowKey] = key.split('|');
-      if (onAction) onAction(partitionKey, rowKey, pendingAction.action, adminEmail /*, reasonValue */);
+      if (onAction) onAction(partitionKey, rowKey, pendingAction.action, adminEmail);
     });
+
+    // For each applicant, trigger the Power Automate flow directly
+    for (const key of pendingAction.keys) {
+      const [partitionKey, rowKey] = key.split('|');
+      
+      // Find the applicant details to get name and email
+      try {
+        const url = `${API_BASE_URL}?partitionKey=${encodeURIComponent(partitionKey)}&rowKey=${encodeURIComponent(rowKey)}`;
+        const response = await fetch(url);
+        
+        if (response.ok) {
+          const applicantData = await response.json();
+          const recipient = `${applicantData.firstName || 'Unknown'} ${applicantData.lastName || 'Applicant'}`;
+          const address = applicantData.email || 'unknown@email.com';
+          const verdict = pendingAction.action === 'Approved' ? 'Approved' : 'Denied';
+          
+          // Call Power Automate flow directly
+          try {
+            const powerAutomateResponse = await fetch('https://prod-37.westus.logic.azure.com:443/workflows/c2a9b1269e53415197930e5fffcb788a/triggers/manual/paths/invoke?api-version=2016-06-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=9KZ72xAJyzhzneU7_ntAIL8P-x-InfvHh613oiHyA2w', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                recipient: recipient,
+                address: address,
+                verdict: verdict
+              })
+            });
+            
+            if (powerAutomateResponse.ok) {
+              console.log(`Power Automate flow triggered successfully for ${recipient} with verdict: ${verdict}`);
+            } else {
+              console.warn(`Power Automate flow failed for ${recipient}: ${powerAutomateResponse.status}`);
+            }
+          } catch (flowError) {
+            console.error(`Error triggering Power Automate flow for ${recipient}:`, flowError);
+          }
+        }
+      } catch (error) {
+        console.error(`Error fetching applicant data for Power Automate trigger:`, error);
+      }
+    }
+
     addNotification(
       `${pendingAction.keys.length} applicant${pendingAction.keys.length > 1 ? 's' : ''} ${pendingAction.action === 'Approved' ? 'approved' : 'denied'} by ${adminEmail}${reasonValue ? ` (Reason: ${reasonValue})` : ''}`,
       pendingAction.action === 'Approved' ? 'success' : 'error'
@@ -282,8 +282,32 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
     setSelected({});
     setReasonModalOpen(false);
     setPendingAction(null);
->>>>>>> main
     setTimeout(() => refetchApplicants(), 1000);
+  };
+
+  // Test function to manually trigger Power Automate flow
+  const testPowerAutomateFlow = async () => {
+    try {
+      const response = await fetch('https://prod-37.westus.logic.azure.com:443/workflows/c2a9b1269e53415197930e5fffcb788a/triggers/manual/paths/invoke?api-version=2016-06-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=9KZ72xAJyzhzneU7_ntAIL8P-x-InfvHh613oiHyA2w', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          recipient: 'Test User',
+          address: 'test@example.com',
+          verdict: 'Approved'
+        })
+      });
+      
+      if (response.ok) {
+        alert('Power Automate flow triggered successfully! Check your email or flow history.');
+      } else {
+        alert(`Power Automate flow failed: ${response.status} ${response.statusText}`);
+      }
+    } catch (error) {
+      alert(`Error triggering Power Automate flow: ${error}`);
+    }
   };
 
   // Helper: select all visible applicants
@@ -426,6 +450,24 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
           Deny Selected
         </button>
         {someSelected && <span style={{ color: '#888', fontSize: 14 }}>{Object.keys(selected).filter(k => selected[k]).length} selected</span>}
+        
+        {/* Test Power Automate button (for testing purposes) */}
+        <button
+          onClick={testPowerAutomateFlow}
+          style={{ 
+            background: '#2196f3', 
+            color: '#fff', 
+            border: 'none', 
+            borderRadius: 5, 
+            padding: '8px 18px', 
+            fontWeight: 600, 
+            cursor: 'pointer',
+            marginLeft: 'auto' 
+          }}
+          title="Test Power Automate flow with sample data"
+        >
+          🧪 Test Power Automate
+        </button>
       </div>
       <div className="applicant-list-table" style={{
         overflowX: 'auto',
@@ -458,16 +500,10 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
         {/* Table rows: map over paginatedApplicants array */}
         {paginatedApplicants.map((applicant, idx) => {
           const applicantKey = `${applicant.partitionKey}|${applicant.rowKey}`;
-<<<<<<< HEAD
-          // Get actual approval data from API or fallback to empty array
-          const actualApprovalData = approvalData[applicantKey];
-          const approvedByEmails: string[] = [];
-=======
           // Get actual approval and denial data from API
           const actualApprovalData = approvalData[applicantKey];
           const approvedByEmails: string[] = [];
           const deniedByEmails: string[] = [];
->>>>>>> main
           if (actualApprovalData) {
             if (actualApprovalData.approval1) approvedByEmails.push(actualApprovalData.approval1);
             if (actualApprovalData.approval2) approvedByEmails.push(actualApprovalData.approval2);
@@ -503,61 +539,6 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
                 }} disabled={status === 'Approved'}>Deny</button>
               </span>
               */}
-      {/* Reason Modal for approve/deny actions */}
-      {reasonModalOpen && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          width: '100vw',
-          height: '100vh',
-          background: 'rgba(0,0,0,0.18)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 99999
-        }}>
-          <div style={{
-            background: '#fff',
-            borderRadius: 16,
-            boxShadow: '0 4px 32px 0 rgba(34,34,34,0.18)',
-            padding: '2.5rem 2.5rem 2rem 2.5rem',
-            minWidth: 320,
-            maxWidth: '90vw',
-            textAlign: 'center',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: 24
-          }}>
-            <div style={{ fontSize: 22, fontWeight: 700, color: '#ff3d00', marginBottom: 12 }}>
-              {pendingAction?.action === 'Approved' ? 'Approve' : 'Deny'} {pendingAction?.keys.length > 1 ? `${pendingAction.keys.length} applicants` : 'applicant'}
-            </div>
-            <textarea
-              value={reasonValue}
-              onChange={e => setReasonValue(e.target.value)}
-              rows={4}
-              style={{ width: 320, borderRadius: 8, border: '1.5px solid #ff9800', padding: 10, fontSize: 16, resize: 'vertical' }}
-              placeholder="Enter reason or comment (required)"
-            />
-            <div style={{ display: 'flex', gap: 16 }}>
-              <button
-                style={{ background: '#ff3d00', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 32px', fontWeight: 600, fontSize: 16, cursor: 'pointer' }}
-                onClick={confirmActionWithReason}
-                disabled={!reasonValue.trim()}
-              >
-                {pendingAction?.action === 'Approved' ? 'Approve' : 'Deny'}
-              </button>
-              <button
-                style={{ background: '#eee', color: '#333', border: 'none', borderRadius: 8, padding: '10px 32px', fontWeight: 600, fontSize: 16, cursor: 'pointer' }}
-                onClick={() => { setReasonModalOpen(false); setPendingAction(null); }}
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
               {/* Avatar/Initials */}
               <span>
                 {applicant.profileImage ? (
@@ -683,70 +664,63 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
           );
         })}
       </div>
-      {/* Modal for bulk approve/deny comment */}
-      {bulkActionType && (
+      
+      {/* Reason Modal for approve/deny actions */}
+      {reasonModalOpen && (
         <div style={{
           position: 'fixed',
           top: 0,
           left: 0,
           width: '100vw',
           height: '100vh',
-          background: 'rgba(0,0,0,0.35)',
+          background: 'rgba(0,0,0,0.18)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          zIndex: 9999
+          zIndex: 99999
         }}>
           <div style={{
             background: '#fff',
             borderRadius: 16,
             boxShadow: '0 4px 32px 0 rgba(34,34,34,0.18)',
             padding: '2.5rem 2.5rem 2rem 2.5rem',
-            minWidth: 340,
-            maxWidth: '95vw',
+            minWidth: 320,
+            maxWidth: '90vw',
             textAlign: 'center',
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
-            gap: 18
+            gap: 24
           }}>
-            <div style={{ fontSize: 22, fontWeight: 700, color: bulkActionType === 'Approved' ? '#43a047' : '#f44336', marginBottom: 8 }}>
-              {bulkActionType === 'Approved' ? 'Approve' : 'Deny'} Selected Applicants
-            </div>
-            <div style={{ fontSize: 15, color: '#444', marginBottom: 8 }}>
-              Please provide a reason or comment (required):
+            <div style={{ fontSize: 22, fontWeight: 700, color: '#ff3d00', marginBottom: 12 }}>
+              {pendingAction?.action === 'Approved' ? 'Approve' : 'Deny'} {pendingAction && pendingAction.keys.length > 1 ? `${pendingAction.keys.length} applicants` : 'applicant'}
             </div>
             <textarea
-              value={bulkComment}
-              onChange={e => setBulkComment(e.target.value)}
+              value={reasonValue}
+              onChange={e => setReasonValue(e.target.value)}
               rows={4}
-              style={{ width: 260, borderRadius: 6, border: '1px solid #bbb', padding: 8, fontSize: 15, resize: 'vertical' }}
-              placeholder={bulkActionType === 'Approved' ? 'Reason for approval...' : 'Reason for denial...'}
-              disabled={bulkProcessing}
-              autoFocus
+              style={{ width: 320, borderRadius: 8, border: '1.5px solid #ff9800', padding: 10, fontSize: 16, resize: 'vertical' }}
+              placeholder="Enter reason or comment (required)"
             />
-            <div style={{ display: 'flex', gap: 16, marginTop: 8 }}>
+            <div style={{ display: 'flex', gap: 16 }}>
               <button
-                onClick={() => {
-                  setBulkActionType(null);
-                  setBulkComment('');
-                }}
-                style={{ padding: '8px 22px', borderRadius: 6, border: '1.5px solid #bbb', background: '#fff', color: '#444', fontWeight: 600, fontSize: 16, cursor: 'pointer' }}
-                disabled={bulkProcessing}
+                style={{ background: '#ff3d00', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 32px', fontWeight: 600, fontSize: 16, cursor: 'pointer' }}
+                onClick={confirmActionWithReason}
+                disabled={!reasonValue.trim()}
               >
-                Cancel
+                {pendingAction?.action === 'Approved' ? 'Approve' : 'Deny'}
               </button>
               <button
-                onClick={handleConfirmBulkAction}
-                style={{ padding: '8px 22px', borderRadius: 6, border: 'none', background: bulkActionType === 'Approved' ? '#43a047' : '#f44336', color: '#fff', fontWeight: 600, fontSize: 16, cursor: bulkComment.trim() && !bulkProcessing ? 'pointer' : 'not-allowed', opacity: bulkComment.trim() ? 1 : 0.7 }}
-                disabled={!bulkComment.trim() || bulkProcessing}
+                style={{ background: '#eee', color: '#333', border: 'none', borderRadius: 8, padding: '10px 32px', fontWeight: 600, fontSize: 16, cursor: 'pointer' }}
+                onClick={() => { setReasonModalOpen(false); setPendingAction(null); }}
               >
-                {bulkProcessing ? 'Processing...' : bulkActionType === 'Approved' ? 'Approve' : 'Deny'}
+                Cancel
               </button>
             </div>
           </div>
         </div>
       )}
+
       {/* Pagination controls */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 24 }}>
         {/* Page size dropdown */}
