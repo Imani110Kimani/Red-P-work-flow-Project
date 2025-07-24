@@ -285,31 +285,6 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
     setTimeout(() => refetchApplicants(), 1000);
   };
 
-  // Test function to manually trigger Power Automate flow
-  const testPowerAutomateFlow = async () => {
-    try {
-      const response = await fetch('https://prod-37.westus.logic.azure.com:443/workflows/c2a9b1269e53415197930e5fffcb788a/triggers/manual/paths/invoke?api-version=2016-06-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=9KZ72xAJyzhzneU7_ntAIL8P-x-InfvHh613oiHyA2w', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          recipient: 'Test User',
-          address: 'test@example.com',
-          verdict: 'Approved'
-        })
-      });
-      
-      if (response.ok) {
-        alert('Power Automate flow triggered successfully! Check your email or flow history.');
-      } else {
-        alert(`Power Automate flow failed: ${response.status} ${response.statusText}`);
-      }
-    } catch (error) {
-      alert(`Error triggering Power Automate flow: ${error}`);
-    }
-  };
-
   // Helper: select all visible applicants
   const allSelected = applicants.length > 0 && applicants.every(a => selected[`${a.partitionKey}|${a.rowKey}`]);
   const someSelected = applicants.some(a => selected[`${a.partitionKey}|${a.rowKey}`]);
@@ -450,24 +425,6 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
           Deny Selected
         </button>
         {someSelected && <span style={{ color: '#888', fontSize: 14 }}>{Object.keys(selected).filter(k => selected[k]).length} selected</span>}
-        
-        {/* Test Power Automate button (for testing purposes) */}
-        <button
-          onClick={testPowerAutomateFlow}
-          style={{ 
-            background: '#2196f3', 
-            color: '#fff', 
-            border: 'none', 
-            borderRadius: 5, 
-            padding: '8px 18px', 
-            fontWeight: 600, 
-            cursor: 'pointer',
-            marginLeft: 'auto' 
-          }}
-          title="Test Power Automate flow with sample data"
-        >
-          🧪 Test Power Automate
-        </button>
       </div>
       <div className="applicant-list-table" style={{
         overflowX: 'auto',
