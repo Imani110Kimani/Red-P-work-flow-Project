@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Azure AD Authentication - Simple Solution</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .simple-auth {
+            text-align: center;
+            padding: 40px 20px;
+        }
+        
+        .auth-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 40px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .step {
+            background: rgba(255, 255, 255, 0.05);
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 4px solid #0078d4;
+        }
+        
+        .step-number {
+            background: #0078d4;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 15px;
+        }
+        
+        .login-url {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 12px;
+            word-break: break-all;
+            margin: 15px 0;
+            text-align: left;
+        }
+        
+        .big-button {
+            background: #0078d4;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 18px;
+            margin: 20px 10px;
+            transition: all 0.3s ease;
+        }
+        
+        .big-button:hover {
+            background: #106ebe;
+            transform: translateY(-2px);
+        }
+        
+        .copy-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 10px;
+        }
+        
+        .copy-btn:hover {
+            background: #218838;
+        }
+        
+        .success-msg {
+            background: rgba(40, 167, 69, 0.2);
+            color: #90ee90;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            border-left: 4px solid #28a745;
+        }
+        
+        .demo-info {
+            background: rgba(255, 193, 7, 0.1);
+            color: #ffc107;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border-left: 4px solid #ffc107;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="simple-auth">
+            <div class="auth-card">
+                <h1>🚀 Simple Azure AD Login</h1>
+                <p>Since popup authentication is blocked in VS Code, let's use a simple external browser approach:</p>
+                
+                <div class="step">
+                    <span class="step-number">1</span>
+                    <strong>Click the button below to copy the login URL</strong>
+                </div>
+                
+                <div class="login-url" id="loginUrl">
+                    https://login.microsoftonline.com/907b7f47-b8ae-4456-9e9c-b010d365753b/oauth2/v2.0/authorize?client_id=72a3b8b7-88dc-4325-a9a5-e8e7a915db27&response_type=code&redirect_uri=http%3A%2F%2Flocalhost%3A3000&response_mode=query&scope=https%3A%2F%2Fgraph.microsoft.com%2FUser.Read&state=vscode_login
+                </div>
+                
+                <button class="copy-btn" onclick="copyLoginUrl()">📋 Copy Login URL</button>
+                <button class="big-button" onclick="openInBrowser()">🌐 Open in Browser</button>
+                
+                <div class="step">
+                    <span class="step-number">2</span>
+                    <strong>Complete the login in your regular browser</strong>
+                </div>
+                
+                <div class="step">
+                    <span class="step-number">3</span>
+                    <strong>After login, click the button below to go to the dashboard</strong>
+                </div>
+                
+                <button class="big-button" onclick="goToDashboard()">✅ I've Logged In - Go to Dashboard</button>
+                
+                <div class="demo-info">
+                    <h3>🎯 How This Works</h3>
+                    <p>Since VS Code's embedded browser blocks popups, we're using a simple approach:</p>
+                    <ul style="text-align: left; display: inline-block;">
+                        <li>You login in your regular browser</li>
+                        <li>Azure AD saves your session</li>
+                        <li>The dashboard will access your authenticated session</li>
+                        <li>If the dashboard shows login errors, the session wasn't saved properly</li>
+                    </ul>
+                </div>
+                
+                <div id="successMessage" class="success-msg" style="display: none;">
+                    <p id="successText"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function copyLoginUrl() {
+            const loginUrl = document.getElementById('loginUrl').textContent.trim();
+            
+            navigator.clipboard.writeText(loginUrl).then(() => {
+                showSuccess('✅ Login URL copied to clipboard! Now paste it in your browser.');
+            }).catch(() => {
+                // Fallback for older browsers
+                const textArea = document.createElement('textarea');
+                textArea.value = loginUrl;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                showSuccess('✅ Login URL copied to clipboard! Now paste it in your browser.');
+            });
+        }
+
+        function openInBrowser() {
+            const loginUrl = document.getElementById('loginUrl').textContent.trim();
+            
+            // Try to open in external browser
+            const newWindow = window.open(loginUrl, '_blank');
+            
+            if (!newWindow) {
+                showSuccess('⚠️ Popup blocked. Please copy the URL above and paste it in your browser manually.');
+            } else {
+                showSuccess('🌐 Login window opened! Complete the login and then click "I\'ve Logged In" below.');
+            }
+        }
+
+        function goToDashboard() {
+            showSuccess('🚀 Going to dashboard...');
+            setTimeout(() => {
+                window.location.href = 'dashboard-simple.html';
+            }, 1500);
+        }
+
+        function showSuccess(message) {
+            const successDiv = document.getElementById('successMessage');
+            const successText = document.getElementById('successText');
+            
+            successText.textContent = message;
+            successDiv.style.display = 'block';
+            
+            // Auto-hide after 5 seconds unless it's a persistent message
+            if (!message.includes('Going to dashboard')) {
+                setTimeout(() => {
+                    successDiv.style.display = 'none';
+                }, 5000);
+            }
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Simple auth page loaded');
+            
+            // Check if we're coming back from a login attempt
+            const urlParams = new URLSearchParams(window.location.search);
+            const code = urlParams.get('code');
+            
+            if (code) {
+                showSuccess('🎉 Login detected! Click "Go to Dashboard" to continue.');
+            }
+        });
+
+        console.log('Simple auth script loaded');
+    </script>
+</body>
+</html>

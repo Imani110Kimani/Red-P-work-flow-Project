@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Azure AD Test</title>
+    <script src="msal-browser.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: white;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 30px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            text-align: center;
+        }
+        button {
+            background: #0078d4;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px;
+        }
+        button:hover {
+            background: #106ebe;
+        }
+        .hidden {
+            display: none;
+        }
+        .info {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Simple Azure AD Authentication Test</h1>
+        
+        <div id="status" class="info">
+            <p><strong>Status:</strong> <span id="statusText">Initializing...</span></p>
+        </div>
+        
+        <div id="welcomeSection">
+            <h2>Welcome!</h2>
+            <p>Click the button below to sign in with Microsoft</p>
+            <button id="loginBtn">Sign In with Microsoft</button>
+        </div>
+        
+        <div id="userSection" class="hidden">
+            <h2>You are logged in!</h2>
+            <div id="userInfo" class="info">
+                <p><strong>Name:</strong> <span id="displayName">Loading...</span></p>
+                <p><strong>Email:</strong> <span id="userPrincipalName">Loading...</span></p>
+            </div>
+            <button id="logoutBtn">Sign Out</button>
+        </div>
+        
+        <div id="errorSection" class="hidden">
+            <div class="info" style="background: rgba(255, 0, 0, 0.3);">
+                <h3>Error occurred:</h3>
+                <p id="errorText"></p>
+            </div>
+            <button onclick="location.reload()">Refresh Page</button>
+        </div>
+    </div>
+
+    <script>
+        console.log('Script starting...');
+        
+        // Configuration
+        const msalConfig = {
+            auth: {
+                clientId: "72a3b8b7-88dc-4325-a9a5-e8e7a915db27",
+                authority: "https://login.microsoftonline.com/907b7f47-b8ae-4456-9e9c-b010d365753b",
+                redirectUri: window.location.origin
+            },
+            cache: {
+                cacheLocation: "sessionStorage",
+                storeAuthStateInCookie: false
+            }
+        };
+
+        const loginRequest = {
+            scopes: ["User.Read"]
+        };
+
+        let myMSALObj;
+        
+        // DOM elements
+        let statusText, welcomeSection, userSection, errorSection;
+        let loginBtn, logoutBtn, displayName, userPrincipalName, errorText;
+
+        function updateStatus(message) {
+            console.log('Status:', message);
+            if (statusText) {
+                statusText.textContent = message;
+            }
+        }
+
+        function showError(error) {
+            console.error('Error:', error);
+            updateStatus('Error occurred');
+            
+            if (errorText && errorSection) {
+                errorText.textContent = error.message || error;
+                errorSection.classList.remove('hidden');
+                welcomeSection.classList.add('hidden');
+                userSection.classList.add('hidden');
+            }
+        }
+
+        function showWelcome() {
+            console.log('Showing welcome section');
+            updateStatus('Ready for login');
+            welcomeSection.classList.remove('hidden');
+            userSection.classList.add('hidden');
+            errorSection.classList.add('hidden');
+        }
+
+        function showUser(account) {
+            console.log('Showing user section for:', account.name);
+            updateStatus('Logged in');
+            
+            if (displayName) displayName.textContent = account.name || 'N/A';
+            if (userPrincipalName) userPrincipalName.textContent = account.username || 'N/A';
+            
+            welcomeSection.classList.add('hidden');
+            userSection.classList.remove('hidden');
+            errorSection.classList.add('hidden');
+        }
+
+        async function handleLogin() {
+            console.log('Login button clicked');
+            updateStatus('Starting login...');
+            
+            try {
+                // Use popup instead of redirect for iframe compatibility
+                const loginResponse = await myMSALObj.loginPopup(loginRequest);
+                console.log('Login successful:', loginResponse.account.name);
+                showUser(loginResponse.account);
+                
+                // Redirect to dashboard after showing success
+                updateStatus('Login successful! Redirecting to dashboard...');
+                setTimeout(() => {
+                    window.location.href = 'dashboard.html';
+                }, 2000);
+                
+            } catch (error) {
+                console.error('Login error:', error);
+                showError(error);
+            }
+        }
+
+        async function handleLogout() {
+            console.log('Logout button clicked');
+            updateStatus('Logging out...');
+            
+            try {
+                // Use popup logout for iframe compatibility
+                await myMSALObj.logoutPopup();
+                console.log('Logout successful');
+                showWelcome();
+            } catch (error) {
+                console.error('Logout error:', error);
+                showError(error);
+            }
+        }
+
+        // Initialize app
+        async function initApp() {
+            console.log('Initializing app...');
+            updateStatus('Checking authentication...');
+            
+            try {
+                // Handle redirect response
+                const response = await myMSALObj.handleRedirectPromise();
+                
+                if (response) {
+                    console.log('Login successful:', response.account.name);
+                    showUser(response.account);
+                    
+                    // Redirect to dashboard
+                    updateStatus('Redirecting to dashboard...');
+                    setTimeout(() => {
+                        window.location.href = 'dashboard.html';
+                    }, 2000);
+                } else {
+                    // Check existing accounts
+                    const accounts = myMSALObj.getAllAccounts();
+                    
+                    if (accounts.length > 0) {
+                        console.log('Found existing account:', accounts[0].name);
+                        updateStatus('Already logged in! Redirecting to dashboard...');
+                        
+                        // User is already logged in, redirect to dashboard
+                        setTimeout(() => {
+                            window.location.href = 'dashboard.html';
+                        }, 1500);
+                    } else {
+                        console.log('No existing accounts, showing welcome');
+                        showWelcome();
+                    }
+                }
+            } catch (error) {
+                console.error('App initialization error:', error);
+                showError(error);
+            }
+        }
+
+        // DOM ready initialization
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM loaded');
+            
+            // Get DOM elements
+            statusText = document.getElementById('statusText');
+            welcomeSection = document.getElementById('welcomeSection');
+            userSection = document.getElementById('userSection');
+            errorSection = document.getElementById('errorSection');
+            loginBtn = document.getElementById('loginBtn');
+            logoutBtn = document.getElementById('logoutBtn');
+            displayName = document.getElementById('displayName');
+            userPrincipalName = document.getElementById('userPrincipalName');
+            errorText = document.getElementById('errorText');
+            
+            console.log('DOM elements retrieved');
+            
+            // Check MSAL
+            if (typeof msal === 'undefined') {
+                showError('MSAL library not loaded');
+                return;
+            }
+            
+            try {
+                // Create MSAL instance
+                myMSALObj = new msal.PublicClientApplication(msalConfig);
+                console.log('MSAL instance created');
+                
+                // Add event listeners
+                if (loginBtn) {
+                    loginBtn.addEventListener('click', handleLogin);
+                    console.log('Login button event listener added');
+                }
+                
+                if (logoutBtn) {
+                    logoutBtn.addEventListener('click', handleLogout);
+                    console.log('Logout button event listener added');
+                }
+                
+                // Initialize app
+                initApp();
+                
+            } catch (error) {
+                console.error('MSAL initialization error:', error);
+                showError(error);
+            }
+        });
+        
+        console.log('Script loaded');
+    </script>
+</body>
+</html>

@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Azure AD Debug</title>
+    <script src="msal-browser.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .debug-info {
+            background: #f5f5f5;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .error {
+            background: #ffe6e6;
+            color: #d00;
+        }
+        .success {
+            background: #e6ffe6;
+            color: #0a0;
+        }
+        button {
+            background: #0078d4;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #106ebe;
+        }
+    </style>
+</head>
+<body>
+    <h1>Azure AD Authentication Debug</h1>
+    
+    <div class="debug-info">
+        <h3>Configuration:</h3>
+        <p><strong>Client ID:</strong> 72a3b8b7-88dc-4325-a9a5-e8e7a915db27</p>
+        <p><strong>Tenant ID:</strong> 907b7f47-b8ae-4456-9e9c-b010d365753b</p>
+        <p><strong>Current URL:</strong> <span id="currentUrl"></span></p>
+        <p><strong>Redirect URI:</strong> <span id="redirectUri"></span></p>
+    </div>
+
+    <div class="debug-info">
+        <h3>MSAL Status:</h3>
+        <p id="msalStatus">Initializing...</p>
+    </div>
+
+    <div id="errorLog" class="debug-info error" style="display: none;">
+        <h3>Errors:</h3>
+        <div id="errorContent"></div>
+    </div>
+
+    <div id="successLog" class="debug-info success" style="display: none;">
+        <h3>Success:</h3>
+        <div id="successContent"></div>
+    </div>
+
+    <div>
+        <button onclick="testLogin()">Test Login</button>
+        <button onclick="checkAccounts()">Check Existing Accounts</button>
+        <button onclick="clearLogs()">Clear Logs</button>
+    </div>
+
+    <div class="debug-info">
+        <h3>Console Output:</h3>
+        <div id="consoleOutput" style="max-height: 300px; overflow-y: auto; font-family: monospace; white-space: pre-wrap;"></div>
+    </div>
+
+    <script>
+        // Override console.log to capture output
+        const originalLog = console.log;
+        const originalError = console.error;
+        
+        function appendToConsole(message, type = 'log') {
+            const output = document.getElementById('consoleOutput');
+            const timestamp = new Date().toLocaleTimeString();
+            output.textContent += `[${timestamp}] ${type.toUpperCase()}: ${message}\n`;
+            output.scrollTop = output.scrollHeight;
+        }
+        
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            appendToConsole(args.join(' '), 'log');
+        };
+        
+        console.error = function(...args) {
+            originalError.apply(console, args);
+            appendToConsole(args.join(' '), 'error');
+            showError(args.join(' '));
+        };
+
+        // Azure AD Configuration
+        const msalConfig = {
+            auth: {
+                clientId: "72a3b8b7-88dc-4325-a9a5-e8e7a915db27",
+                authority: "https://login.microsoftonline.com/907b7f47-b8ae-4456-9e9c-b010d365753b",
+                redirectUri: window.location.origin
+            },
+            cache: {
+                cacheLocation: "sessionStorage",
+                storeAuthStateInCookie: false
+            }
+        };
+
+        const loginRequest = {
+            scopes: ["User.Read"]
+        };
+
+        let myMSALObj;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('currentUrl').textContent = window.location.href;
+            document.getElementById('redirectUri').textContent = window.location.origin;
+            
+            try {
+                // Check if MSAL is loaded
+                if (typeof msal === 'undefined') {
+                    throw new Error('MSAL library not loaded');
+                }
+                
+                myMSALObj = new msal.PublicClientApplication(msalConfig);
+                document.getElementById('msalStatus').textContent = 'MSAL initialized successfully';
+                console.log('MSAL initialized successfully');
+                
+                // Handle redirect response
+                myMSALObj.handleRedirectPromise()
+                    .then(response => {
+                        if (response) {
+                            console.log('Redirect response received:', response);
+                            showSuccess('Login successful! User: ' + response.account.name);
+                        } else {
+                            console.log('No redirect response');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error handling redirect:', error);
+                    });
+                    
+            } catch (error) {
+                document.getElementById('msalStatus').textContent = 'MSAL initialization failed: ' + error.message;
+                console.error('MSAL initialization error:', error);
+            }
+        });
+
+        function testLogin() {
+            try {
+                if (!myMSALObj) {
+                    throw new Error('MSAL not initialized. Please refresh the page.');
+                }
+                
+                console.log('Starting login process...');
+                clearLogs();
+                
+                myMSALObj.loginRedirect(loginRequest)
+                    .then(() => {
+                        console.log('Login redirect initiated');
+                    })
+                    .catch(error => {
+                        console.error('Login error:', error);
+                    });
+                    
+            } catch (error) {
+                console.error('Login exception:', error);
+            }
+        }
+
+        function checkAccounts() {
+            try {
+                const accounts = myMSALObj.getAllAccounts();
+                console.log('Existing accounts:', accounts);
+                
+                if (accounts.length > 0) {
+                    showSuccess(`Found ${accounts.length} account(s): ${accounts.map(a => a.name || a.username).join(', ')}`);
+                } else {
+                    console.log('No existing accounts found');
+                }
+            } catch (error) {
+                console.error('Error checking accounts:', error);
+            }
+        }
+
+        function showError(message) {
+            const errorLog = document.getElementById('errorLog');
+            const errorContent = document.getElementById('errorContent');
+            errorContent.textContent = message;
+            errorLog.style.display = 'block';
+        }
+
+        function showSuccess(message) {
+            const successLog = document.getElementById('successLog');
+            const successContent = document.getElementById('successContent');
+            successContent.textContent = message;
+            successLog.style.display = 'block';
+        }
+
+        function clearLogs() {
+            document.getElementById('errorLog').style.display = 'none';
+            document.getElementById('successLog').style.display = 'none';
+            document.getElementById('consoleOutput').textContent = '';
+        }
+    </script>
+</body>
+</html>

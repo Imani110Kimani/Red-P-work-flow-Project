@@ -18,76 +18,90 @@ class Logger {
     createLogContainer() {
         // Only create log container in development mode
         if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-            const logContainer = document.createElement('div');
-            logContainer.id = 'logContainer';
-            logContainer.style.cssText = `
-                position: fixed;
-                bottom: 20px;
-                right: 20px;
-                width: 400px;
-                max-height: 300px;
-                background: rgba(0, 0, 0, 0.9);
-                color: white;
-                border-radius: 8px;
-                padding: 15px;
-                font-family: 'Courier New', monospace;
-                font-size: 12px;
-                overflow-y: auto;
-                z-index: 10000;
-                display: none;
-                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-            `;
+            // Wait for DOM to be ready
+            const createContainer = () => {
+                if (document.body) {
+                    const logContainer = document.createElement('div');
+                    logContainer.id = 'logContainer';
+                    logContainer.style.cssText = `
+                        position: fixed;
+                        bottom: 20px;
+                        right: 20px;
+                        width: 400px;
+                        max-height: 300px;
+                        background: rgba(0, 0, 0, 0.9);
+                        color: white;
+                        border-radius: 8px;
+                        padding: 15px;
+                        font-family: 'Courier New', monospace;
+                        font-size: 12px;
+                        overflow-y: auto;
+                        z-index: 10000;
+                        display: none;
+                        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+                    `;
+                    
+                    const header = document.createElement('div');
+                    header.style.cssText = `
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        margin-bottom: 10px;
+                        padding-bottom: 5px;
+                        border-bottom: 1px solid #444;
+                    `;
+                    header.innerHTML = `
+                        <span style="font-weight: bold;">Application Logs</span>
+                        <div>
+                            <button onclick="logger.clearLogs()" style="background: #dc3545; color: white; border: none; padding: 2px 8px; border-radius: 3px; cursor: pointer; margin-right: 5px;">Clear</button>
+                            <button onclick="logger.toggleLogs()" style="background: #6c757d; color: white; border: none; padding: 2px 8px; border-radius: 3px; cursor: pointer;">Hide</button>
+                        </div>
+                    `;
+                    
+                    const logContent = document.createElement('div');
+                    logContent.id = 'logContent';
+                    logContent.style.cssText = `
+                        max-height: 200px;
+                        overflow-y: auto;
+                        white-space: pre-wrap;
+                        word-break: break-word;
+                    `;
+                    
+                    logContainer.appendChild(header);
+                    logContainer.appendChild(logContent);
+                    document.body.appendChild(logContainer);
+                    
+                    // Add toggle button
+                    const toggleButton = document.createElement('button');
+                    toggleButton.id = 'logToggle';
+                    toggleButton.innerHTML = '📋 Logs';
+                    toggleButton.style.cssText = `
+                        position: fixed;
+                        bottom: 20px;
+                        right: 20px;
+                        background: #007bff;
+                        color: white;
+                        border: none;
+                        border-radius: 20px;
+                        padding: 10px 15px;
+                        cursor: pointer;
+                        z-index: 10001;
+                        font-size: 12px;
+                        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+                    `;
+                    toggleButton.onclick = () => this.toggleLogs();
+                    document.body.appendChild(toggleButton);
+                } else {
+                    // DOM not ready yet, wait a bit
+                    setTimeout(createContainer, 100);
+                }
+            };
             
-            const header = document.createElement('div');
-            header.style.cssText = `
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                margin-bottom: 10px;
-                padding-bottom: 5px;
-                border-bottom: 1px solid #444;
-            `;
-            header.innerHTML = `
-                <span style="font-weight: bold;">Application Logs</span>
-                <div>
-                    <button onclick="logger.clearLogs()" style="background: #dc3545; color: white; border: none; padding: 2px 8px; border-radius: 3px; cursor: pointer; margin-right: 5px;">Clear</button>
-                    <button onclick="logger.toggleLogs()" style="background: #6c757d; color: white; border: none; padding: 2px 8px; border-radius: 3px; cursor: pointer;">Hide</button>
-                </div>
-            `;
-            
-            const logContent = document.createElement('div');
-            logContent.id = 'logContent';
-            logContent.style.cssText = `
-                max-height: 200px;
-                overflow-y: auto;
-                white-space: pre-wrap;
-                word-break: break-word;
-            `;
-            
-            logContainer.appendChild(header);
-            logContainer.appendChild(logContent);
-            document.body.appendChild(logContainer);
-            
-            // Add toggle button
-            const toggleButton = document.createElement('button');
-            toggleButton.id = 'logToggle';
-            toggleButton.innerHTML = '📋 Logs';
-            toggleButton.style.cssText = `
-                position: fixed;
-                bottom: 20px;
-                right: 20px;
-                background: #007bff;
-                color: white;
-                border: none;
-                border-radius: 20px;
-                padding: 10px 15px;
-                cursor: pointer;
-                z-index: 10001;
-                font-size: 12px;
-                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-            `;
-            toggleButton.onclick = () => this.toggleLogs();
-            document.body.appendChild(toggleButton);
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', createContainer);
+            } else {
+                createContainer();
+            }
         }
     }
 

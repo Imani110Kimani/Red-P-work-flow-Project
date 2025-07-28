@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Button Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        button {
+            background: #0078d4;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px;
+        }
+        button:hover {
+            background: #106ebe;
+        }
+        .info {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Login Button Test</h1>
+    
+    <div class="info">
+        <p><strong>Status:</strong> <span id="status">Testing...</span></p>
+    </div>
+    
+    <button id="testButton" onclick="testClick()">Test Button (onclick)</button>
+    <button id="loginButton">Login Button (event listener)</button>
+    
+    <div class="info">
+        <h3>Console Output:</h3>
+        <div id="console" style="font-family: monospace; white-space: pre-wrap; max-height: 300px; overflow-y: auto; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 5px;"></div>
+    </div>
+
+    <script src="msal-browser.min.js"></script>
+    <script>
+        // Capture console output
+        const consoleDiv = document.getElementById('console');
+        const originalLog = console.log;
+        const originalError = console.error;
+        
+        function addToConsole(message, type = 'log') {
+            const timestamp = new Date().toLocaleTimeString();
+            consoleDiv.textContent += `[${timestamp}] ${type.toUpperCase()}: ${message}\n`;
+            consoleDiv.scrollTop = consoleDiv.scrollHeight;
+        }
+        
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            addToConsole(args.join(' '), 'log');
+        };
+        
+        console.error = function(...args) {
+            originalError.apply(console, args);
+            addToConsole(args.join(' '), 'error');
+        };
+        
+        function testClick() {
+            console.log('Test button clicked via onclick!');
+            document.getElementById('status').textContent = 'onclick works!';
+        }
+        
+        function handleLogin() {
+            console.log('Login button clicked via event listener!');
+            document.getElementById('status').textContent = 'Event listener works!';
+            
+            // Test MSAL
+            if (typeof msal !== 'undefined') {
+                console.log('MSAL library is available');
+                try {
+                    const msalConfig = {
+                        auth: {
+                            clientId: "72a3b8b7-88dc-4325-a9a5-e8e7a915db27",
+                            authority: "https://login.microsoftonline.com/907b7f47-b8ae-4456-9e9c-b010d365753b",
+                            redirectUri: window.location.origin
+                        }
+                    };
+                    
+                    const myMSALObj = new msal.PublicClientApplication(msalConfig);
+                    console.log('MSAL instance created successfully');
+                    
+                    // Try login
+                    myMSALObj.loginPopup({scopes: ["User.Read"]})
+                        .then(response => {
+                            console.log('Login successful:', response.account.name);
+                            document.getElementById('status').textContent = 'Login successful: ' + response.account.name;
+                        })
+                        .catch(error => {
+                            console.error('Login failed:', error);
+                            document.getElementById('status').textContent = 'Login failed: ' + error.message;
+                        });
+                    
+                } catch (error) {
+                    console.error('MSAL error:', error);
+                    document.getElementById('status').textContent = 'MSAL error: ' + error.message;
+                }
+            } else {
+                console.error('MSAL library not found');
+                document.getElementById('status').textContent = 'MSAL library not found';
+            }
+        }
+        
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM loaded');
+            
+            const loginButton = document.getElementById('loginButton');
+            if (loginButton) {
+                console.log('Login button found, adding event listener');
+                loginButton.addEventListener('click', handleLogin);
+                
+                // Also add onclick as fallback
+                loginButton.onclick = handleLogin;
+            } else {
+                console.error('Login button not found!');
+            }
+            
+            console.log('Page initialization complete');
+        });
+        
+        console.log('Script loaded');
+    </script>
+</body>
+</html>

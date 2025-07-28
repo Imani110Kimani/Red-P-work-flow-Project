@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Azure AD Demo</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="msal-browser.min.js"></script>
+    <script src="logger.js"></script>
+    <style>
+        .dashboard-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .welcome-header {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            text-align: center;
+            color: white;
+        }
+        
+        .auth-status {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            color: white;
+            text-align: center;
+        }
+        
+        .status-success {
+            border-left: 4px solid #28a745;
+            background: rgba(40, 167, 69, 0.1);
+        }
+        
+        .status-warning {
+            border-left: 4px solid #ffc107;
+            background: rgba(255, 193, 7, 0.1);
+        }
+        
+        .status-error {
+            border-left: 4px solid #dc3545;
+            background: rgba(220, 53, 69, 0.1);
+        }
+        
+        .user-info-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            color: white;
+        }
+        
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .info-item {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 15px;
+            border-radius: 10px;
+            border-left: 4px solid #0078d4;
+        }
+        
+        .info-label {
+            font-weight: bold;
+            color: #87ceeb;
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+        
+        .info-value {
+            font-size: 16px;
+            word-break: break-word;
+        }
+        
+        .avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            margin: 0 auto 20px;
+            display: block;
+            border: 3px solid #0078d4;
+        }
+        
+        .action-buttons {
+            text-align: center;
+            margin: 30px 0;
+        }
+        
+        .btn {
+            background: #0078d4;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px;
+            transition: all 0.3s ease;
+        }
+        
+        .btn:hover {
+            background: #106ebe;
+            transform: translateY(-2px);
+        }
+        
+        .btn-danger {
+            background: #dc3545;
+        }
+        
+        .btn-danger:hover {
+            background: #c82333;
+        }
+        
+        .btn-success {
+            background: #28a745;
+        }
+        
+        .btn-success:hover {
+            background: #218838;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+        }
+        
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 4px solid #0078d4;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .error-details {
+            background: rgba(220, 53, 69, 0.1);
+            border: 1px solid #dc3545;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            font-family: monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .simple-fallback {
+            text-align: center;
+            padding: 40px;
+        }
+        
+        .fallback-message {
+            background: rgba(255, 193, 7, 0.1);
+            border-left: 4px solid #ffc107;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="dashboard-container">
+            <div class="welcome-header">
+                <h1>🎉 Welcome to Your Dashboard!</h1>
+                <p>Azure Active Directory Authentication Demo</p>
+            </div>
+
+            <!-- Loading State -->
+            <div id="loadingState" class="loading">
+                <div class="spinner"></div>
+                <p>Loading your profile...</p>
+            </div>
+
+            <!-- Authentication Status -->
+            <div id="authStatus" class="auth-status" style="display: none;">
+                <h2 id="statusTitle">Authentication Status</h2>
+                <p id="statusMessage">Checking authentication...</p>
+            </div>
+
+            <!-- User Profile -->
+            <div id="userProfile" class="user-info-card" style="display: none;">
+                <h2>👤 Your Profile</h2>
+                <img id="userAvatar" class="avatar" src="" alt="User Avatar" style="display: none;">
+                
+                <div class="info-grid" id="userInfoGrid">
+                    <!-- User info will be populated here -->
+                </div>
+            </div>
+
+            <!-- Simple Fallback for Manual Demo -->
+            <div id="simpleFallback" class="simple-fallback" style="display: none;">
+                <div class="fallback-message">
+                    <h2>🚀 Demo Mode</h2>
+                    <p>Since authentication isn't working automatically, here's what your dashboard would look like:</p>
+                </div>
+                
+                <div class="user-info-card">
+                    <h2>👤 Sample User Profile</h2>
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <div class="info-label">Display Name</div>
+                            <div class="info-value">John Doe</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">Email</div>
+                            <div class="info-value">john.doe@company.com</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">Job Title</div>
+                            <div class="info-value">Software Engineer</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">Department</div>
+                            <div class="info-value">Engineering</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">Office Location</div>
+                            <div class="info-value">Seattle, WA</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">User Principal Name</div>
+                            <div class="info-value">john.doe@company.onmicrosoft.com</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Error Details -->
+            <div id="errorDetails" class="error-details" style="display: none;"></div>
+
+            <!-- Action Buttons -->
+            <div class="action-buttons">
+                <button id="refreshBtn" class="btn" onclick="refreshProfile()">🔄 Refresh Profile</button>
+                <button id="showDemoBtn" class="btn btn-success" onclick="showDemo()" style="display: none;">🎯 Show Demo Profile</button>
+                <button id="tryAgainBtn" class="btn" onclick="tryAuthentication()" style="display: none;">🔐 Try Authentication Again</button>
+                <button id="logoutBtn" class="btn btn-danger" onclick="logout()" style="display: none;">🚪 Logout</button>
+                <button class="btn" onclick="goBack()">← Back to Login</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let msalInstance;
+        let currentAccount = null;
+
+        // MSAL configuration
+        const msalConfig = {
+            auth: {
+                clientId: "72a3b8b7-88dc-4325-a9a5-e8e7a915db27",
+                authority: "https://login.microsoftonline.com/907b7f47-b8ae-4456-9e9c-b010d365753b",
+                redirectUri: window.location.origin
+            },
+            cache: {
+                cacheLocation: "localStorage",
+                storeAuthStateInCookie: true
+            }
+        };
+
+        // Microsoft Graph API request
+        const graphRequest = {
+            scopes: ["User.Read"],
+            forceRefresh: false
+        };
+
+        function showStatus(title, message, type = 'warning') {
+            const statusDiv = document.getElementById('authStatus');
+            const titleElem = document.getElementById('statusTitle');
+            const messageElem = document.getElementById('statusMessage');
+            
+            titleElem.textContent = title;
+            messageElem.textContent = message;
+            
+            statusDiv.className = `auth-status status-${type}`;
+            statusDiv.style.display = 'block';
+            
+            console.log(`Status: ${title} - ${message}`);
+        }
+
+        function showError(title, message, details = null) {
+            showStatus(title, message, 'error');
+            
+            if (details) {
+                const errorDiv = document.getElementById('errorDetails');
+                errorDiv.textContent = typeof details === 'string' ? details : JSON.stringify(details, null, 2);
+                errorDiv.style.display = 'block';
+            }
+
+            // Show fallback options
+            document.getElementById('showDemoBtn').style.display = 'inline-block';
+            document.getElementById('tryAgainBtn').style.display = 'inline-block';
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingState').style.display = 'none';
+        }
+
+        function showDemo() {
+            hideLoading();
+            document.getElementById('authStatus').style.display = 'none';
+            document.getElementById('simpleFallback').style.display = 'block';
+            document.getElementById('showDemoBtn').style.display = 'none';
+            
+            showStatus('Demo Mode', 'Showing sample profile data', 'success');
+        }
+
+        function createUserInfoItem(label, value) {
+            return `
+                <div class="info-item">
+                    <div class="info-label">${label}</div>
+                    <div class="info-value">${value || 'Not available'}</div>
+                </div>
+            `;
+        }
+
+        function displayUserProfile(user) {
+            hideLoading();
+            
+            const profileDiv = document.getElementById('userProfile');
+            const infoGrid = document.getElementById('userInfoGrid');
+            
+            // Show avatar if available
+            if (user.photo) {
+                const avatar = document.getElementById('userAvatar');
+                avatar.src = user.photo;
+                avatar.style.display = 'block';
+            }
+            
+            // Populate user info
+            infoGrid.innerHTML = [
+                createUserInfoItem('Display Name', user.displayName),
+                createUserInfoItem('Email', user.mail || user.userPrincipalName),
+                createUserInfoItem('Job Title', user.jobTitle),
+                createUserInfoItem('Department', user.department),
+                createUserInfoItem('Office Location', user.officeLocation),
+                createUserInfoItem('Mobile Phone', user.mobilePhone),
+                createUserInfoItem('Business Phones', user.businessPhones?.join(', ')),
+                createUserInfoItem('User Principal Name', user.userPrincipalName),
+                createUserInfoItem('Given Name', user.givenName),
+                createUserInfoItem('Surname', user.surname),
+                createUserInfoItem('User ID', user.id)
+            ].join('');
+            
+            profileDiv.style.display = 'block';
+            document.getElementById('logoutBtn').style.display = 'inline-block';
+            
+            showStatus('Authentication Successful', `Welcome, ${user.displayName || user.userPrincipalName}!`, 'success');
+        }
+
+        async function getGraphProfile(accessToken) {
+            try {
+                const response = await fetch('https://graph.microsoft.com/v1.0/me', {
+                    headers: {
+                        'Authorization': `Bearer ${accessToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Graph API request failed: ${response.status} ${response.statusText}`);
+                }
+
+                const profile = await response.json();
+                console.log('Graph API profile:', profile);
+                
+                // Try to get user photo
+                try {
+                    const photoResponse = await fetch('https://graph.microsoft.com/v1.0/me/photo/$value', {
+                        headers: {
+                            'Authorization': `Bearer ${accessToken}`
+                        }
+                    });
+                    
+                    if (photoResponse.ok) {
+                        const photoBlob = await photoResponse.blob();
+                        profile.photo = URL.createObjectURL(photoBlob);
+                    }
+                } catch (photoError) {
+                    console.log('Could not fetch user photo:', photoError);
+                }
+                
+                return profile;
+            } catch (error) {
+                console.error('Error fetching Graph profile:', error);
+                throw error;
+            }
+        }
+
+        async function acquireTokenAndFetchProfile() {
+            try {
+                const tokenResponse = await msalInstance.acquireTokenSilent({
+                    ...graphRequest,
+                    account: currentAccount
+                });
+                
+                console.log('Token acquired silently:', tokenResponse);
+                const profile = await getGraphProfile(tokenResponse.accessToken);
+                displayUserProfile(profile);
+                
+            } catch (error) {
+                console.error('Silent token acquisition failed:', error);
+                
+                try {
+                    // Try popup token acquisition
+                    showStatus('Authentication Required', 'Opening login popup...', 'warning');
+                    const tokenResponse = await msalInstance.acquireTokenPopup(graphRequest);
+                    console.log('Token acquired via popup:', tokenResponse);
+                    
+                    const profile = await getGraphProfile(tokenResponse.accessToken);
+                    displayUserProfile(profile);
+                    
+                } catch (popupError) {
+                    console.error('Popup token acquisition failed:', popupError);
+                    showError(
+                        'Authentication Failed',
+                        'Could not authenticate with Azure AD. This might be due to popup blocking in VS Code.',
+                        popupError.message
+                    );
+                }
+            }
+        }
+
+        async function tryAuthentication() {
+            showStatus('Attempting Authentication', 'Trying to authenticate...', 'warning');
+            document.getElementById('loadingState').style.display = 'block';
+            document.getElementById('userProfile').style.display = 'none';
+            document.getElementById('simpleFallback').style.display = 'none';
+            
+            await initializeDashboard();
+        }
+
+        async function initializeDashboard() {
+            try {
+                console.log('Initializing dashboard...');
+                
+                // Initialize MSAL
+                msalInstance = new msal.PublicClientApplication(msalConfig);
+                await msalInstance.initialize();
+                
+                console.log('MSAL initialized');
+                
+                // Handle redirect response
+                const response = await msalInstance.handleRedirectPromise();
+                if (response) {
+                    console.log('Redirect response received:', response);
+                    currentAccount = response.account;
+                } else {
+                    // Check for existing accounts
+                    const accounts = msalInstance.getAllAccounts();
+                    console.log('Existing accounts:', accounts);
+                    
+                    if (accounts.length > 0) {
+                        currentAccount = accounts[0];
+                        console.log('Using existing account:', currentAccount);
+                    }
+                }
+                
+                if (currentAccount) {
+                    showStatus('Account Found', 'Fetching your profile...', 'success');
+                    await acquireTokenAndFetchProfile();
+                } else {
+                    console.log('No authenticated account found');
+                    showError(
+                        'No Authentication Found',
+                        'Please complete the login process first. You may need to login in your regular browser.',
+                        'No authenticated accounts found in MSAL cache.'
+                    );
+                }
+                
+            } catch (error) {
+                console.error('Dashboard initialization failed:', error);
+                showError(
+                    'Dashboard Error',
+                    'Failed to initialize the dashboard. This is likely due to VS Code authentication limitations.',
+                    error.message
+                );
+            }
+        }
+
+        function refreshProfile() {
+            document.getElementById('loadingState').style.display = 'block';
+            document.getElementById('authStatus').style.display = 'none';
+            document.getElementById('userProfile').style.display = 'none';
+            document.getElementById('errorDetails').style.display = 'none';
+            document.getElementById('simpleFallback').style.display = 'none';
+            
+            initializeDashboard();
+        }
+
+        function logout() {
+            if (msalInstance && currentAccount) {
+                msalInstance.logoutPopup({
+                    account: currentAccount
+                }).then(() => {
+                    console.log('Logged out successfully');
+                    goBack();
+                }).catch(error => {
+                    console.error('Logout failed:', error);
+                    // Force logout anyway
+                    goBack();
+                });
+            } else {
+                goBack();
+            }
+        }
+
+        function goBack() {
+            window.location.href = 'simple-auth.html';
+        }
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Dashboard page loaded');
+            
+            // Give a brief moment for any redirects to complete
+            setTimeout(() => {
+                initializeDashboard();
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

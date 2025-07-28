@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Basic Debug</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .info { background: #f0f0f0; padding: 10px; margin: 10px 0; }
+        .error { background: #ffcccc; padding: 10px; margin: 10px 0; }
+        .success { background: #ccffcc; padding: 10px; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <h1>Basic Debug Page</h1>
+    
+    <div class="info">
+        <strong>Page loaded at:</strong> <span id="loadTime"></span>
+    </div>
+    
+    <div class="info">
+        <strong>Current URL:</strong> <span id="currentUrl"></span>
+    </div>
+    
+    <div id="msalTest" class="info">
+        <strong>MSAL Test:</strong> <span id="msalStatus">Testing...</span>
+    </div>
+    
+    <div id="consoleOutput" class="info">
+        <strong>Console Output:</strong>
+        <div id="console" style="font-family: monospace; white-space: pre-wrap; max-height: 200px; overflow-y: auto;"></div>
+    </div>
+    
+    <button onclick="testBasics()">Test Basic Functions</button>
+    <button onclick="testMSAL()">Test MSAL Loading</button>
+    
+    <script>
+        // Capture console output
+        const consoleDiv = document.getElementById('console');
+        const originalLog = console.log;
+        const originalError = console.error;
+        
+        function addToConsole(message, type = 'log') {
+            const timestamp = new Date().toLocaleTimeString();
+            consoleDiv.textContent += `[${timestamp}] ${type.toUpperCase()}: ${message}\n`;
+            consoleDiv.scrollTop = consoleDiv.scrollHeight;
+        }
+        
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            addToConsole(args.join(' '), 'log');
+        };
+        
+        console.error = function(...args) {
+            originalError.apply(console, args);
+            addToConsole(args.join(' '), 'error');
+        };
+        
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Page loaded successfully');
+            document.getElementById('loadTime').textContent = new Date().toLocaleString();
+            document.getElementById('currentUrl').textContent = window.location.href;
+        });
+        
+        function testBasics() {
+            console.log('Testing basic functionality...');
+            console.log('User Agent: ' + navigator.userAgent);
+            console.log('Location: ' + window.location.href);
+            console.log('DOM Ready State: ' + document.readyState);
+        }
+        
+        function testMSAL() {
+            console.log('Testing MSAL library...');
+            
+            // Try to load MSAL script dynamically
+            const script = document.createElement('script');
+            script.src = 'msal-browser.min.js';
+            script.onload = function() {
+                console.log('MSAL script loaded successfully');
+                if (typeof msal !== 'undefined') {
+                    console.log('MSAL object is available');
+                    document.getElementById('msalStatus').textContent = 'MSAL loaded successfully';
+                    document.getElementById('msalTest').className = 'success';
+                } else {
+                    console.error('MSAL object not found after loading');
+                    document.getElementById('msalStatus').textContent = 'MSAL object not found';
+                    document.getElementById('msalTest').className = 'error';
+                }
+            };
+            script.onerror = function() {
+                console.error('Failed to load MSAL script');
+                document.getElementById('msalStatus').textContent = 'Failed to load MSAL script';
+                document.getElementById('msalTest').className = 'error';
+            };
+            
+            document.head.appendChild(script);
+        }
+        
+        // Test immediately
+        testBasics();
+    </script>
+</body>
+</html>

@@ -7,6 +7,41 @@
     <link rel="stylesheet" href="styles.css">
     <script src="msal-browser.min.js"></script>
     <script src="logger.js"></script>
-    <script src="auth.js"></script>
+    <script src="auth-popup.js"></script>
 </head>
+<body>
+    <div class="container">
+        <!-- Welcome Page -->
+        <div id="welcomePage" class="page">
+            <div class="welcome-card">
+                <h1>Welcome to Our Application</h1>
+                <p>Please sign in with your Microsoft account to continue.</p>
+                <button id="loginButton" class="login-btn">
+                    <img src="https://docs.microsoft.com/en-us/azure/active-directory/develop/media/howto-add-branding-in-azure-ad-apps/ms-symbollockup_signin_light.png" alt="Sign in with Microsoft" style="height: 40px;">
+                </button>
+            </div>
+        </div>
+
+        <!-- Logged In Page -->
+        <div id="loggedInPage" class="page hidden">
+            <div class="user-card">
+                <h1>Welcome Back!</h1>
+                <div class="user-info">
+                    <p><strong>You are now logged in</strong></p>
+                    <div id="userDetails">
+                        <p>Name: <span id="userName">Loading...</span></p>
+                        <p>Email: <span id="userEmail">Loading...</span></p>
+                    </div>
+                </div>
+                <button id="logoutButton" class="logout-btn">Sign Out</button>
+            </div>
+        </div>
+
+        <!-- Loading Spinner -->
+        <div id="loadingSpinner" class="loading hidden">
+            <div class="spinner"></div>
+            <p>Authenticating...</p>
+        </div>
+    </div>
+</body>
 </html>

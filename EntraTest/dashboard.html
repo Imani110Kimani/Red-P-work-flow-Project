@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Azure AD Demo</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="msal-browser.min.js"></script>
+    <script src="logger.js"></script>
+    <style>
+        .dashboard-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .welcome-header {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            text-align: center;
+            color: white;
+        }
+        
+        .user-info-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            color: white;
+        }
+        
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .info-item {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 15px;
+            border-radius: 10px;
+            border-left: 4px solid #0078d4;
+        }
+        
+        .info-label {
+            font-weight: bold;
+            color: #b3d9ff;
+            margin-bottom: 5px;
+        }
+        
+        .info-value {
+            font-size: 1.1em;
+            word-break: break-all;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 30px;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            background: #0078d4;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+        
+        .btn:hover {
+            background: #106ebe;
+            transform: translateY(-2px);
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+        }
+        
+        .btn-secondary:hover {
+            background: #545b62;
+        }
+        
+        .btn-danger {
+            background: #dc3545;
+        }
+        
+        .btn-danger:hover {
+            background: #c82333;
+        }
+        
+        .loading {
+            text-align: center;
+            color: white;
+            font-size: 18px;
+        }
+        
+        .error {
+            background: rgba(220, 53, 69, 0.1);
+            color: #ff6b7a;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border-left: 4px solid #dc3545;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="dashboard-container">
+            <!-- Loading State -->
+            <div id="loadingSection" class="loading">
+                <div class="spinner"></div>
+                <p>Loading your dashboard...</p>
+            </div>
+
+            <!-- Error State -->
+            <div id="errorSection" class="error" style="display: none;">
+                <h3>⚠️ Authentication Error</h3>
+                <p id="errorMessage">An error occurred while loading your dashboard.</p>
+                <button class="btn btn-secondary" onclick="location.href='index.html'">Return to Login</button>
+            </div>
+
+            <!-- Dashboard Content -->
+            <div id="dashboardContent" style="display: none;">
+                <div class="welcome-header">
+                    <h1>🎉 Welcome to Your Dashboard!</h1>
+                    <p>You have successfully logged in with Azure Active Directory</p>
+                </div>
+
+                <div class="user-info-card">
+                    <h2>👤 Your Profile Information</h2>
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <div class="info-label">Display Name</div>
+                            <div class="info-value" id="displayName">Loading...</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">Email Address</div>
+                            <div class="info-value" id="userPrincipalName">Loading...</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">User ID</div>
+                            <div class="info-value" id="userId">Loading...</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">Job Title</div>
+                            <div class="info-value" id="jobTitle">Loading...</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">Department</div>
+                            <div class="info-value" id="department">Loading...</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">Office Location</div>
+                            <div class="info-value" id="officeLocation">Loading...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="action-buttons">
+                    <button class="btn" onclick="refreshUserInfo()">🔄 Refresh Profile</button>
+                    <button class="btn btn-secondary" onclick="toggleLogs()">📋 View Logs</button>
+                    <a href="index.html" class="btn btn-secondary">🏠 Back to Home</a>
+                    <button class="btn btn-danger" onclick="handleLogout()">🚪 Sign Out</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Azure AD Configuration (same as main app)
+        const msalConfig = {
+            auth: {
+                clientId: "72a3b8b7-88dc-4325-a9a5-e8e7a915db27",
+                authority: "https://login.microsoftonline.com/907b7f47-b8ae-4456-9e9c-b010d365753b",
+                redirectUri: window.location.origin
+            },
+            cache: {
+                cacheLocation: "sessionStorage",
+                storeAuthStateInCookie: false
+            }
+        };
+
+        let myMSALObj;
+        let currentAccount = null;
+
+        // Initialize MSAL
+        try {
+            myMSALObj = new msal.PublicClientApplication(msalConfig);
+            logger.info('MSAL instance created for dashboard');
+        } catch (error) {
+            logger.error('Failed to create MSAL instance', error);
+            showError('Failed to initialize authentication library');
+        }
+
+        // DOM Elements
+        const loadingSection = document.getElementById('loadingSection');
+        const errorSection = document.getElementById('errorSection');
+        const dashboardContent = document.getElementById('dashboardContent');
+        const errorMessage = document.getElementById('errorMessage');
+
+        function showLoading() {
+            loadingSection.style.display = 'block';
+            errorSection.style.display = 'none';
+            dashboardContent.style.display = 'none';
+        }
+
+        function showError(message) {
+            logger.error('Dashboard error', message);
+            loadingSection.style.display = 'none';
+            errorSection.style.display = 'block';
+            dashboardContent.style.display = 'none';
+            errorMessage.textContent = message;
+        }
+
+        function showDashboard() {
+            logger.info('Displaying dashboard content');
+            loadingSection.style.display = 'none';
+            errorSection.style.display = 'none';
+            dashboardContent.style.display = 'block';
+        }
+
+        // Initialize dashboard
+        async function initializeDashboard() {
+            logger.info('Initializing dashboard');
+            showLoading();
+
+            try {
+                // Check if user is authenticated
+                const accounts = myMSALObj.getAllAccounts();
+                
+                if (accounts.length === 0) {
+                    logger.warn('No authenticated accounts found, redirecting to login');
+                    alert('You need to log in first!');
+                    window.location.href = 'index.html';
+                    return;
+                }
+
+                currentAccount = accounts[0];
+                logger.info('Found authenticated account', {
+                    name: currentAccount.name,
+                    username: currentAccount.username
+                });
+
+                // Load user information
+                await loadUserProfile();
+                showDashboard();
+
+            } catch (error) {
+                logger.error('Dashboard initialization failed', error);
+                showError('Failed to load dashboard: ' + error.message);
+            }
+        }
+
+        // Load user profile from Microsoft Graph
+        async function loadUserProfile() {
+            try {
+                logger.debug('Loading user profile from Microsoft Graph');
+
+                // Get access token
+                const tokenRequest = {
+                    scopes: ["User.Read"],
+                    account: currentAccount
+                };
+
+                const response = await myMSALObj.acquireTokenSilent(tokenRequest);
+                logger.debug('Token acquired successfully');
+
+                // Call Microsoft Graph API
+                const userInfo = await callMicrosoftGraph(response.accessToken);
+                
+                // Update UI with user information
+                updateProfileDisplay(userInfo);
+                
+                logger.info('User profile loaded successfully', {
+                    displayName: userInfo.displayName,
+                    mail: userInfo.mail
+                });
+
+            } catch (error) {
+                logger.error('Failed to load user profile', error);
+                
+                // Show basic account info even if Graph API fails
+                updateProfileDisplay({
+                    displayName: currentAccount.name || 'N/A',
+                    userPrincipalName: currentAccount.username || 'N/A',
+                    id: currentAccount.localAccountId || 'N/A',
+                    jobTitle: 'Unable to load',
+                    department: 'Unable to load',
+                    officeLocation: 'Unable to load'
+                });
+            }
+        }
+
+        // Call Microsoft Graph API
+        async function callMicrosoftGraph(accessToken) {
+            const response = await fetch('https://graph.microsoft.com/v1.0/me', {
+                headers: {
+                    'Authorization': `Bearer ${accessToken}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                logger.error('Microsoft Graph API error', {
+                    status: response.status,
+                    statusText: response.statusText,
+                    error: errorText
+                });
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const userInfo = await response.json();
+            logger.debug('Microsoft Graph API response received', userInfo);
+            return userInfo;
+        }
+
+        // Update profile display
+        function updateProfileDisplay(userInfo) {
+            document.getElementById('displayName').textContent = userInfo.displayName || 'N/A';
+            document.getElementById('userPrincipalName').textContent = userInfo.userPrincipalName || userInfo.mail || 'N/A';
+            document.getElementById('userId').textContent = userInfo.id || 'N/A';
+            document.getElementById('jobTitle').textContent = userInfo.jobTitle || 'Not specified';
+            document.getElementById('department').textContent = userInfo.department || 'Not specified';
+            document.getElementById('officeLocation').textContent = userInfo.officeLocation || 'Not specified';
+        }
+
+        // Refresh user info
+        async function refreshUserInfo() {
+            logger.info('Refreshing user information');
+            showLoading();
+            try {
+                await loadUserProfile();
+                showDashboard();
+                logger.info('User information refreshed successfully');
+            } catch (error) {
+                logger.error('Failed to refresh user information', error);
+                showError('Failed to refresh profile information');
+            }
+        }
+
+        // Handle logout
+        async function handleLogout() {
+            logger.info('Logout initiated from dashboard');
+            
+            try {
+                await myMSALObj.logoutPopup({
+                    account: currentAccount
+                });
+                logger.info('Logout successful, redirecting to home');
+                window.location.href = 'index.html';
+            } catch (error) {
+                logger.error('Logout failed', error);
+                alert('Logout failed. Please try again.');
+            }
+        }
+
+        // Toggle logs function
+        function toggleLogs() {
+            if (typeof logger !== 'undefined' && logger.toggleLogs) {
+                logger.toggleLogs();
+            }
+        }
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            logger.info('Dashboard page loaded');
+            initializeDashboard();
+        });
+    </script>
+</body>
+</html>
