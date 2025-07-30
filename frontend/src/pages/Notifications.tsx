@@ -77,6 +77,7 @@ const Notifications: React.FC = () => {
   }, []);
 
   const notifications = getRecentNotifications(apiApplicants, initialApplicants);
+
   return (
     <div className="logs-container">
       <h2 className="logs-title">Logs</h2>

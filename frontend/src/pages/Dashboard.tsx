@@ -7,7 +7,6 @@ import { useNavigate, Outlet, useLocation } from 'react-router-dom';
 import { useUser } from '../contexts/UserContext';
 import { useApplicantData } from '../contexts/ApplicantDataContext';
 import StudentsTable from './StudentsTable';
-import PendingDetails from './PendingDetails';
 import ApplicantList from './ApplicantList';
 import AdmissionsTable from './AdmissionsTable';
 import './Dashboard.css';
@@ -83,10 +82,7 @@ const Dashboard: React.FC = () => {
   
   // Try to get actual name from user context if available, fallback to email parsing
   let adminName = 'Admin';
-  // If your user context provides a name, use it here. For now, parse from email as fallback.
-  // Example: const { userName } = useUser(); if (userName) adminName = userName;
   if (userEmail) {
-    // If email is in the format 'firstname.lastname@...' or 'firstname@...'
     const match = userEmail.match(/^([a-zA-Z]+)([. _-]([a-zA-Z]+))?/);
     if (match) {
       const first = match[1].charAt(0).toUpperCase() + match[1].slice(1);
@@ -94,6 +90,11 @@ const Dashboard: React.FC = () => {
       adminName = last ? `${first} ${last}` : first;
     }
   }
+  
+  // State for API data
+  const [apiApplicants, setApiApplicants] = React.useState<ApplicantBasic[]>([]);
+  const [loading, setLoading] = React.useState<boolean>(true);
+  const [error, setError] = React.useState<string | null>(null);
   
   // Legacy state for compatibility (using fallback data)
   const [applicants] = React.useState(initialApplicants);
@@ -108,22 +109,51 @@ const Dashboard: React.FC = () => {
     navigate('/');
   };
 
+  // Fetch applicants from API
+  useEffect(() => {
+    const fetchApplicants = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await fetch(API_BASE_URL);
+        
+        if (!response.ok) {
+          throw new Error(`Failed to fetch applicants: ${response.status} ${response.statusText}`);
+        }
+        
+        const data: ApplicantBasic[] = await response.json();
+        console.log('API Response - Status values:', data.map(a => ({ 
+          name: `${a.firstName} ${a.lastName}`, 
+          status: a.status, 
+          statusType: typeof a.status,
+          processedStatus: getStatusDisplay(a.status === undefined ? null : Number(a.status))
+        })));
+        setApiApplicants(data);
+      } catch (err) {
+        console.error('Error fetching applicants:', err);
+        setError(err instanceof Error ? err.message : 'Failed to fetch applicants');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchApplicants();
+  }, []);
+
   // Create recent applicants from API data (first 3) or fallback to legacy data
   const recent = React.useMemo(() => {
     if (apiApplicants.length > 0) {
-      // Use API data - take first 3 and format for display
       return apiApplicants.slice(0, 3).map((a, index) => ({
-        id: index + 1, // Generate a simple ID for key
+        id: index + 1,
         name: `${a.firstName} ${a.lastName}`,
-        school: 'School info not available', // API doesn't include school info in basic response
+        school: 'School info not available',
         status: statusToString(a.status),
-        date: 'Date not available', // API doesn't include date in basic response
-        details: `${a.partitionKey} - ${a.rowKey}`, // Show keys as temporary details
+        date: 'Date not available',
+        details: `${a.partitionKey} - ${a.rowKey}`,
         partitionKey: a.partitionKey,
         rowKey: a.rowKey
       }));
     } else {
-      // Fallback to legacy data
       return applicants.map(a => ({
         id: a.id,
         name: a.firstName + ' ' + a.lastName,
@@ -154,15 +184,18 @@ const Dashboard: React.FC = () => {
     ? recent.filter(item => item.status === statusFilter)
     : recent;
 
-  // fetchApplicantDetails removed (modal no longer used)
-
   const location = useLocation();
   const isDashboardHome = location.pathname === '/dashboard' || location.pathname === '/dashboard/';
 
-  // Centralized status update handler for workflow actions
-  // This is legacy code kept for compatibility but not used in cached version
+  const handleApplicantStatus = (id: number, newStatus: 'Approved' | 'Pending' | 'Denied') => {
+    setLegacyApplicants((prev: Applicant[]) => {
+      if (newStatus === 'Denied') {
+        return prev.filter((a: Applicant) => a.id !== id);
+      }
+      return prev.map((a: Applicant) => a.id === id ? { ...a, status: newStatus } : a);
+    });
+  };
 
-  // Helper: is mobile
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 900;
 
   return (
@@ -185,6 +218,7 @@ const Dashboard: React.FC = () => {
       >
         {sidebarOpen ? <FaTimes size={22} /> : <FaBars size={22} />}
       </button>
+      
       {/* Dropdown menu for mobile */}
       {sidebarOpen && (
         <nav
@@ -207,9 +241,8 @@ const Dashboard: React.FC = () => {
           <button onClick={() => { navigate('/dashboard/applicants'); setSidebarOpen(false); }} style={{ width: '100%', textAlign: 'left', padding: '1rem 2rem', border: 'none', background: 'none' }}><FaUsers /> Applicants</button>
           <button onClick={() => { navigate('/dashboard/admissions'); setSidebarOpen(false); }} style={{ width: '100%', textAlign: 'left', padding: '1rem 2rem', border: 'none', background: 'none' }}><FaTachometerAlt /> Admissions</button>
           <button onClick={() => { navigate('/dashboard/student-verification'); setSidebarOpen(false); }} style={{ width: '100%', textAlign: 'left', padding: '1rem 2rem', border: 'none', background: 'none' }}><FaUserGraduate /> Students</button>
-          {/* Pending removed from sidebar */}
-          <button onClick={() => { navigate('/dashboard/logs'); setSidebarOpen(false); }} style={{ width: '100%', textAlign: 'left', padding: '1rem 2rem', border: 'none', background: 'none' }}><FaBell /> Logs</button>
-          
+          <button onClick={() => { navigate('/dashboard/notifications'); setSidebarOpen(false); }} style={{ width: '100%', textAlign: 'left', padding: '1rem 2rem', border: 'none', background: 'none' }}><FaBell /> Logs</button>
+
           {/* User info in mobile menu */}
           {userEmail && (
             <div style={{ 
@@ -226,6 +259,7 @@ const Dashboard: React.FC = () => {
           <button className="sidebar-logout" onClick={() => { handleLogout(); setSidebarOpen(false); }} style={{ width: '100%', textAlign: 'left', padding: '1rem 2rem', border: 'none', background: 'none' }}><FaSignOutAlt /> Logout</button>
         </nav>
       )}
+      
       {/* Sidebar for desktop only */}
       <aside
         className="admin-sidebar"
@@ -263,10 +297,11 @@ const Dashboard: React.FC = () => {
           <button onClick={() => navigate('/dashboard/applicants')}><FaUsers /> Applicants</button>
           <button onClick={() => navigate('/dashboard/admissions')}><FaTachometerAlt /> Admissions</button>
           <button onClick={() => navigate('/dashboard/student-verification')}><FaUserGraduate /> Students</button>
-          <button onClick={() => navigate('/dashboard/logs')}><FaBell /> Logs</button>
+          <button onClick={() => navigate('/dashboard/notifications')}><FaBell /> Logs</button>
           <button className="sidebar-logout" onClick={handleLogout}><FaSignOutAlt /> Logout</button>
         </nav>
       </aside>
+      
       {/* Main content */}
       <main className="admin-main fade-transition" style={{
         minHeight: '80vh',
@@ -283,7 +318,6 @@ const Dashboard: React.FC = () => {
         {isDashboardHome ? (
           <div className="dashboard-content-flex" style={{display: 'flex', gap: 32, alignItems: 'flex-start'}}>
             <div style={{flex: 2, minWidth: 0}}>
-              {/* Removed main header welcome admin as requested */}
               <section className="dashboard-summary">
                 {stats.map((stat) => (
                   <div
@@ -374,13 +408,15 @@ const Dashboard: React.FC = () => {
               </section>
             </div>
             <aside className="dashboard-right-panel" style={{flex: 1, minWidth: 280, maxWidth: 370, background: 'linear-gradient(135deg, #fff 60%, #ff9800 100%)', borderRadius: 18, boxShadow: '0 2px 16px 0 rgba(255,61,0,0.10)', padding: '2rem 1.5rem 1.5rem 1.5rem', marginTop: 8, display: 'flex', flexDirection: 'column', gap: 28}}>
-              {/* Welcome Card restored as requested */}
+              {/* Welcome Card */}
               <div style={{background: '#fff', borderRadius: 14, boxShadow: '0 1px 8px 0 rgba(255,61,0,0.07)', padding: '1.2rem 1rem 1rem 1rem', marginBottom: 18, display: 'flex', alignItems: 'center', gap: 16}}>
                 <div style={{width: 48, height: 48, borderRadius: '50%', background: '#ff9800', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, color: '#fff', fontWeight: 700}}>
                   {adminName.split(' ').map(n => n[0]).join('').toUpperCase()}
                 </div>
                 <div>
-                  <div style={{fontWeight: 700, fontSize: '1.08em', color: '#222'}}>Welcome, <span style={{color:'#ff3d00'}}>{adminName}</span>!</div>
+                  <div style={{fontWeight: 700, fontSize: '1.08em', color: '#222'}}>
+                    Welcome, <span style={{color:'#ff3d00'}}>{adminName}</span>!
+                  </div>
                   <div style={{fontSize: '0.98em', color: '#ff9800'}}>Have a productive day</div>
                 </div>
               </div>
@@ -410,23 +446,20 @@ const Dashboard: React.FC = () => {
                   );
                 })()}
               </div>
-              {/* Modern Notifications Feed restored as requested */}
+              {/* Notifications Feed */}
               <div style={{background: '#fff', borderRadius: 14, boxShadow: '0 1px 8px 0 rgba(255,61,0,0.07)', padding: '1.1rem 1rem 1.2rem 1rem'}}>
                 <div style={{fontWeight: 700, color: '#ff3d00', marginBottom: 10}}>Recent Notifications</div>
                 <ul style={{listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 12}}>
                   {(() => {
-                    // Always use a consistent array type for notifications
                     let dataSource: any[] = [];
                     if (apiApplicants.length > 0) {
                       dataSource = apiApplicants;
                     } else {
                       dataSource = applicants;
                     }
-                    // Type guards
                     const hasDateOfBirth = (a: any): a is { dateOfBirth: string } => typeof a.dateOfBirth === 'string';
                     const hasDate = (a: any): a is { date: string } => typeof a.date === 'string';
                     const hasName = (a: any): a is { name: string } => typeof a.name === 'string';
-                    // Sort by date if available, else fallback to order
                     let sorted = dataSource;
                     if (dataSource.length > 0 && (hasDateOfBirth(dataSource[0]) || hasDate(dataSource[0]))) {
                       sorted = [...dataSource].sort((a, b) => {
@@ -435,7 +468,6 @@ const Dashboard: React.FC = () => {
                         return db.getTime() - da.getTime();
                       });
                     }
-                    // Show up to 5 most recent
                     return sorted.slice(0, 5).map((a, idx) => {
                       let msg = '';
                       const status = statusToString(a.status).toLowerCase();
@@ -450,7 +482,6 @@ const Dashboard: React.FC = () => {
                       } else {
                         msg = `${firstName} ${lastName} application is in progress.`;
                       }
-                      // Date string
                       const dateStr = hasDateOfBirth(a) ? a.dateOfBirth : hasDate(a) ? a.date : '';
                       return (
                         <li key={idx} style={{color: status === 'approved' ? '#ff9800' : status === 'denied' ? '#f44336' : '#ff3d00', fontWeight: 700, marginBottom: 2}}>
@@ -464,8 +495,8 @@ const Dashboard: React.FC = () => {
             </aside>
           </div>
         ) : location.pathname === '/dashboard/student-verification' ? (
-          <StudentsTable applicants={apiApplicants.map((a) => ({
-            id: a.rowKey, // Use full rowKey as id
+          <StudentsTable applicants={apiApplicants.map((a, idx) => ({
+            id: a.rowKey,
             firstName: a.firstName,
             lastName: a.lastName,
             email: '',
@@ -477,8 +508,8 @@ const Dashboard: React.FC = () => {
             status: getStatusDisplay(a.status === undefined ? null : Number(a.status)),
           }))} />
         ) : location.pathname === '/dashboard/pending' ? (
-          <PendingDetails applicants={apiApplicants.map((a) => ({
-            id: a.rowKey, // Use full rowKey as id
+          <PendingDetails applicants={apiApplicants.map((a, idx) => ({
+            id: a.rowKey,
             name: `${a.firstName} ${a.lastName}`,
             school: '',
             status: getStatusDisplay(a.status === undefined ? null : Number(a.status)),
@@ -489,9 +520,7 @@ const Dashboard: React.FC = () => {
         ) : location.pathname === '/dashboard/applicants' ? (
           <ApplicantList
             onAction={async (partitionKey, rowKey, newStatus, adminEmail) => {
-              // Handle approval and denial workflows with dual tracking system
               if (newStatus === 'Approved') {
-                // Call the dual approval Azure Function
                 try {
                   const approvalResponse = await fetch('https://simbaaddapproval-f8h7g2ffe2cefchh.westus-01.azurewebsites.net/api/addApproval', {
                     method: 'POST',
@@ -507,11 +536,7 @@ const Dashboard: React.FC = () => {
                   const approvalData = await approvalResponse.json();
                   
                   if (approvalResponse.ok) {
-                    // Check if both approvals are now complete
                     if (approvalResponse.status === 201 && approvalData.isComplete) {
-                      // Both approvals received - update the final status to approved
-                      console.log('Both approvals received, updating status to Approved');
-                      
                       const statusResponse = await fetch('https://approval-function-6370.azurewebsites.net/api/changestatusfunction', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -528,7 +553,6 @@ const Dashboard: React.FC = () => {
                         alert(`Approvals complete but status update failed: ${await statusResponse.text()}`);
                       }
                     } else {
-                      // First approval received, waiting for second
                       alert(`Success: ${approvalData.message}\nApprover: ${approvalData.approval1}\nTime: ${approvalData.timeOfApproval1}\nWaiting for second approval...`);
                     }
                   } else {
@@ -538,7 +562,6 @@ const Dashboard: React.FC = () => {
                   alert('Approval Error: ' + error);
                 }
               } else if (newStatus === 'Denied') {
-                // Handle denial with dual denial system
                 try {
                   const denialResponse = await fetch('https://simbaaddapproval-f8h7g2ffe2cefchh.westus-01.azurewebsites.net/api/addApproval', {
                     method: 'POST',
@@ -554,11 +577,7 @@ const Dashboard: React.FC = () => {
                   const denialData = await denialResponse.json();
                   
                   if (denialResponse.ok) {
-                    // Check if both denials are now complete
                     if (denialResponse.status === 201 && denialData.isDenialComplete) {
-                      // Both denials received - update the final status to denied
-                      console.log('Both denials received, updating status to Denied');
-                      
                       const statusResponse = await fetch('https://approval-function-6370.azurewebsites.net/api/changestatusfunction', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -575,7 +594,6 @@ const Dashboard: React.FC = () => {
                         alert(`Denials complete but status update failed: ${await statusResponse.text()}`);
                       }
                     } else {
-                      // First denial received, waiting for second
                       alert(`Success: ${denialData.message}\nDenier: ${denialData.denial1}\nTime: ${denialData.timeOfDenial1}\nWaiting for second denial...`);
                     }
                   } else {
@@ -586,8 +604,21 @@ const Dashboard: React.FC = () => {
                 }
               }
 
-              // Notify the cache context that a status change occurred
-              onStatusChange(partitionKey, rowKey, newStatus);
+              try {
+                const refetchResponse = await fetch(API_BASE_URL);
+                if (refetchResponse.ok) {
+                  const refreshedData = await refetchResponse.json() as ApplicantBasic[];
+                  console.log('After action - Updated data:', refreshedData.map(a => ({ 
+                    name: `${a.firstName} ${a.lastName}`, 
+                    status: a.status, 
+                    statusType: typeof a.status,
+                    processedStatus: getStatusDisplay(a.status === undefined ? null : Number(a.status))
+                  })));
+                  setApiApplicants(refreshedData);
+                }
+              } catch (error) {
+                console.error('Error refetching data:', error);
+              }
             }}
           />
         ) : location.pathname === '/dashboard/admissions' ? (
@@ -596,7 +627,7 @@ const Dashboard: React.FC = () => {
           <Outlet />
         ) : null}
       </main>
-      {/* ModalApplicant modal and all modal code fully removed */}
+      
       {/* Admission Form Modal */}
       {showAdmissionForm && (
         <div className="modal-overlay" onClick={() => setShowAdmissionForm(false)}>
@@ -611,5 +642,3 @@ const Dashboard: React.FC = () => {
 };
 
 export default Dashboard;
-
-// ModalDetailsContent and all modal logic fully removed
