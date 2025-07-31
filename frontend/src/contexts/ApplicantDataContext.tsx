@@ -40,7 +40,7 @@ interface ApplicantDataContextType {
   
   // Cache management
   lastFetched: Date | null;
-  refetchApplicants: () => Promise<void>;
+  refetchApplicants: (force?: boolean) => Promise<void>;
   fetchApplicantDetails: (partitionKey: string, rowKey: string) => Promise<ApplicantDetailed | null>;
   fetchAllApplicantDetails: (applicants: ApplicantBasic[]) => Promise<void>;
   
