@@ -1,92 +1,69 @@
+
 import { statusToString } from './utils';
+// ApplicantList.tsx
+// This component displays all scholarship applications in a table with action controls for admin workflow.
+// Backend engineers: Integrate API calls for fetching applicants, updating status, and deleting applicants where noted below.
+// For Azure Functions, connect the action handlers to your HTTP triggers or function endpoints.
+
 import React, { useState, useEffect } from 'react';
 import './ApplicantList.css';
 import { FaUserCircle } from 'react-icons/fa';
 import { useUser } from '../contexts/UserContext';
+import { useApplicantData } from '../contexts/ApplicantDataContext';
+import type { ApplicantDetailed } from '../contexts/ApplicantDataContext';
 
-// Basic applicant type from the API (GET with no params)
-type ApplicantBasic = {
-  firstName: string;
-  lastName: string;
-  status: string;
-  partitionKey: string;
-  rowKey: string;
-  profileImage?: string; // Optional profile image URL
-};
+// Legacy type for compatibility with existing props (unused but kept for reference)
+// type Applicant = {
+//   id: number;
+//   firstName: string;
+//   lastName: string;
+//   email: string;
+//   phone: string;
+//   dateOfBirth: string;
+//   gradeLevel: number;
+//   schoolName: string;
+//   location: string;
+//   status: string;
+//   // Add any additional fields from backend as needed
+// };
 
-// Detailed applicant type from the API (GET with partitionKey and rowKey)
-type ApplicantDetailed = {
-  firstName: string;
-  lastName: string;
-  status: string;
-  partitionKey: string;
-  rowKey: string;
-  [key: string]: any; // Additional fields that come from the detailed API
-};
-
-// Legacy type for compatibility with existing props
-type Applicant = {
-  id: number;
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone: string;
-  dateOfBirth: string;
-  gradeLevel: number;
-  schoolName: string;
-  location: string;
-  status: string;
-  // Add any additional fields from backend as needed
-};
-
+// Props:
+// - onAction: Handler for status change (should call backend API/Azure Function to update status or delete)
 interface ApplicantListProps {
   onAction?: (partitionKey: string, rowKey: string, newStatus: 'Approved' | 'Pending' | 'Denied', adminEmail?: string) => void;
 }
-
-// API base URL
-const API_BASE_URL = 'https://simbagetapplicants-hcf5cffbcccmgsbn.westus-01.azurewebsites.net/api/httptablefunction';
-
-// Import helpers from Dashboard
 
 import { useNotification } from '../contexts/NotificationContext';
 
 const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
   const { userEmail } = useUser();
   const { addNotification } = useNotification();
+  const {
+    applicants,
+    loading,
+    error,
+    detailedApplicants,
+    fetchApplicantDetails,
+    fetchAllApplicantDetails,
+    invalidateCache
+  } = useApplicantData();
   
-  // State for storing the basic applicants list
-  const [applicants, setApplicants] = useState<ApplicantBasic[]>([]);
   // State for storing detailed applicant data for modal
   const [modalApplicant, setModalApplicant] = useState<ApplicantDetailed | null>(null);
-  // State for loading states
-  const [loading, setLoading] = useState<boolean>(true);
+  // State for modal loading (separate from main loading)
   const [modalLoading, setModalLoading] = useState<boolean>(false);
-  // State for error handling
-  const [error, setError] = useState<string | null>(null);
-  // statusSelect: stores the selected status for each applicant row (for dropdown)
-  // (Removed unused statusSelect state)
   // State for selected applicants (for bulk actions)
   const [selected, setSelected] = React.useState<{ [key: string]: boolean }>({});
   const [copiedKey, setCopiedKey] = React.useState<string | null>(null);
+  // Add state for search and pagination
   const [search, setSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [applicantsPerPage, setApplicantsPerPage] = useState(10);
 
-  // Add modal state
-  // (Removed unused modalOpen state)
-  // Bulk comment modal state
-  const [bulkActionType, setBulkActionType] = useState<null | 'Approved' | 'Denied'>(null);
-  const [bulkComment, setBulkComment] = useState('');
-  const [bulkProcessing, setBulkProcessing] = useState(false);
-  // Modal and reason modal state
-  const [modalOpen, setModalOpen] = useState(false);
-  const [modalMessage, setModalMessage] = useState('');
   // Reason modal state
   const [reasonModalOpen, setReasonModalOpen] = useState(false);
   const [reasonValue, setReasonValue] = useState('');
   const [pendingAction, setPendingAction] = useState<null | { action: 'Approved' | 'Denied', keys: string[] }>(null);
-  // Remove modalAction state
-  // const [modalAction, setModalAction] = useState<null | (() => void)>(null);
 
   // Add state for admin email - use logged-in user's email as default
   const [adminEmail, setAdminEmail] = useState<string>(userEmail || 'admin@company.com');
@@ -106,81 +83,28 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
     denial2?: string
   } }>({});
 
-  // Refetch function to update data after status changes
-  const refetchApplicants = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await fetch(API_BASE_URL);
-      
-      if (!response.ok) {
-        throw new Error(`Failed to fetch applicants: ${response.status} ${response.statusText}`);
-      }
-      
-      const data: ApplicantBasic[] = await response.json();
-      setApplicants(data);
-      
-      // Fetch approval data for all applicants
-      await fetchApprovalDataForApplicants(data);
-    } catch (err) {
-      console.error('Error fetching applicants:', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch applicants');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Function to fetch approval data for multiple applicants
-  const fetchApprovalDataForApplicants = async (applicantsList: ApplicantBasic[]) => {
-    const approvalPromises = applicantsList.map(async (applicant) => {
-      try {
-        const url = `${API_BASE_URL}?partitionKey=${encodeURIComponent(applicant.partitionKey)}&rowKey=${encodeURIComponent(applicant.rowKey)}`;
-        const response = await fetch(url);
-        
-        if (response.ok) {
-          const detailedData: ApplicantDetailed = await response.json();
-          const key = `${applicant.partitionKey}|${applicant.rowKey}`;
-          return {
-            key,
-            approval1: detailedData.approval1 || '',
-            approval2: detailedData.approval2 || '',
-            denial1: detailedData.denial1 || '',
-            denial2: detailedData.denial2 || ''
-          };
-        }
-      } catch (error) {
-        console.error(`Error fetching approval data for ${applicant.partitionKey}|${applicant.rowKey}:`, error);
-      }
-      return null;
+  // Update approval data when detailed applicants change
+  useEffect(() => {
+    const newApprovalData: { [key: string]: { 
+      approval1?: string, 
+      approval2?: string,
+      denial1?: string,
+      denial2?: string
+    } } = {};
+    
+    Object.entries(detailedApplicants).forEach(([key, applicant]) => {
+      newApprovalData[key] = {
+        approval1: applicant.approval1 || '',
+        approval2: applicant.approval2 || '',
+        denial1: applicant.denial1 || '',
+        denial2: applicant.denial2 || ''
+      };
     });
+    
+    setApprovalData(newApprovalData);
+  }, [detailedApplicants]);
 
-    try {
-      const results = await Promise.all(approvalPromises);
-      const newApprovalData: { [key: string]: { 
-        approval1?: string, 
-        approval2?: string,
-        denial1?: string,
-        denial2?: string
-      } } = {};
-      
-      results.forEach(result => {
-        if (result) {
-          newApprovalData[result.key] = {
-            approval1: result.approval1,
-            approval2: result.approval2,
-            denial1: result.denial1,
-            denial2: result.denial2
-          };
-        }
-      });
-      
-      setApprovalData(newApprovalData);
-    } catch (error) {
-      console.error('Error processing approval data:', error);
-    }
-  };
-
-  // Fetch all applicants on component mount
+  // Fetch detailed data for all applicants when component mounts or applicants change
   useEffect(() => {
     const fetchAllDetails = async () => {
       if (applicants.length === 0) return;
@@ -193,8 +117,8 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
     fetchAllDetails();
   }, [applicants, fetchAllApplicantDetails]);
 
-  // Fetch detailed applicant data for modal
-  const fetchApplicantDetails = async (partitionKey: string, rowKey: string) => {
+  // Fetch detailed applicant data for modal using cached context
+  const openApplicantModal = async (partitionKey: string, rowKey: string) => {
     try {
       setModalLoading(true);
       
@@ -212,6 +136,7 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
     }
   };
 
+  // Handle view button click
   const handleViewApplicant = (partitionKey: string, rowKey: string) => {
     openApplicantModal(partitionKey, rowKey);
   };
@@ -229,12 +154,18 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
   };
 
   // Confirm bulk/single action with reason
-  const confirmActionWithReason = () => {
+  const confirmActionWithReason = async () => {
     if (!pendingAction) return;
+    
+    // Call onAction for each applicant to handle the approval/denial logic
+    // The Dashboard component will handle the backend API calls and Power Automate triggers
     for (const key of pendingAction.keys) {
       const [partitionKey, rowKey] = key.split('|');
-      if (onAction) onAction(partitionKey, rowKey, pendingAction.action, adminEmail /*, reasonValue */);
+      if (onAction) {
+        await onAction(partitionKey, rowKey, pendingAction.action, adminEmail);
+      }
     }
+
     addNotification(
       `${pendingAction.keys.length} applicant${pendingAction.keys.length > 1 ? 's' : ''} ${pendingAction.action === 'Approved' ? 'approved' : 'denied'} by ${adminEmail}${reasonValue ? ` (Reason: ${reasonValue})` : ''}`,
       pendingAction.action === 'Approved' ? 'success' : 'error'
@@ -242,23 +173,29 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
     setSelected({});
     setReasonModalOpen(false);
     setPendingAction(null);
-    setTimeout(() => refetchApplicants(), 1000);
+    // No need to manually refetch - the cache context will handle updates automatically
   };
 
+  // Helper: select all visible applicants
+  const allSelected = applicants.length > 0 && applicants.every(a => selected[`${a.partitionKey}|${a.rowKey}`]);
+  const someSelected = applicants.some(a => selected[`${a.partitionKey}|${a.rowKey}`]);
   const toggleSelectAll = () => {
-    if (applicants.every(a => selected[`${a.partitionKey}|${a.rowKey}`])) {
-      setSelected({});
+    if (allSelected) {
+      // Deselect all
+      const newSel: { [key: string]: boolean } = {};
+      setSelected(newSel);
     } else {
+      // Select all
       const newSel: { [key: string]: boolean } = {};
       applicants.forEach(a => { newSel[`${a.partitionKey}|${a.rowKey}`] = true; });
       setSelected(newSel);
     }
   };
-
   const toggleSelect = (key: string) => {
     setSelected(sel => ({ ...sel, [key]: !sel[key] }));
   };
 
+  // Filter applicants by search
   const filteredApplicants = applicants.filter(a => {
     const searchLower = search.toLowerCase();
     return (
@@ -268,14 +205,17 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
     );
   });
 
+  // Pagination logic
   const totalPages = Math.ceil(filteredApplicants.length / applicantsPerPage);
   const paginatedApplicants = filteredApplicants.slice(
     (currentPage - 1) * applicantsPerPage,
     currentPage * applicantsPerPage
   );
 
+  // Dropdown options for applicants per page
   const pageSizeOptions = [10, 25, 50, 100];
 
+  // Reset to page 1 if search changes
   useEffect(() => { setCurrentPage(1); }, [search]);
 
   if (loading) {
@@ -325,7 +265,9 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
       flexGrow: 1
     }}>
       <h2 className="applicant-list-title">All Applications</h2>
-      
+
+
+      {/* Admin Email Input */}
       <div style={{ marginBottom: 16, padding: '12px', background: '#f8f9fa', borderRadius: 8, border: '1px solid #dee2e6' }}>
         <label style={{ display: 'block', marginBottom: 8, fontWeight: 600, color: '#495057' }}>
           Logged in as (for approvals):
@@ -350,6 +292,7 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
         </small>
       </div>
       
+      {/* Search/filter bar */}
       <div style={{ display: 'flex', gap: 12, marginBottom: 16, alignItems: 'center' }}>
         <input
           type="text"
@@ -358,27 +301,23 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
           onChange={e => setSearch(e.target.value)}
           style={{ padding: '8px 12px', borderRadius: 6, border: '1px solid #ccc', fontSize: 16, width: 240 }}
         />
+        {/* Bulk action buttons */}
         <button
           onClick={() => handleBulkAction('Approved')}
-          disabled={!Object.values(selected).some(v => v)}
-          style={{ background: '#4caf50', color: '#fff', border: 'none', borderRadius: 5, padding: '8px 18px', fontWeight: 600, cursor: 'pointer' }}
+          disabled={!someSelected}
+          style={{ background: '#4caf50', color: '#fff', border: 'none', borderRadius: 5, padding: '8px 18px', fontWeight: 600, cursor: someSelected ? 'pointer' : 'not-allowed', opacity: someSelected ? 1 : 0.5 }}
         >
           Approve Selected
         </button>
         <button
           onClick={() => handleBulkAction('Denied')}
-          disabled={!Object.values(selected).some(v => v)}
-          style={{ background: '#f44336', color: '#fff', border: 'none', borderRadius: 5, padding: '8px 18px', fontWeight: 600, cursor: 'pointer' }}
+          disabled={!someSelected}
+          style={{ background: '#f44336', color: '#fff', border: 'none', borderRadius: 5, padding: '8px 18px', fontWeight: 600, cursor: someSelected ? 'pointer' : 'not-allowed', opacity: someSelected ? 1 : 0.5 }}
         >
           Deny Selected
         </button>
-        {Object.values(selected).some(v => v) && (
-          <span style={{ color: '#888', fontSize: 14 }}>
-            {Object.values(selected).filter(v => v).length} selected
-          </span>
-        )}
+        {someSelected && <span style={{ color: '#888', fontSize: 14 }}>{Object.keys(selected).filter(k => selected[k]).length} selected</span>}
       </div>
-
       <div className="applicant-list-table" style={{
         overflowX: 'auto',
         border: '1px solid #eee',
@@ -388,24 +327,13 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
         minHeight: '40vh',
         background: '#fafbfc'
       }}>
-        <div className="applicant-list-header" style={{
-          display: 'grid', 
-          gridTemplateColumns: '0.5fr 0.7fr 1.5fr 1.5fr 1fr 2fr 2fr 1.5fr', 
-          gap: 16, 
-          fontWeight: 600, 
-          padding: '1rem', 
-          background: '#fafafa', 
-          borderBottom: '1px solid #eee'
-        }}>
+        {/* Table header: consistently show 5 columns */}
+        <div className="applicant-list-header" style={{display: 'grid', gridTemplateColumns: '0.5fr 0.7fr 1.5fr 1.5fr 1fr 2fr 2fr 1.5fr', gap: 16, fontWeight: 600, padding: '1rem', background: '#fafafa', borderBottom: '1px solid #eee'}}>
           <span>
             <input
               type="checkbox"
-              checked={applicants.length > 0 && applicants.every(a => selected[`${a.partitionKey}|${a.rowKey}`])}
-              ref={el => { 
-                if (el) el.indeterminate = 
-                  !(applicants.length > 0 && applicants.every(a => selected[`${a.partitionKey}|${a.rowKey}`])) && 
-                  applicants.some(a => selected[`${a.partitionKey}|${a.rowKey}`]); 
-              }}
+              checked={allSelected}
+              ref={el => { if (el) el.indeterminate = !allSelected && someSelected; }}
               onChange={toggleSelectAll}
               aria-label="Select all applicants"
             />
@@ -418,7 +346,7 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
           <span>Denied By</span>
           <span>Actions</span>
         </div>
-
+        {/* Table rows: map over paginatedApplicants array */}
         {paginatedApplicants.map((applicant, idx) => {
           const applicantKey = `${applicant.partitionKey}|${applicant.rowKey}`;
           // Get actual approval and denial data from API
@@ -431,19 +359,11 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
             if (actualApprovalData.denial1) deniedByEmails.push(actualApprovalData.denial1);
             if (actualApprovalData.denial2) deniedByEmails.push(actualApprovalData.denial2);
           }
-          
+          // Use backend status for display
           const status = statusToString(applicant.status === undefined ? null : Number(applicant.status));
-          
           return (
-            <div className="applicant-list-row" key={applicantKey} style={{
-              display: 'grid', 
-              gridTemplateColumns: '0.5fr 0.7fr 1.5fr 1.5fr 1fr 2fr 2fr 1.5fr', 
-              gap: 16, 
-              alignItems: 'center', 
-              padding: '1rem', 
-              borderBottom: '1px solid #eee', 
-              background: idx % 2 === 0 ? '#fff' : '#f7f7f7'
-            }}>
+            <div className="applicant-list-row" key={applicantKey} style={{display: 'grid', gridTemplateColumns: '0.5fr 0.7fr 1.5fr 1.5fr 1fr 2fr 2fr 1.5fr', gap: 16, alignItems: 'center', padding: '1rem', borderBottom: '1px solid #eee', background: idx % 2 === 0 ? '#fff' : '#f7f7f7'}}>
+              {/* Checkbox */}
               <span>
                 <input
                   type="checkbox"
@@ -468,61 +388,6 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
                 }} disabled={status === 'Approved'}>Deny</button>
               </span>
               */}
-      {/* Reason Modal for approve/deny actions */}
-      {reasonModalOpen && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          width: '100vw',
-          height: '100vh',
-          background: 'rgba(0,0,0,0.18)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 99999
-        }}>
-          <div style={{
-            background: '#fff',
-            borderRadius: 16,
-            boxShadow: '0 4px 32px 0 rgba(34,34,34,0.18)',
-            padding: '2.5rem 2.5rem 2rem 2.5rem',
-            minWidth: 320,
-            maxWidth: '90vw',
-            textAlign: 'center',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: 24
-          }}>
-            <div style={{ fontSize: 22, fontWeight: 700, color: '#ff3d00', marginBottom: 12 }}>
-              {pendingAction?.action === 'Approved' ? 'Approve' : 'Deny'} {pendingAction?.keys.length > 1 ? `${pendingAction.keys.length} applicants` : 'applicant'}
-            </div>
-            <textarea
-              value={reasonValue}
-              onChange={e => setReasonValue(e.target.value)}
-              rows={4}
-              style={{ width: 320, borderRadius: 8, border: '1.5px solid #ff9800', padding: 10, fontSize: 16, resize: 'vertical' }}
-              placeholder="Enter reason or comment (required)"
-            />
-            <div style={{ display: 'flex', gap: 16 }}>
-              <button
-                style={{ background: '#ff3d00', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 32px', fontWeight: 600, fontSize: 16, cursor: 'pointer' }}
-                onClick={confirmActionWithReason}
-                disabled={!reasonValue.trim()}
-              >
-                {pendingAction?.action === 'Approved' ? 'Approve' : 'Deny'}
-              </button>
-              <button
-                style={{ background: '#eee', color: '#333', border: 'none', borderRadius: 8, padding: '10px 32px', fontWeight: 600, fontSize: 16, cursor: 'pointer' }}
-                onClick={() => { setReasonModalOpen(false); setPendingAction(null); }}
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
               {/* Avatar/Initials */}
               <span>
                 {applicant.profileImage ? (
@@ -533,15 +398,12 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
                   />
                 ) : (
                   <span className="avatar-initials">
-                    {applicant.firstName && applicant.lastName ? 
-                      `${applicant.firstName[0]}${applicant.lastName[0]}`.toUpperCase() : '?'}
+                    {applicant.firstName && applicant.lastName ? `${applicant.firstName[0]}${applicant.lastName[0]}`.toUpperCase() : '?'}
                   </span>
                 )}
               </span>
-
               <span>{applicant.firstName}</span>
               <span>{applicant.lastName}</span>
-              
               <span style={{
                 padding: '4px 12px',
                 borderRadius: '20px',
@@ -549,15 +411,12 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
                 fontWeight: 600,
                 textAlign: 'center',
                 color: 'white',
-                background: status === 'Approved' ? '#43a047' : 
-                          status === 'Pending' ? '#ff9800' : 
-                          status === 'Denied' ? '#f44336' : '#ff9800',
+                background: status === 'Approved' ? '#43a047' : status === 'Pending' ? '#ff9800' : status === 'Denied' ? '#f44336' : '#ff9800',
                 minWidth: 90,
                 display: 'inline-block',
               }}>
                 {status}
               </span>
-
               <span style={{ minWidth: 120 }}>
                 <div
                   style={{
@@ -589,7 +448,6 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
                   )}
                 </div>
               </span>
-
               <span style={{ minWidth: 120 }}>
                 <div
                   style={{
@@ -621,8 +479,8 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
                   )}
                 </div>
               </span>
-
               <span style={{display: 'flex', gap: 8, alignItems: 'center'}}>
+                {/* Only show View button */}
                 <button
                   className="details-link"
                   style={{
@@ -655,8 +513,9 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
           );
         })}
       </div>
-      {/* Modal for bulk approve/deny comment */}
-      {bulkActionType && (
+      
+      {/* Reason Modal for approve/deny actions */}
+      {reasonModalOpen && (
         <div style={{
           position: 'fixed',
           top: 0,
@@ -682,11 +541,8 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
             alignItems: 'center',
             gap: 24
           }}>
-            <div style={{ fontSize: 22, fontWeight: 700, color: bulkActionType === 'Approved' ? '#43a047' : '#f44336', marginBottom: 8 }}>
-              {bulkActionType === 'Approved' ? 'Approve' : 'Deny'} Selected Applicants
-            </div>
-            <div style={{ fontSize: 15, color: '#444', marginBottom: 8 }}>
-              Please provide a reason or comment (required):
+            <div style={{ fontSize: 22, fontWeight: 700, color: '#ff3d00', marginBottom: 12 }}>
+              {pendingAction?.action === 'Approved' ? 'Approve' : 'Deny'} {pendingAction && pendingAction.keys.length > 1 ? `${pendingAction.keys.length} applicants` : 'applicant'}
             </div>
             <textarea
               value={reasonValue}
@@ -713,8 +569,10 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
           </div>
         </div>
       )}
+
       {/* Pagination controls */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 24 }}>
+        {/* Page size dropdown */}
         <div>
           <label htmlFor="pageSize" style={{ marginRight: 8 }}>Rows per page:</label>
           <select
@@ -731,7 +589,7 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
             ))}
           </select>
         </div>
-        
+        {/* Page navigation dropdown */}
         {totalPages > 1 && (
           <div>
             <label htmlFor="pageNav" style={{ marginRight: 8 }}>Page:</label>
@@ -749,6 +607,7 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
         )}
       </div>
       
+      {/* Modal for applicant details */}
       {modalApplicant && (
         <div className="modal-overlay" style={{
           position: 'fixed',
@@ -782,8 +641,7 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
                 fontWeight: 600,
                 textAlign: 'center',
                 color: 'white',
-                background: Number(modalApplicant.status) === 2 ? '#4caf50' : 
-                          Number(modalApplicant.status) === 3 ? '#f44336' : '#ff9800',
+                background: Number(modalApplicant.status) === 2 ? '#4caf50' : Number(modalApplicant.status) === 3 ? '#f44336' : '#ff9800',
                 minWidth: 90,
                 display: 'inline-block',
               }}>
@@ -791,19 +649,8 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
               </span>
               <span style={{ fontWeight: 700, fontSize: 20 }}>{modalApplicant.firstName} {modalApplicant.lastName}</span>
             </div>
-            <button className="modal-close" onClick={() => setModalApplicant(null)} style={{ 
-              position: 'absolute', 
-              top: 18, 
-              right: 24, 
-              fontSize: 28, 
-              color: '#888', 
-              background: 'none', 
-              border: 'none', 
-              cursor: 'pointer' 
-            }}>
-              &times;
-            </button>
-            
+            <button className="modal-close" onClick={() => setModalApplicant(null)} style={{ position: 'absolute', top: 18, right: 24, fontSize: 28, color: '#888', background: 'none', border: 'none', cursor: 'pointer' }}>&times;</button>
+            {/* Applicant image/avatar placeholder */}
             <div style={{ marginBottom: 18 }}>
               {modalApplicant.profileImage ? (
                 <img
@@ -812,60 +659,37 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
                   style={{ width: 72, height: 72, borderRadius: '50%', objectFit: 'cover', background: '#eee', display: 'block' }}
                 />
               ) : modalApplicant.firstName && modalApplicant.lastName ? (
-                <span style={{ 
-                  width: 72, 
-                  height: 72, 
-                  borderRadius: '50%', 
-                  background: '#eee', 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'center', 
-                  fontWeight: 700, 
-                  color: '#888', 
-                  fontSize: 32 
-                }}>
+                <span style={{ width: 72, height: 72, borderRadius: '50%', background: '#eee', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, color: '#888', fontSize: 32 }}>
                   {modalApplicant.firstName[0]}{modalApplicant.lastName[0]}
                 </span>
               ) : (
                 <FaUserCircle style={{ width: 72, height: 72, color: '#bbb' }} />
               )}
             </div>
-            
-            <h3 style={{ margin: '0 0 1.2rem 0', color: '#023c69', fontSize: '1.3rem', fontWeight: 700, textAlign: 'center' }}>
-              Applicant Details
-            </h3>
-            
+            <h3 style={{ margin: '0 0 1.2rem 0', color: '#023c69', fontSize: '1.3rem', fontWeight: 700, textAlign: 'center' }}>Applicant Details</h3>
             {modalLoading ? (
               <div style={{ textAlign: 'center', padding: '2rem' }}>
                 <p>Loading details...</p>
               </div>
             ) : (
               <div style={{ width: '100%' }}>
+                {/* Display all fields from the detailed API response */}
                 {Object.entries(modalApplicant).map(([key, value]) => {
+                  // Skip internal keys (case-insensitive)
                   const lowerKey = key.toLowerCase();
                   if (lowerKey === 'partitionkey' || lowerKey === 'rowkey' || lowerKey === 'profileimage') {
                     return null;
                   }
-                  
+                  // Use statusToString for status field
                   let displayValue;
                   if (key === 'status') {
                     displayValue = statusToString(value === undefined ? null : Number(value));
                   } else {
                     displayValue = value === null || value === undefined ? '' : String(value);
                   }
-                  
                   return (
-                    <div key={key} style={{ 
-                      marginBottom: '0.7rem', 
-                      display: 'flex', 
-                      justifyContent: 'space-between', 
-                      alignItems: 'center', 
-                      borderBottom: '1px solid #f3f3f3', 
-                      padding: '0.3rem 0' 
-                    }}>
-                      <strong style={{ color: '#555', fontWeight: 600, fontSize: 15 }}>
-                        {key.charAt(0).toUpperCase() + key.slice(1)}:
-                      </strong>
+                    <div key={key} style={{ marginBottom: '0.7rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f3f3f3', padding: '0.3rem 0' }}>
+                      <strong style={{ color: '#555', fontWeight: 600, fontSize: 15 }}>{key.charAt(0).toUpperCase() + key.slice(1)}:</strong>
                       <span
                         className="modal-detail-value"
                         title={displayValue}
@@ -904,24 +728,21 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
                             fontSize: 12,
                             boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
                             zIndex: 10,
-                          }}>
-                            Copied!
-                          </span>
+                          }}>Copied!</span>
                         )}
                       </span>
                     </div>
                   );
                 })}
-                
+                {/* Reason/Comment box for admin to leave a note when approving/denying */}
                 <div style={{ marginTop: 18 }}>
-                  <label htmlFor="admin-reason" style={{ fontWeight: 600, color: '#023c69', marginBottom: 4, display: 'block' }}>
-                    Reason/Comment (for approval/denial):
-                  </label>
+                  <label htmlFor="admin-reason" style={{ fontWeight: 600, color: '#023c69', marginBottom: 4, display: 'block' }}>Reason/Comment (for approval/denial):</label>
                   <textarea
                     id="admin-reason"
                     rows={3}
                     style={{ width: '100%', borderRadius: 6, border: '1.5px solid #ff9800', padding: 8, fontSize: '1em', resize: 'vertical' }}
                     placeholder="Enter your reason or comment here..."
+                    // value and onChange to be implemented in next step
                   />
                 </div>
               </div>

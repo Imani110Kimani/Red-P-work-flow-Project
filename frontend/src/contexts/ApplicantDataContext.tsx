@@ -125,10 +125,10 @@ export const ApplicantDataProvider: React.FC<ApplicantDataProviderProps> = ({ ch
   // Fetch detailed applicant data
   const fetchApplicantDetails = useCallback(async (partitionKey: string, rowKey: string): Promise<ApplicantDetailed | null> => {
     const key = `${partitionKey}|${rowKey}`;
-    
     // Check if we already have cached detailed data that's relatively fresh
     if (detailedApplicants[key] && isCacheValid()) {
       console.log(`ApplicantDataContext: Using cached detailed data for ${key}`);
+      console.debug('ApplicantDataContext: Cached detailed data:', detailedApplicants[key]);
       return detailedApplicants[key];
     }
 
@@ -136,19 +136,20 @@ export const ApplicantDataProvider: React.FC<ApplicantDataProviderProps> = ({ ch
       console.log(`ApplicantDataContext: Fetching detailed data for ${key}`);
       const url = `${API_BASE_URL}?partitionKey=${encodeURIComponent(partitionKey)}&rowKey=${encodeURIComponent(rowKey)}`;
       const response = await fetch(url);
-      
+
       if (!response.ok) {
         throw new Error(`Failed to fetch applicant details: ${response.status} ${response.statusText}`);
       }
-      
+
       const data: ApplicantDetailed = await response.json();
-      
+      console.debug('ApplicantDataContext: API detailed data response:', data);
+
       // Cache the detailed data
       setDetailedApplicants(prev => ({
         ...prev,
         [key]: data
       }));
-      
+
       return data;
     } catch (err) {
       console.error(`ApplicantDataContext: Error fetching details for ${key}:`, err);
@@ -179,9 +180,10 @@ export const ApplicantDataProvider: React.FC<ApplicantDataProviderProps> = ({ ch
       try {
         const url = `${API_BASE_URL}?partitionKey=${encodeURIComponent(applicant.partitionKey)}&rowKey=${encodeURIComponent(applicant.rowKey)}`;
         const response = await fetch(url);
-        
+
         if (response.ok) {
           const data: ApplicantDetailed = await response.json();
+          console.debug('ApplicantDataContext: API detailed data response (batch):', { key, data });
           return { key, data };
         } else {
           console.warn(`Failed to fetch details for ${key}: ${response.status}`);

@@ -1,49 +1,42 @@
-import redpLogo from './assets/redp-logo.png';
 import React from "react";
+import redpLogo from "./assets/redp-logo.png";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 import Dashboard from "./pages/Dashboard";
-import { Notifications } from "./pages/Notifications";
+import FeePortal from "./pages/FeePortal";
+import Notifications from "./pages/Notifications";
 import LandingLoginPage from "./pages/LandingLoginPage";
 import StudentVerificationDetails from "./pages/StudentVerificationDetails";
 import SchoolVerificationDetails from "./pages/SchoolVerificationDetails";
 import ApplicantList from "./pages/ApplicantList";
 import ApplicantDetails from "./pages/ApplicantDetails";
 import AdmissionDetails from "./pages/AdmissionsDetails";
+import Students from "./pages/Students";
+import Admissions from "./pages/Admissions";
 
 const App: React.FC = () => (
   <div style={{ background: '#fff', minHeight: '100vh' }}>
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '2rem 0 1rem 0' }}>
-      <div style={{
-        background: 'rgba(255,61,0,0.85)',
-        borderRadius: 32,
-        padding: 18,
-        boxShadow: '0 6px 24px #ff3d00',
-        marginBottom: 36
-      }}>
-        <img
-          src={redpLogo}
-          alt="REDP logo"
-          style={{ height: 90, display: 'block', opacity: 1 }}
-        />
-      </div>
-      <h1 style={{
-        color: '#ff3d00',
-        fontWeight: 900,
-        letterSpacing: 2,
-        fontSize: '2.2rem',
-        margin: 0
-      }}>
-        RED(<span style={{ fontWeight: 900 }}>P</span>) Admin Portal
-      </h1>
+    <div style={{
+      width: '100%',
+      background: '#ffad1f',
+      display: 'flex',
+      alignItems: 'center',
+      padding: '0.5rem 2rem',
+      minHeight: 60,
+      boxShadow: '0 2px 8px 0 rgba(34,34,34,0.08)',
+      position: 'sticky',
+      top: 0,
+      zIndex: 100
+    }}>
+      <img src={redpLogo} alt="RED(P) Logo" style={{ height: 44, display: 'block' }} />
     </div>
-
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<LandingLoginPage />} />
         <Route path="/dashboard" element={<Dashboard />}>
           <Route index element={null} />
-          <Route path="admissions" element={<AdmissionDetails />} />
+          <Route path="students" element={<Students />} />
+          <Route path="admissions" element={<Admissions />} />
           <Route path="admissions/:id" element={<AdmissionDetails />} />
           <Route path="student-verification" element={<StudentVerificationDetails />} />
           <Route path="student-verification/:id" element={<StudentVerificationDetails />} />
@@ -52,7 +45,11 @@ const App: React.FC = () => (
           <Route path="applicants" element={<ApplicantList />} />
           <Route path="applicants/:id" element={<ApplicantDetails />} />
           <Route path="logs" element={<Notifications />} />
+          <Route path="fee-portal" element={<FeePortal />} />
+          {/* Let Dashboard handle unmatched dashboard routes (shows creative info page) */}
+          <Route path="*" element={null} />
         </Route>
+        {/* Only show 404 for non-dashboard unmatched routes */}
         <Route
           path="*"
           element={
