@@ -18,7 +18,6 @@ const LandingLoginPage: React.FC = () => {
   const [idImage, setIdImage] = useState<string | null>(null);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [generatedCode, setGeneratedCode] = useState("");
   const [codeTimestamp, setCodeTimestamp] = useState<number | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -29,82 +28,35 @@ const LandingLoginPage: React.FC = () => {
     setError("");
 
     try {
-      // Call Power Automate flow to generate and send code
-      const response = await fetch('https://prod-112.westus.logic.azure.com:443/workflows/e103eb24d613469abfd4180e12a25b93/triggers/manual/paths/invoke?api-version=2016-06-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=e5Kt_H9u3KqBmou7PCtZkOlJVBkaiRwuSNQjerNeICg', {
+      // Call Azure Function to generate and send verification code
+      const response = await fetch('https://simbaemailverificationapi-g4g4f9cfgtgtfsbu.westus-01.azurewebsites.net/api/generate-code', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          recipient: email
+          email: email
         })
       });
 
       if (response.ok) {
-        const responseText = await response.text();
+        const data = await response.json();
         
-        let data;
-        let code = '';
-        
-        try {
-          // Clean the response text of control characters before parsing
-          const cleanedText = responseText.replace(/[\x00-\x1F\x7F]/g, '');
-          data = JSON.parse(cleanedText);
-        } catch (parseError) {
-          // If JSON parsing fails, try to extract the code directly from the response
-          // Try different patterns for 6-character codes
-          const patterns = [
-            /[A-Z0-9]{6}/g,           // 6 alphanumeric characters
-            /[A-Z]{6}/g,              // 6 letters
-            /[0-9]{6}/g,              // 6 numbers
-            /"([A-Z0-9]{6})"/g,       // 6 characters in quotes
-            /:\s*"([A-Z0-9]{6})"/g    // 6 characters after colon and quotes
-          ];
-          
-          for (const pattern of patterns) {
-            const matches = responseText.match(pattern);
-            if (matches && matches.length > 0) {
-              code = matches[0].replace(/[^A-Z0-9]/g, ''); // Clean any extra characters
-              break;
-            }
-          }
-          
-          if (!code) {
-            // If no pattern matches, try to get any 6-character string
-            const trimmed = responseText.trim();
-            if (trimmed.length === 6 && /^[A-Z0-9]+$/.test(trimmed)) {
-              code = trimmed;
-            }
-          }
-        }
-        
-        // Handle different possible response formats if JSON parsing succeeded
-        if (data && !code) {
-          if (typeof data === 'string') {
-            code = data.trim();
-          } else if (data.confirmationCode && typeof data.confirmationCode === 'string') {
-            code = data.confirmationCode.trim();
-          } else if (data.code && typeof data.code === 'string') {
-            code = data.code.trim();
-          } else if (data.value && typeof data.value === 'string') {
-            code = data.value.trim();
-          }
-        }
-        
-        if (code && code.length >= 4) { // Accept codes that are at least 4 characters
-          setGeneratedCode(code);
+        // Azure Function returns: { message, email, code, email_sent }
+        if (data.code && data.email_sent) {
           setCodeTimestamp(Date.now());
           return true;
         } else {
-          setError("Failed to extract verification code from response.");
+          setError("Failed to generate verification code. Please try again.");
           return false;
         }
       } else {
-        setError("Authentication service unavailable. Please try again later.");
+        const errorData = await response.json().catch(() => null);
+        setError(errorData?.message || "Authentication service unavailable. Please try again later.");
         return false;
       }
     } catch (error) {
-      console.error('Login error:', error);
+      console.error('Verification code generation error:', error);
       setError("Network error. Please check your connection and try again.");
       return false;
     } finally {
@@ -198,7 +150,6 @@ const LandingLoginPage: React.FC = () => {
           <ConfirmationCode 
             onSuccess={handleConfirmationSuccess} 
             email={email} 
-            expectedCode={generatedCode}
             codeTimestamp={codeTimestamp}
             onResend={sendVerificationCode}
           />
