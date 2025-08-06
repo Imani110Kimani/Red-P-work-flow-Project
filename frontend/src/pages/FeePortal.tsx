@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useApplicantData } from '../contexts/ApplicantDataContext';
 import './Dashboard.css';
 
 // Demo data for fee payments
@@ -37,6 +38,8 @@ const FeePortal: React.FC = () => {
   const [structureModal, setStructureModal] = useState<{ open: boolean; feeId?: number }>({ open: false });
   const [feePayments, setFeePayments] = useState(initialFeePayments);
   const [search, setSearch] = useState('');
+  const { applicants, detailedApplicants } = useApplicantData();
+  const [docModal, setDocModal] = useState<{ open: boolean; name?: string; content?: string }>({ open: false });
 
   function handleAcceptStructure(feeId: number) {
     setFeePayments(fees => fees.map(f => f.id === feeId ? { ...f, structureAccepted: true } : f));
@@ -130,11 +133,25 @@ const FeePortal: React.FC = () => {
           </div>
         ))}
       </div>
-      {/* Fee Structure Modal */}
+      {/* Student Info Modal */}
       {structureModal.open && (() => {
         const fee = feePayments.find(f => f.id === structureModal.feeId);
         if (!fee) return null;
-        const details = getDemoStructure(fee.school);
+        // Try to find matching applicant by name (demo logic, real app should use ID)
+        const applicant = applicants.find(a => a.firstName && fee.name && fee.name.toLowerCase().includes(a.firstName.toLowerCase()));
+        const details = applicant ? detailedApplicants[`${applicant.partitionKey}|${applicant.rowKey}`] : null;
+        // Demo avatar logic
+        const avatar = details && details.profileImage
+          ? <img src={details.profileImage} alt="avatar" style={{ width: 56, height: 56, borderRadius: '50%', objectFit: 'cover', border: '2px solid #ff9800', marginRight: 16 }} />
+          : <div style={{ width: 56, height: 56, borderRadius: '50%', background: '#ff9800', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 24, marginRight: 16 }}>
+              {fee.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+            </div>;
+        // Demo documents if none
+        const demoDocs = [
+          { name: 'Birth Certificate.pdf', content: 'This is a demo birth certificate.' },
+          { name: 'Report Card.pdf', content: 'This is a demo report card.' },
+        ];
+        const documents = details && details.documents && details.documents.length > 0 ? details.documents : demoDocs;
         return (
           <div style={{
             position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.18)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -143,35 +160,92 @@ const FeePortal: React.FC = () => {
               background: '#fff', borderRadius: 16, boxShadow: '0 4px 24px 0 rgba(34,34,34,0.18)', padding: '2.2rem 2.5rem 1.5rem 2.5rem', minWidth: 320, maxWidth: '95vw', position: 'relative',
             }} onClick={e => e.stopPropagation()}>
               <button onClick={() => setStructureModal({ open: false, feeId: undefined })} style={{ position: 'absolute', top: 18, right: 18, background: 'none', border: 'none', fontSize: 24, color: '#888', cursor: 'pointer' }}>×</button>
-              <h3 style={{ marginTop: 0, color: '#ff9800', fontWeight: 900, fontSize: '1.25em' }}>Fee Structure for {fee.school}</h3>
-              <div style={{ marginBottom: 12, color: '#555', fontWeight: 600 }}>Student: {fee.name}</div>
-              <table style={{ width: '100%', marginBottom: 18, borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr style={{ background: '#f7fafd' }}>
-                    <th style={{ textAlign: 'left', padding: '6px 10px' }}>Item</th>
-                    <th style={{ textAlign: 'right', padding: '6px 10px' }}>Amount (KES)</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {details.items.map((item, idx) => (
-                    <tr key={idx}>
-                      <td style={{ padding: '6px 10px', color: '#222' }}>{item.label}</td>
-                      <td style={{ padding: '6px 10px', textAlign: 'right', color: '#ff9800', fontWeight: 700 }}>{item.amount.toLocaleString()}</td>
-                    </tr>
+              <h3 style={{ marginTop: 0, color: '#ff9800', fontWeight: 900, fontSize: '1.25em' }}>Student Information</h3>
+              <div style={{ display: 'flex', alignItems: 'center', marginBottom: 12 }}>
+                {avatar}
+                <div style={{ color: '#555', fontWeight: 600, fontSize: '1.1em' }}>Student: {fee.name}</div>
+              </div>
+              <div style={{ marginBottom: 10 }}>
+                <strong>School:</strong> {fee.school}<br />
+                <strong>Status:</strong> {fee.status}<br />
+                {details && (
+                  <>
+                    <strong>Email:</strong> {details.email || 'N/A'}<br />
+                    <strong>Phone:</strong> {details.phone || 'N/A'}<br />
+                    <strong>Date of Birth:</strong> {details.dateOfBirth || 'N/A'}<br />
+                    <strong>Grade Level:</strong> {details.gradeLevel || 'N/A'}<br />
+                    <strong>Location:</strong> {details.location || 'N/A'}<br />
+                  </>
+                )}
+              </div>
+              <div style={{ marginBottom: 18 }}>
+                <strong>Documents:</strong><br />
+                <ul style={{ margin: '8px 0 0 0', padding: 0, listStyle: 'none' }}>
+                  {documents.map((doc: any, idx: number) => (
+                    <li key={idx} style={{ marginBottom: 4 }}>
+                      <button
+                        style={{ color: '#023c69', textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer', fontSize: '1em', padding: 0 }}
+                        onClick={() => setDocModal({ open: true, name: doc.name, content: doc.content || 'Demo document content.' })}
+                      >
+                        {doc.name}
+                      </button>
+                    </li>
                   ))}
-                  <tr>
-                    <td style={{ padding: '8px 10px', fontWeight: 700, color: '#222' }}>Total</td>
-                    <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 900, color: '#ff3d00', fontSize: '1.08em' }}>{details.total.toLocaleString()}</td>
-                  </tr>
-                </tbody>
-              </table>
-              <div style={{ marginBottom: 10, color: '#023c69', fontWeight: 700, fontSize: '1.08em' }}>Bank Details</div>
-              <div style={{ background: '#f7fafd', borderRadius: 10, padding: '1em 1.2em', marginBottom: 18, fontSize: '1em' }}>
-                <div><strong>Bank:</strong> {details.bank.name}</div>
-                <div><strong>Account Name:</strong> {details.bank.accName}</div>
-                <div><strong>Account Number:</strong> {details.bank.account}</div>
-                <div><strong>Branch:</strong> {details.bank.branch}</div>
-                <div><strong>Paybill:</strong> {details.bank.paybill}</div>
+                </ul>
+              </div>
+      {/* Document Modal */}
+      {docModal.open && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.18)', zIndex: 3000, display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }} onClick={() => setDocModal({ open: false })}>
+          <div style={{ background: '#fff', borderRadius: 12, boxShadow: '0 4px 24px 0 rgba(34,34,34,0.18)', padding: '2rem 2.5rem', minWidth: 320, maxWidth: '95vw', position: 'relative' }} onClick={e => e.stopPropagation()}>
+            <button onClick={() => setDocModal({ open: false })} style={{ position: 'absolute', top: 18, right: 18, background: 'none', border: 'none', fontSize: 24, color: '#888', cursor: 'pointer' }}>×</button>
+            <h3 style={{ marginTop: 0, color: '#ff9800', fontWeight: 900, fontSize: '1.15em' }}>{docModal.name}</h3>
+            <div style={{ marginTop: 16, color: '#222', fontSize: '1.08em', whiteSpace: 'pre-wrap' }}>{docModal.content}</div>
+          </div>
+        </div>
+      )}
+              <div style={{ marginBottom: 18 }}>
+                <strong>Results:</strong><br />
+                {details && details.results ? (
+                  <pre style={{ background: '#f7fafd', padding: '8px', borderRadius: 6, fontSize: '1em', color: '#222' }}>{JSON.stringify(details.results, null, 2)}</pre>
+                ) : <span style={{ color: '#888' }}>No results available.</span>}
+              </div>
+              <div style={{ marginBottom: 18 }}>
+                <strong>Essay:</strong><br />
+                {details && details.essay ? (
+                  <div style={{ background: '#f7fafd', padding: '8px', borderRadius: 6, fontSize: '1em', color: '#222' }}>{details.essay}</div>
+                ) : <span style={{ color: '#888' }}>No essay available.</span>}
+              </div>
+              <div style={{ marginBottom: 18 }}>
+                <strong>Fee Structure:</strong><br />
+                <table style={{ width: '100%', marginBottom: 8, borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr style={{ background: '#f7fafd' }}>
+                      <th style={{ textAlign: 'left', padding: '6px 10px' }}>Item</th>
+                      <th style={{ textAlign: 'right', padding: '6px 10px' }}>Amount (KES)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {getDemoStructure(fee.school).items.map((item, idx) => (
+                      <tr key={idx}>
+                        <td style={{ padding: '6px 10px', color: '#222' }}>{item.label}</td>
+                        <td style={{ padding: '6px 10px', textAlign: 'right', color: '#ff9800', fontWeight: 700 }}>{item.amount.toLocaleString()}</td>
+                      </tr>
+                    ))}
+                    <tr>
+                      <td style={{ padding: '8px 10px', fontWeight: 700, color: '#222' }}>Total</td>
+                      <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 900, color: '#ff3d00', fontSize: '1.08em' }}>{getDemoStructure(fee.school).total.toLocaleString()}</td>
+                    </tr>
+                  </tbody>
+                </table>
+                <div style={{ background: '#f7fafd', borderRadius: 10, padding: '1em 1.2em', marginBottom: 8, fontSize: '1em' }}>
+                  <div><strong>Bank:</strong> {getDemoStructure(fee.school).bank.name}</div>
+                  <div><strong>Account Name:</strong> {getDemoStructure(fee.school).bank.accName}</div>
+                  <div><strong>Account Number:</strong> {getDemoStructure(fee.school).bank.account}</div>
+                  <div><strong>Branch:</strong> {getDemoStructure(fee.school).bank.branch}</div>
+                  <div><strong>Paybill:</strong> {getDemoStructure(fee.school).bank.paybill}</div>
+                </div>
               </div>
               <button onClick={() => { setStructureModal({ open: false, feeId: undefined }); handleAcceptStructure(fee.id); }} style={{
                 background: '#ff9800', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 28px', fontWeight: 700, fontSize: '1.08em', cursor: 'pointer', marginTop: 8, boxShadow: '0 1px 6px 0 rgba(255,152,0,0.07)',

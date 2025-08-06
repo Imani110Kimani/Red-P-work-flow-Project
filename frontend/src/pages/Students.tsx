@@ -3,12 +3,12 @@ import { useApplicantData } from '../contexts/ApplicantDataContext';
 
 
 const Students: React.FC = () => {
-  const { applicants, detailedApplicants, loading, error, fetchAllApplicantDetails } = useApplicantData();
+  const { applicants, detailedApplicants, loading, error, fetchAllApplicantDetails, refetchApplicants } = useApplicantData();
 
 
   // Only fetch details for approved applicants (status 2)
   React.useEffect(() => {
-    const approved = applicants.filter(a => {
+    const approved = applicants.filter((a: any) => {
       const num = typeof a.status === 'string' ? parseInt(a.status, 10) : a.status;
       return num === 2;
     });
@@ -27,11 +27,11 @@ const Students: React.FC = () => {
 
   const approvedDetailed = useMemo(() => {
     return applicants
-      .filter(a => {
+      .filter((a: any) => {
         const num = typeof a.status === 'string' ? parseInt(a.status, 10) : a.status;
         return num === 2;
       })
-      .map(a => {
+      .map((a: any) => {
         const d = detailedApplicants[`${a.partitionKey}|${a.rowKey}`] || {};
         return {
           id: a.rowKey,
@@ -50,7 +50,27 @@ const Students: React.FC = () => {
 
   return (
     <div style={{ maxWidth: 1200, margin: '2rem auto', padding: '0 1rem' }}>
-      <h2>Approved Students</h2>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <h2 style={{ margin: 0 }}>Approved Students</h2>
+        <button
+          onClick={() => refetchApplicants()}
+          title="Refresh applicants"
+          style={{
+            background: 'none',
+            border: 'none',
+            padding: 0,
+            marginLeft: 8,
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+          }}
+        >
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ff9800" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="23 4 23 10 17 10" />
+            <path d="M1 20v-6a8 8 0 0 1 14-5.29L23 10" />
+          </svg>
+        </button>
+      </div>
       {/* Debug: Show filtered approved students as JSON for troubleshooting */}
       <details style={{marginBottom: '1rem', background: '#f9f9f9', border: '1px solid #eee', padding: '0.5rem', borderRadius: 4}}>
         <summary style={{cursor: 'pointer', color: '#888'}}>Show debug: approved students data</summary>
@@ -81,7 +101,7 @@ const Students: React.FC = () => {
               {approvedDetailed.length === 0 ? (
                 <tr><td colSpan={9} style={{ textAlign: 'center', color: '#888' }}>No approved students found.</td></tr>
               ) : (
-                approvedDetailed.map((a, idx) => (
+                approvedDetailed.map((a: any, idx: number) => (
                   <tr key={a.id || idx}>
                     <td>{a.firstName}</td>
                     <td>{a.lastName}</td>

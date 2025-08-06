@@ -2,6 +2,7 @@ import React from "react";
 import redpLogo from "./assets/redp-logo.png";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
+
 import Dashboard from "./pages/Dashboard";
 import FeePortal from "./pages/FeePortal";
 import Notifications from "./pages/Notifications";
@@ -10,9 +11,23 @@ import StudentVerificationDetails from "./pages/StudentVerificationDetails";
 import SchoolVerificationDetails from "./pages/SchoolVerificationDetails";
 import ApplicantList from "./pages/ApplicantList";
 import ApplicantDetails from "./pages/ApplicantDetails";
-import AdmissionDetails from "./pages/AdmissionsDetails";
+// import AdmissionDetails from "./pages/AdmissionsDetails";
 import Students from "./pages/Students";
 import Admissions from "./pages/Admissions";
+
+// Handler for approve/deny actions
+const handleApplicantAction = async (partitionKey, rowKey, newStatus, adminEmail) => {
+  try {
+    await fetch("/api/updateApplicantStatus", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ partitionKey, rowKey, status: newStatus, adminEmail }),
+    });
+    // Optionally, refresh applicant data/context here
+  } catch (error) {
+    console.error("Failed to update applicant status:", error);
+  }
+};
 
 const App: React.FC = () => (
   <div style={{ background: '#fff', minHeight: '100vh' }}>
@@ -37,12 +52,12 @@ const App: React.FC = () => (
           <Route index element={null} />
           <Route path="students" element={<Students />} />
           <Route path="admissions" element={<Admissions />} />
-          <Route path="admissions/:id" element={<AdmissionDetails />} />
+          {/* <Route path="admissions/:id" element={<AdmissionDetails />} /> */}
           <Route path="student-verification" element={<StudentVerificationDetails />} />
           <Route path="student-verification/:id" element={<StudentVerificationDetails />} />
           <Route path="school-verification" element={<SchoolVerificationDetails />} />
           <Route path="school-verification/:id" element={<SchoolVerificationDetails />} />
-          <Route path="applicants" element={<ApplicantList />} />
+        <Route path="applicants" element={<ApplicantList onAction={handleApplicantAction} />} />
           <Route path="applicants/:id" element={<ApplicantDetails />} />
           <Route path="logs" element={<Notifications />} />
           <Route path="fee-portal" element={<FeePortal />} />
