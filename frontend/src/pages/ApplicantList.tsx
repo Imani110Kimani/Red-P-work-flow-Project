@@ -210,8 +210,8 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
   const filteredApplicants = applicants.filter(a => {
     const searchLower = search.toLowerCase();
     return (
-      a.firstName.toLowerCase().includes(searchLower) ||
-      a.lastName.toLowerCase().includes(searchLower) ||
+      (a.firstName && a.firstName.toLowerCase().includes(searchLower)) ||
+      (a.lastName && a.lastName.toLowerCase().includes(searchLower)) ||
       (a.status && a.status.toLowerCase().includes(searchLower))
     );
   });
