@@ -1,8 +1,9 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useEffect } from "react";
+import { PublicClientApplication } from '@azure/msal-browser';
+import { msalConfig } from '../config/msalConfig';
 import { useNavigate } from "react-router-dom";
 import { useUser } from "../contexts/UserContext";
 import logo from "../assets/redp-logo.png";
-import ConfirmationCode from "./ConfirmationCode";
 import "./LandingLoginPage.css";
 
 const PRIMARY = "#ff3d00"; // REDP Red
@@ -12,151 +13,66 @@ const BG = "#fff"; // White background
 const LandingLoginPage: React.FC = () => {
   const navigate = useNavigate();
   const { setUserEmail } = useUser();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const [idImage, setIdImage] = useState<string | null>(null);
-  const [showConfirmation, setShowConfirmation] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [codeTimestamp, setCodeTimestamp] = useState<number | null>(null);
+  const msalInstance = new PublicClientApplication(msalConfig);
+  const [msalError, setMsalError] = useState("");
+  const [loading, setLoading] = useState(true);
 
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const cameraInputRef = useRef<HTMLInputElement | null>(null);
-
-  const sendVerificationCode = async () => {
-    setIsLoading(true);
-    setError("");
-
-    try {
-      // Call Azure Function to generate and send verification code
-      const response = await fetch('https://simbaemailverificationapi-g4g4f9cfgtgtfsbu.westus-01.azurewebsites.net/api/generate-code', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: email
-        })
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        
-        // Azure Function returns: { message, email, code, email_sent }
-        if (data.code && data.email_sent) {
-          setCodeTimestamp(Date.now());
-          return true;
-        } else {
-          setError("Failed to generate verification code. Please try again.");
-          return false;
+  // Try silent login on mount
+  useEffect(() => {
+    const checkAccounts = async () => {
+      try {
+        await msalInstance.initialize();
+        const accounts = msalInstance.getAllAccounts();
+        if (accounts.length > 0) {
+          setUserEmail(accounts[0].username);
+          navigate("/dashboard");
         }
-      } else {
-        const errorData = await response.json().catch(() => null);
-        setError(errorData?.message || "Authentication service unavailable. Please try again later.");
-        return false;
+      } catch (err) {
+        // Ignore, just show login
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      console.error('Verification code generation error:', error);
-      setError("Network error. Please check your connection and try again.");
-      return false;
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const verifyLoginCredentials = async (username: string, password: string) => {
+    };
+    checkAccounts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  // MSAL Microsoft login handler
+  const handleMicrosoftLogin = async () => {
+    setMsalError("");
     try {
-      const response = await fetch('https://simbaloginverification-buekhfdhdba5esdn.westus-01.azurewebsites.net/api/verify-login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          username: username,
-          password: password
-        })
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        // Assuming the API returns a success field or similar indicator
-        return result.success === true || result.valid === true || result.authenticated === true || response.status === 200;
-      } else {
-        return false;
+      setLoading(true);
+      await msalInstance.initialize();
+      // Try silent login first
+      const accounts = msalInstance.getAllAccounts();
+      if (accounts.length > 0) {
+        try {
+          const silentResponse = await msalInstance.acquireTokenSilent({ scopes: ["User.Read"], account: accounts[0] });
+          setUserEmail(silentResponse.account.username);
+          navigate("/dashboard");
+          return;
+        } catch (silentError) {
+          // Fallback to popup
+        }
       }
-    } catch (error) {
-      console.error('Login verification error:', error);
-      return false;
-    }
-  };
-
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-    setIsLoading(true);
-
-    // Basic validation
-    if (!email || !password || !idImage) {
-      setError("Please provide valid credentials and upload or capture your ID.");
-      setIsLoading(false);
-      return;
-    }
-
-    try {
-      // Verify credentials with Azure function
-      const isValidLogin = await verifyLoginCredentials(email, password);
-      
-      if (!isValidLogin) {
-        setError("Invalid email or password. Please try again.");
-        setIsLoading(false);
-        return;
+      // Popup login
+      const loginResponse = await msalInstance.loginPopup({ scopes: ["User.Read"] });
+      if (loginResponse && loginResponse.account) {
+        setUserEmail(loginResponse.account.username);
+        navigate("/dashboard");
       }
-
-      // If login is valid, proceed to send verification code
-      const success = await sendVerificationCode();
-      if (success) {
-        setShowConfirmation(true);
+    } catch (err) {
+      let message = "Microsoft login failed. Please try again.";
+      const errorObj = err as any;
+      if (errorObj && errorObj.errorMessage) {
+        message = errorObj.errorMessage;
+      } else if (errorObj && errorObj.message) {
+        message = errorObj.message;
       }
-    } catch (error) {
-      console.error('Login process error:', error);
-      setError("Login verification failed. Please try again.");
+      setMsalError(message);
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file && file.type.startsWith("image/")) {
-      const reader = new FileReader();
-      reader.onload = (ev) => setIdImage(ev.target?.result as string);
-      reader.readAsDataURL(file);
-      setError("");
-    } else {
-      setError("Please upload a valid image file.");
-    }
-  };
-
-  const handleConfirmationSuccess = () => {
-    // Store the logged-in user's email in context
-    setUserEmail(email);
-    navigate("/dashboard");
-  };
-
-  if (showConfirmation) {
-    return (
-      <div className="landing-login-root" style={{ background: BG }}>
-        <div className="login-section" style={{ flex: 1, width: "100vw", justifyContent: "center", alignItems: "center", display: "flex" }}>
-          <ConfirmationCode 
-            onSuccess={handleConfirmationSuccess} 
-            email={email} 
-            codeTimestamp={codeTimestamp}
-            onResend={sendVerificationCode}
-          />
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="landing-login-root" style={{ background: BG }}>
@@ -173,7 +89,7 @@ const LandingLoginPage: React.FC = () => {
           Welcome to <span style={{ color: PRIMARY, fontFamily: 'inherit' }}>RED(P)</span> <span style={{ color: ACCENT, fontFamily: 'inherit' }}>Admin</span>
         </h1>
         <p>
-          Streamline student admissions, verification, and notifications with a modern, secure workflow.
+          Admins must sign in with Microsoft Entra ID to access the dashboard.
         </p>
         <ul className="landing-features">
           <li>
@@ -188,122 +104,32 @@ const LandingLoginPage: React.FC = () => {
         </ul>
       </div>
       <div className="login-section">
-        <form className="login-form" onSubmit={handleLogin}>
-          <h2 style={{ color: PRIMARY, fontFamily: "'Playfair Display', serif", fontWeight: 800 }}>Admin Login</h2>
-          {error && <div className="login-error">{error}</div>}
-          <label>
-            Email
-            <input
-              type="email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              required
-              autoFocus
-              placeholder="admin1@red-p.org"
-              style={{ borderColor: ACCENT }}
-            />
-          </label>
-          <label>
-            Password
-            <input
-              type="password"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              required
-              placeholder="admin123"
-              style={{ borderColor: ACCENT }}
-            />
-          </label>
-          <label>
-            Upload or Capture ID
-            <div className="id-upload-row">
-              <input
-                type="file"
-                accept="image/*"
-                style={{ display: "none" }}
-                ref={fileInputRef}
-                onChange={handleFileChange}
-              />
-              <input
-                type="file"
-                accept="image/*"
-                capture="environment"
-                style={{ display: "none" }}
-                ref={cameraInputRef}
-                onChange={handleFileChange}
-              />
-              <button
-                type="button"
-                className="id-upload-btn"
-                style={{
-                  background: PRIMARY,
-                  color: "#fff",
-                  border: `1.5px solid ${PRIMARY}`,
-                  borderRadius: 6,
-                  padding: "0.5rem 1rem",
-                  fontWeight: 600,
-                  cursor: "pointer",
-                  transition: "background 0.2s, border-color 0.2s"
-                }}
-                onClick={() => fileInputRef.current?.click()}
-              >
-                Upload ID
-              </button>
-              <button
-                type="button"
-                className="id-upload-btn"
-                style={{
-                  background: ACCENT,
-                  color: "#fff",
-                  border: `1.5px solid ${ACCENT}`,
-                  borderRadius: 6,
-                  padding: "0.5rem 1rem",
-                  fontWeight: 600,
-                  cursor: "pointer",
-                  transition: "background 0.2s, border-color 0.2s"
-                }}
-                onClick={() => cameraInputRef.current?.click()}
-              >
-                Open Camera
-              </button>
-              {idImage && (
-                <img
-                  src={idImage}
-                  alt="ID Preview"
-                  className="id-preview"
-                  style={{
-                    width: 48,
-                    height: 48,
-                    objectFit: "cover",
-                    borderRadius: 6,
-                    marginLeft: 12,
-                    border: `2px solid ${ACCENT}`,
-                    background: BG
-                  }}
-                />
-              )}
-            </div>
-          </label>
-          <button
-            type="submit"
-            className="login-btn"
-            disabled={isLoading}
-            style={{
-              background: isLoading ? "#ccc" : PRIMARY,
-              color: "#fff",
-              border: `1.5px solid ${isLoading ? "#ccc" : PRIMARY}`,
-              borderRadius: 6,
-              padding: "0.8rem 0",
-              fontWeight: 700,
-              fontSize: "1.1rem",
-              marginTop: "0.5rem",
-              transition: "background 0.2s, border-color 0.2s",
-              cursor: isLoading ? "not-allowed" : "pointer"
-            }}
-          >
-            {isLoading ? "Sending code..." : "Login"}
-          </button>
-        </form>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
+          {loading && <div className="login-error">Checking login status...</div>}
+          {msalError && <div className="login-error">{msalError}</div>}
+          {!loading && (
+            <button
+              type="button"
+              className="login-btn"
+              style={{
+                background: '#0078d4',
+                color: '#fff',
+                border: '1.5px solid #0078d4',
+                borderRadius: 6,
+                padding: '0.8rem 0',
+                fontWeight: 700,
+                fontSize: '1.1rem',
+                marginTop: '1.5rem',
+                width: '80%',
+                transition: 'background 0.2s, border-color 0.2s',
+                cursor: 'pointer'
+              }}
+              onClick={handleMicrosoftLogin}
+            >
+              Sign in with Microsoft
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
