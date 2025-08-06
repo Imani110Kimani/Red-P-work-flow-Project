@@ -1,0 +1,58 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Environment and configuration files
+.env
+.env.*
+local.settings.json
+
+# Azure Functions artifacts
+bin
+obj
+.vscode/
+.azure/
+
+# Test files and development scripts
+test_*.py
+test_*.bat
+test_*.ps1
+debug_*.py
+*test*.py
+*debug*.py
+*helper*.bat
+config_validator.py
+TROUBLESHOOTING.md
+test_deployed.bat
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log

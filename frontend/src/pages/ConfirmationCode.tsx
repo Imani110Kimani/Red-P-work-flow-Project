@@ -7,16 +7,16 @@ const EXPIRATION_TIME = 10 * 60 * 1000; // 10 minutes
 interface ConfirmationCodeProps {
   onSuccess: () => void;
   email: string;
-  expectedCode: string;
   codeTimestamp: number | null;
   onResend: () => Promise<boolean>;
 }
 
-const ConfirmationCode: React.FC<ConfirmationCodeProps> = ({ onSuccess, email, expectedCode, codeTimestamp, onResend }) => {
+const ConfirmationCode: React.FC<ConfirmationCodeProps> = ({ onSuccess, email, codeTimestamp, onResend }) => {
   const [code, setCode] = useState(Array(CODE_LENGTH).fill(''));
   const [error, setError] = useState('');
   const [isExpired, setIsExpired] = useState(false);
   const [isResending, setIsResending] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
   const inputsRef = useRef<Array<HTMLInputElement | null>>([]);
 
   // Check if code is expired
@@ -86,7 +86,7 @@ const ConfirmationCode: React.FC<ConfirmationCodeProps> = ({ onSuccess, email, e
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (code.some((digit) => digit === '')) {
       setError('Please enter the full 6-character code.');
@@ -100,11 +100,41 @@ const ConfirmationCode: React.FC<ConfirmationCodeProps> = ({ onSuccess, email, e
       return;
     }
     
-    const enteredCode = code.join('');
-    if (enteredCode === expectedCode) {
-      onSuccess();
-    } else {
-      setError('Invalid code. Please check your email and try again.');
+    setIsVerifying(true);
+    setError('');
+    
+    try {
+      const enteredCode = code.join('');
+      
+      // Call Azure Function to verify the code
+      const response = await fetch('https://simbaemailverificationapi-g4g4f9cfgtgtfsbu.westus-01.azurewebsites.net/api/verify-code', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: email,
+          code: enteredCode
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        
+        if (data.verified) {
+          onSuccess();
+        } else {
+          setError(data.message || 'Invalid code. Please check your email and try again.');
+        }
+      } else {
+        const errorData = await response.json().catch(() => null);
+        setError(errorData?.message || 'Verification failed. Please try again.');
+      }
+    } catch (error) {
+      console.error('Verification error:', error);
+      setError('Network error. Please check your connection and try again.');
+    } finally {
+      setIsVerifying(false);
     }
   };
 
@@ -158,13 +188,13 @@ const ConfirmationCode: React.FC<ConfirmationCodeProps> = ({ onSuccess, email, e
           <button 
             type="submit" 
             className="confirmation-submit"
-            disabled={isExpired}
+            disabled={isExpired || isVerifying}
             style={{ 
-              opacity: isExpired ? 0.5 : 1,
-              cursor: isExpired ? 'not-allowed' : 'pointer'
+              opacity: (isExpired || isVerifying) ? 0.5 : 1,
+              cursor: (isExpired || isVerifying) ? 'not-allowed' : 'pointer'
             }}
           >
-            Verify
+            {isVerifying ? 'Verifying...' : 'Verify'}
           </button>
           <button 
             type="button" 

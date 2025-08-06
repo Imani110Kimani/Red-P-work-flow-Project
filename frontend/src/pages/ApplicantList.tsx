@@ -45,7 +45,7 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
     detailedApplicants,
     fetchApplicantDetails,
     fetchAllApplicantDetails,
-    invalidateCache
+    refetchApplicants
   } = useApplicantData();
   
   // State for storing detailed applicant data for modal
@@ -133,6 +133,18 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
       console.error('Error fetching applicant details:', err);
     } finally {
       setModalLoading(false);
+    }
+  };
+
+  // Handle refresh button click
+  const handleRefresh = async () => {
+    try {
+      console.log('Manual refresh triggered by user');
+      await refetchApplicants(true); // Force refresh with true parameter
+      addNotification('Data refreshed successfully', 'success');
+    } catch (error) {
+      console.error('Error refreshing data:', error);
+      addNotification('Failed to refresh data', 'error');
     }
   };
 
@@ -301,6 +313,27 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
           onChange={e => setSearch(e.target.value)}
           style={{ padding: '8px 12px', borderRadius: 6, border: '1px solid #ccc', fontSize: 16, width: 240 }}
         />
+        {/* Refresh button */}
+        <button
+          onClick={handleRefresh}
+          disabled={loading}
+          style={{ 
+            background: '#2196F3', 
+            color: '#fff', 
+            border: 'none', 
+            borderRadius: 5, 
+            padding: '8px 16px', 
+            fontWeight: 600, 
+            cursor: loading ? 'not-allowed' : 'pointer', 
+            opacity: loading ? 0.5 : 1,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px'
+          }}
+          title="Refresh data from server"
+        >
+          {loading ? '🔄' : '🔄'} Refresh
+        </button>
         {/* Bulk action buttons */}
         <button
           onClick={() => handleBulkAction('Approved')}
