@@ -509,10 +509,10 @@ const Dashboard: React.FC = () => {
                   const approvalData = await approvalResponse.json();
                   
                   if (approvalResponse.ok) {
-                    // Check if both approvals are now complete
+                    // Check if approvals are now complete
                     if (approvalResponse.status === 201 && approvalData.isComplete) {
-                      // Both approvals received - update the final status to approved
-                      console.log('Both approvals received, updating status to Approved');
+                      // Approval threshold reached - update the final status to approved
+                      console.log('Approval threshold reached, updating status to Approved');
                       
                       const statusResponse = await fetch('https://approval-function-6370.azurewebsites.net/api/changestatusfunction', {
                         method: 'POST',
@@ -525,13 +525,22 @@ const Dashboard: React.FC = () => {
                       });
 
                       if (statusResponse.ok) {
-                        alert(`Success: Both approvals received!\nApprover 1: ${approvalData.approval1} (${approvalData.timeOfApproval1})\nApprover 2: ${approvalData.approval2} (${approvalData.timeOfApproval2})\nApplication has been approved!`);
+                        // Build approval list message
+                        const approvalsList = Object.keys(approvalData.approvals || {})
+                          .filter(key => key.startsWith('approval') && !key.includes('time'))
+                          .map((key, index) => {
+                            const timeKey = key.replace('approval', 'timeOfApproval');
+                            return `Approver ${index + 1}: ${approvalData.approvals[key]} (${approvalData.approvals[timeKey] || 'N/A'})`;
+                          })
+                          .join('\n');
+                        
+                        alert(`Success: Approval threshold reached (${approvalData.currentApprovalCount}/${approvalData.approvalThreshold})!\n${approvalsList}\nApplication has been approved!`);
                       } else {
                         alert(`Approvals complete but status update failed: ${await statusResponse.text()}`);
                       }
                     } else {
-                      // First approval received, waiting for second
-                      alert(`Success: ${approvalData.message}\nApprover: ${approvalData.approval1}\nTime: ${approvalData.timeOfApproval1}\nWaiting for second approval...`);
+                      // Still need more approvals
+                      alert(`Success: ${approvalData.message}\nProgress: ${approvalData.currentApprovalCount}/${approvalData.approvalThreshold} approvals\nAdmin Count: ${approvalData.adminCount}`);
                     }
                   } else {
                     alert(`Approval Error: ${approvalData.error || await approvalResponse.text()}`);
@@ -556,10 +565,10 @@ const Dashboard: React.FC = () => {
                   const denialData = await denialResponse.json();
                   
                   if (denialResponse.ok) {
-                    // Check if both denials are now complete
+                    // Check if denials are now complete
                     if (denialResponse.status === 201 && denialData.isDenialComplete) {
-                      // Both denials received - update the final status to denied
-                      console.log('Both denials received, updating status to Denied');
+                      // Denial threshold reached - update the final status to denied
+                      console.log('Denial threshold reached, updating status to Denied');
                       
                       const statusResponse = await fetch('https://approval-function-6370.azurewebsites.net/api/changestatusfunction', {
                         method: 'POST',
@@ -572,13 +581,22 @@ const Dashboard: React.FC = () => {
                       });
 
                       if (statusResponse.ok) {
-                        alert(`Success: Both denials received!\nDenier 1: ${denialData.denial1} (${denialData.timeOfDenial1})\nDenier 2: ${denialData.denial2} (${denialData.timeOfDenial2})\nApplication has been denied!`);
+                        // Build denial list message
+                        const denialsList = Object.keys(denialData.denials || {})
+                          .filter(key => key.startsWith('denial') && !key.includes('time'))
+                          .map((key, index) => {
+                            const timeKey = key.replace('denial', 'timeOfDenial');
+                            return `Denier ${index + 1}: ${denialData.denials[key]} (${denialData.denials[timeKey] || 'N/A'})`;
+                          })
+                          .join('\n');
+                        
+                        alert(`Success: Denial threshold reached (${denialData.currentDenialCount}/${denialData.denialThreshold})!\n${denialsList}\nApplication has been denied!`);
                       } else {
                         alert(`Denials complete but status update failed: ${await statusResponse.text()}`);
                       }
                     } else {
-                      // First denial received, waiting for second
-                      alert(`Success: ${denialData.message}\nDenier: ${denialData.denial1}\nTime: ${denialData.timeOfDenial1}\nWaiting for second denial...`);
+                      // Still need more denials
+                      alert(`Success: ${denialData.message}\nProgress: ${denialData.currentDenialCount}/${denialData.denialThreshold} denials\nAdmin Count: ${denialData.adminCount}`);
                     }
                   } else {
                     alert(`Denial Error: ${denialData.error || await denialResponse.text()}`);

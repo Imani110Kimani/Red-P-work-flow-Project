@@ -3,6 +3,7 @@ import logging
 import re
 import os
 import requests
+import math
 from datetime import datetime
 from dotenv import load_dotenv
 from azure.functions import HttpRequest, HttpResponse
@@ -11,6 +12,136 @@ from azure.core.exceptions import ResourceNotFoundError, HttpResponseError
 
 # Load environment variables from .env file
 load_dotenv()
+
+def get_admin_count():
+    """
+    Fetch the current number of admins from the admin management API
+    """
+    try:
+        admin_api_url = "https://simbamanageadmins-egambyhtfxbfhabc.westus-01.azurewebsites.net/api/read-admin"
+        
+        response = requests.get(
+            admin_api_url,
+            headers={'Content-Type': 'application/json'},
+            timeout=10
+        )
+        
+        if response.status_code == 200:
+            data = response.json()
+            if data.get('success') and data.get('admins'):
+                admin_count = len(data['admins'])
+                logging.info(f"Current admin count: {admin_count}")
+                return admin_count
+            else:
+                logging.warning("Admin API returned success=false or no admins found")
+                return 3  # Default fallback
+        else:
+            logging.warning(f"Admin API returned status {response.status_code}")
+            return 3  # Default fallback
+            
+    except requests.exceptions.RequestException as e:
+        logging.error(f"Failed to fetch admin count: {str(e)}")
+        return 3  # Default fallback
+    except Exception as e:
+        logging.error(f"Unexpected error fetching admin count: {str(e)}")
+        return 3  # Default fallback
+
+def calculate_thresholds(admin_count):
+    """
+    Calculate approval and denial thresholds based on admin count
+    - Approval: more than 2/3 of admins (rounded up)
+    - Denial: more than 1/3 of admins (rounded up)
+    """
+    approval_threshold = math.ceil(admin_count * 2/3)
+    denial_threshold = math.ceil(admin_count * 1/3)
+    
+    # Ensure minimum thresholds
+    approval_threshold = max(approval_threshold, 1)
+    denial_threshold = max(denial_threshold, 1)
+    
+    logging.info(f"Admin count: {admin_count}, Approval threshold: {approval_threshold}, Denial threshold: {denial_threshold}")
+    return approval_threshold, denial_threshold
+
+def get_approval_emails(entity):
+    """Get list of approval emails from entity"""
+    approvals = []
+    i = 1
+    while entity.get(f'approval{i}'):
+        approvals.append(entity.get(f'approval{i}'))
+        i += 1
+    return approvals
+
+def get_denial_emails(entity):
+    """Get list of denial emails from entity"""
+    denials = []
+    i = 1
+    while entity.get(f'denial{i}'):
+        denials.append(entity.get(f'denial{i}'))
+        i += 1
+    return denials
+
+def remove_email_from_approvals(entity, email):
+    """Remove email from approval fields and compact the list"""
+    approvals = get_approval_emails(entity)
+    if email in approvals:
+        # Save original timestamps before clearing
+        original_timestamps = {}
+        i = 1
+        while entity.get(f'approval{i}') is not None:
+            if entity.get(f'approval{i}') != email:  # Don't save the timestamp for the email being removed
+                original_timestamps[entity.get(f'approval{i}')] = entity.get(f'timeOfApproval{i}')
+            entity[f'approval{i}'] = None
+            entity[f'timeOfApproval{i}'] = None
+            i += 1
+        
+        # Re-add remaining approvals with their original timestamps
+        approvals.remove(email)
+        for idx, approval_email in enumerate(approvals, 1):
+            entity[f'approval{idx}'] = approval_email
+            entity[f'timeOfApproval{idx}'] = original_timestamps.get(approval_email, '')
+        return True
+    return False
+
+def remove_email_from_denials(entity, email):
+    """Remove email from denial fields and compact the list"""
+    denials = get_denial_emails(entity)
+    if email in denials:
+        # Save original timestamps before clearing
+        original_timestamps = {}
+        i = 1
+        while entity.get(f'denial{i}') is not None:
+            if entity.get(f'denial{i}') != email:  # Don't save the timestamp for the email being removed
+                original_timestamps[entity.get(f'denial{i}')] = entity.get(f'timeOfDenial{i}')
+            entity[f'denial{i}'] = None
+            entity[f'timeOfDenial{i}'] = None
+            i += 1
+        
+        # Re-add remaining denials with their original timestamps
+        denials.remove(email)
+        for idx, denial_email in enumerate(denials, 1):
+            entity[f'denial{idx}'] = denial_email
+            entity[f'timeOfDenial{idx}'] = original_timestamps.get(denial_email, '')
+        return True
+    return False
+    return False
+
+def add_approval(entity, email, timestamp):
+    """Add approval to the next available slot"""
+    i = 1
+    while entity.get(f'approval{i}'):
+        i += 1
+    entity[f'approval{i}'] = email
+    entity[f'timeOfApproval{i}'] = timestamp
+    return i
+
+def add_denial(entity, email, timestamp):
+    """Add denial to the next available slot"""
+    i = 1
+    while entity.get(f'denial{i}'):
+        i += 1
+    entity[f'denial{i}'] = email
+    entity[f'timeOfDenial{i}'] = timestamp
+    return i
 
 def trigger_power_automate_flow(recipient, address, verdict):
     """
@@ -149,26 +280,23 @@ def main(req: HttpRequest) -> HttpResponse:
         response_message = ""
         status_code = 200
         
+        # Get current admin count and calculate thresholds
+        admin_count = get_admin_count()
+        approval_threshold, denial_threshold = calculate_thresholds(admin_count)
+        
         # Get current timestamp in ISO format
         current_timestamp = datetime.utcnow().isoformat() + 'Z'
         
         if action == 'approve':
             # Handle approval workflow
             # Check if email is in denial fields and remove it if found
-            denial_changed = False
-            if entity.get('denial1') == email:
-                entity['denial1'] = None
-                entity['timeOfDenial1'] = None
-                denial_changed = True
-                logging.info(f"Removing {email} from denial1 to change to approval")
-            elif entity.get('denial2') == email:
-                entity['denial2'] = None
-                entity['timeOfDenial2'] = None
-                denial_changed = True
-                logging.info(f"Removing {email} from denial2 to change to approval")
+            denial_changed = remove_email_from_denials(entity, email)
+            if denial_changed:
+                logging.info(f"Removing {email} from denials to change to approval")
             
             # Check if email already used for approval
-            if entity.get('approval1') == email or entity.get('approval2') == email:
+            approval_emails = get_approval_emails(entity)
+            if email in approval_emails:
                 if denial_changed:
                     response_message = 'Successfully changed from denial to approval.'
                 else:
@@ -181,61 +309,40 @@ def main(req: HttpRequest) -> HttpResponse:
                     )
             else:
                 # Add approval
-                if not entity.get('approval1'):
-                    # First approval
-                    entity['approval1'] = email
-                    entity['timeOfApproval1'] = current_timestamp
+                approval_number = add_approval(entity, email, current_timestamp)
+                current_approval_count = len(get_approval_emails(entity))
+                
+                if current_approval_count >= approval_threshold:
+                    # Approval threshold reached
                     if denial_changed:
-                        response_message = 'Changed from denial to approval. This is the first approval.'
+                        response_message = f'Changed from denial to approval. Approval threshold reached ({current_approval_count}/{approval_threshold})!'
                     else:
-                        response_message = 'First approval added successfully. Waiting for second approval.'
-                    logging.info(f"Adding first approval: {email} at {current_timestamp}")
-                elif not entity.get('approval2'):
-                    # Second approval
-                    entity['approval2'] = email
-                    entity['timeOfApproval2'] = current_timestamp
-                    if denial_changed:
-                        response_message = 'Changed from denial to approval. Both approvals have been received!'
-                    else:
-                        response_message = 'Second approval added successfully. Both approvals have been received!'
-                    status_code = 201  # Created - both approvals complete
-                    logging.info(f"Adding second approval: {email} at {current_timestamp}")
+                        response_message = f'Approval #{current_approval_count} added successfully. Approval threshold reached ({current_approval_count}/{approval_threshold})!'
+                    status_code = 201  # Created - approval complete
+                    logging.info(f"Approval threshold reached: {current_approval_count}/{approval_threshold}")
                     
                     # Trigger Power Automate flow for approval verdict
                     recipient_name = f"{entity.get('firstName', 'Applicant')} {entity.get('lastName', '')}"
                     recipient_email = entity.get('email', 'Unknown')
                     trigger_power_automate_flow(recipient_name, recipient_email, "Approved")
                 else:
-                    # Both approvals already exist
-                    return HttpResponse(
-                        json.dumps({
-                            "error": "Both approvals have already been received",
-                            "approval1": entity.get('approval1'),
-                            "approval2": entity.get('approval2'),
-                            "timeOfApproval1": entity.get('timeOfApproval1'),
-                            "timeOfApproval2": entity.get('timeOfApproval2')
-                        }),
-                        status_code=409,
-                        mimetype="application/json"
-                    )
+                    # Still need more approvals
+                    if denial_changed:
+                        response_message = f'Changed from denial to approval. Need {approval_threshold - current_approval_count} more approval(s).'
+                    else:
+                        response_message = f'Approval #{current_approval_count} added successfully. Need {approval_threshold - current_approval_count} more approval(s).'
+                    logging.info(f"Approval {current_approval_count}/{approval_threshold} - need {approval_threshold - current_approval_count} more")
         
         elif action == 'deny':
             # Handle denial workflow
             # Check if email is in approval fields and remove it if found
-            approval_changed = False
-            if entity.get('approval1') == email:
-                entity['approval1'] = None
-                entity['timeOfApproval1'] = None
-                approval_changed = True
-                logging.info(f"Removing {email} from approval1 to change to denial")
-            elif entity.get('approval2') == email:
-                entity['approval2'] = None
-                entity['timeOfApproval2'] = None
-                approval_changed = True
-                logging.info(f"Removing {email} from approval2 to change to denial")
+            approval_changed = remove_email_from_approvals(entity, email)
+            if approval_changed:
+                logging.info(f"Removing {email} from approvals to change to denial")
             
             # Check if email already used for denial
-            if entity.get('denial1') == email or entity.get('denial2') == email:
+            denial_emails = get_denial_emails(entity)
+            if email in denial_emails:
                 if approval_changed:
                     response_message = 'Successfully changed from approval to denial.'
                 else:
@@ -248,47 +355,51 @@ def main(req: HttpRequest) -> HttpResponse:
                     )
             else:
                 # Add denial
-                if not entity.get('denial1'):
-                    # First denial
-                    entity['denial1'] = email
-                    entity['timeOfDenial1'] = current_timestamp
+                denial_number = add_denial(entity, email, current_timestamp)
+                current_denial_count = len(get_denial_emails(entity))
+                
+                if current_denial_count >= denial_threshold:
+                    # Denial threshold reached
                     if approval_changed:
-                        response_message = 'Changed from approval to denial. This is the first denial.'
+                        response_message = f'Changed from approval to denial. Denial threshold reached ({current_denial_count}/{denial_threshold})!'
                     else:
-                        response_message = 'First denial added successfully. Waiting for second denial.'
-                    logging.info(f"Adding first denial: {email} at {current_timestamp}")
-                elif not entity.get('denial2'):
-                    # Second denial
-                    entity['denial2'] = email
-                    entity['timeOfDenial2'] = current_timestamp
-                    if approval_changed:
-                        response_message = 'Changed from approval to denial. Both denials have been received!'
-                    else:
-                        response_message = 'Second denial added successfully. Both denials have been received!'
-                    status_code = 201  # Created - both denials complete
-                    logging.info(f"Adding second denial: {email} at {current_timestamp}")
+                        response_message = f'Denial #{current_denial_count} added successfully. Denial threshold reached ({current_denial_count}/{denial_threshold})!'
+                    status_code = 201  # Created - denial complete
+                    logging.info(f"Denial threshold reached: {current_denial_count}/{denial_threshold}")
                     
                     # Trigger Power Automate flow for denial verdict
                     recipient_name = f"{entity.get('firstName', 'Applicant')} {entity.get('lastName', '')}"
                     recipient_email = entity.get('email', 'Unknown')
                     trigger_power_automate_flow(recipient_name, recipient_email, "Denied")
                 else:
-                    # Both denials already exist
-                    return HttpResponse(
-                        json.dumps({
-                            "error": "Both denials have already been received",
-                            "denial1": entity.get('denial1'),
-                            "denial2": entity.get('denial2'),
-                            "timeOfDenial1": entity.get('timeOfDenial1'),
-                            "timeOfDenial2": entity.get('timeOfDenial2')
-                        }),
-                        status_code=409,
-                        mimetype="application/json"
-                    )
+                    # Still need more denials
+                    if approval_changed:
+                        response_message = f'Changed from approval to denial. Need {denial_threshold - current_denial_count} more denial(s).'
+                    else:
+                        response_message = f'Denial #{current_denial_count} added successfully. Need {denial_threshold - current_denial_count} more denial(s).'
+                    logging.info(f"Denial {current_denial_count}/{denial_threshold} - need {denial_threshold - current_denial_count} more")
         
         # Save or update entity
         table_client.update_entity(entity=entity, mode='replace')
         logging.info('Entity updated successfully')
+
+        # Get current counts for response
+        current_approval_emails = get_approval_emails(entity)
+        current_denial_emails = get_denial_emails(entity)
+        current_approval_count = len(current_approval_emails)
+        current_denial_count = len(current_denial_emails)
+        
+        # Build approval and denial objects for response
+        approvals = {}
+        denials = {}
+        
+        for i, email in enumerate(current_approval_emails, 1):
+            approvals[f'approval{i}'] = email
+            approvals[f'timeOfApproval{i}'] = entity.get(f'timeOfApproval{i}', '')
+        
+        for i, email in enumerate(current_denial_emails, 1):
+            denials[f'denial{i}'] = email
+            denials[f'timeOfDenial{i}'] = entity.get(f'timeOfDenial{i}', '')
         
         # Return success response
         response = {
@@ -296,20 +407,16 @@ def main(req: HttpRequest) -> HttpResponse:
             "action": action,
             "partitionKey": partition_key,
             "rowKey": row_key,
-            "approval1": entity.get('approval1', ''),
-            "approval2": entity.get('approval2', ''),
-            "timeOfApproval1": entity.get('timeOfApproval1', ''),
-            "timeOfApproval2": entity.get('timeOfApproval2', ''),
-            "denial1": entity.get('denial1', ''),
-            "denial2": entity.get('denial2', ''),
-            "timeOfDenial1": entity.get('timeOfDenial1', ''),
-            "timeOfDenial2": entity.get('timeOfDenial2', ''),
-            "isComplete": bool(
-                (entity.get('approval1') and entity.get('approval2')) or 
-                (entity.get('denial1') and entity.get('denial2'))
-            ),
-            "isApprovalComplete": bool(entity.get('approval1') and entity.get('approval2')),
-            "isDenialComplete": bool(entity.get('denial1') and entity.get('denial2'))
+            "adminCount": admin_count,
+            "approvalThreshold": approval_threshold,
+            "denialThreshold": denial_threshold,
+            "currentApprovalCount": current_approval_count,
+            "currentDenialCount": current_denial_count,
+            "approvals": approvals,
+            "denials": denials,
+            "isComplete": current_approval_count >= approval_threshold or current_denial_count >= denial_threshold,
+            "isApprovalComplete": current_approval_count >= approval_threshold,
+            "isDenialComplete": current_denial_count >= denial_threshold
         }
         
         return HttpResponse(
