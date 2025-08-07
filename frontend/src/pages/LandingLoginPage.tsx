@@ -21,58 +21,57 @@ const LandingLoginPage: React.FC = () => {
   const [userEmailFromEntra, setUserEmailFromEntra] = useState<string | null>(null);
   const [codeTimestamp, setCodeTimestamp] = useState<number | null>(null);
 
-  // Try silent login on mount
+  // Initialize MSAL on mount (without auto-login check)
   useEffect(() => {
-    const checkAccounts = async () => {
+    const initializeMsal = async () => {
       try {
         await msalInstance.initialize();
-        const accounts = msalInstance.getAllAccounts();
-        if (accounts.length > 0) {
-          const userEmail = accounts[0].username;
-          
-          // Check if this user is still a valid admin
-          const isValidAdmin = await verifyAdminCredentials(userEmail);
-          
-          if (isValidAdmin) {
-            // Store email and send verification code
-            setUserEmailFromEntra(userEmail);
-            const codeSuccess = await sendVerificationCode();
-            if (codeSuccess) {
-              setShowConfirmation(true);
-            }
-          } else {
-            // Invalid admin, clear accounts and show login
-            msalInstance.logoutPopup({ postLogoutRedirectUri: window.location.origin });
-          }
-        }
       } catch (err) {
-        // Ignore, just show login
+        console.error('MSAL initialization error:', err);
       } finally {
         setLoading(false);
       }
     };
-    checkAccounts();
+    initializeMsal();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Check if the email is a valid admin user
+  // Check if the email is a valid admin user using the admin management API
   const verifyAdminCredentials = async (email: string) => {
-    // Allowlist of admin emails - replace with your actual admin emails
-    const adminEmails = [
-      'simbaabdalla@gmail.com',
-      'JustinLee@red-p.org',
-      'justin@example.com',
-      'imani@example.com',
-      'admin@redp.org',
-      // Add more admin emails as needed
-    ];
-    
-    // Convert to lowercase for case-insensitive comparison
-    const emailLower = email.toLowerCase();
-    const isAdmin = adminEmails.some(adminEmail => adminEmail.toLowerCase() === emailLower);
-    
-    console.log(`Admin verification: ${email} -> ${isAdmin ? 'AUTHORIZED' : 'DENIED'}`);
-    return isAdmin;
+    try {
+      console.log(`Verifying admin credentials for: ${email}`);
+      
+      // Call the admin management API to check if the email exists in the admin table
+      const response = await fetch(`https://simbamanageadmins-egambyhtfxbfhabc.westus-01.azurewebsites.net/api/read-admin?email=${encodeURIComponent(email)}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.admin) {
+          console.log(`Admin verification: ${email} -> AUTHORIZED (Role: ${data.admin.role})`);
+          return true;
+        } else {
+          console.log(`Admin verification: ${email} -> DENIED (Not found in admin table)`);
+          return false;
+        }
+      } else if (response.status === 404) {
+        // Admin not found
+        console.log(`Admin verification: ${email} -> DENIED (404 - Not found)`);
+        return false;
+      } else {
+        // Other error - fallback to deny for security
+        console.error(`Admin verification API error for ${email}:`, response.status);
+        return false;
+      }
+    } catch (error) {
+      console.error('Admin verification network error:', error);
+      // In case of network error, deny access for security
+      return false;
+    }
   };
 
   // Send verification code to the admin's email
@@ -137,41 +136,50 @@ const LandingLoginPage: React.FC = () => {
       
       // Try silent login first
       const accounts = msalInstance.getAllAccounts();
-      let loginResponse;
+      let userEmail: string | null = null;
       
       if (accounts.length > 0) {
         try {
           const silentResponse = await msalInstance.acquireTokenSilent({ scopes: ["User.Read"], account: accounts[0] });
-          loginResponse = { account: silentResponse.account };
+          // Get email from the account in the silent response
+          userEmail = silentResponse.account?.username || accounts[0].username;
         } catch (silentError) {
+          console.log("Silent login failed, trying popup:", silentError);
           // Fallback to popup
-          loginResponse = await msalInstance.loginPopup({ scopes: ["User.Read"] });
+          const loginResponse = await msalInstance.loginPopup({ scopes: ["User.Read"] });
+          userEmail = loginResponse.account?.username;
         }
       } else {
         // Popup login
-        loginResponse = await msalInstance.loginPopup({ scopes: ["User.Read"] });
+        const loginResponse = await msalInstance.loginPopup({ scopes: ["User.Read"] });
+        userEmail = loginResponse.account?.username;
       }
 
-      if (loginResponse && loginResponse.account) {
-        const userEmail = loginResponse.account.username;
-        
-        // Step 1: Verify the user is an admin
-        const isValidAdmin = await verifyAdminCredentials(userEmail);
-        
-        if (!isValidAdmin) {
-          setMsalError("Access denied. This email is not authorized as an admin.");
-          setLoading(false);
-          return;
-        }
+      // Ensure we have a valid email
+      if (!userEmail) {
+        setMsalError("No user email available from Entra ID login. Please try again.");
+        setLoading(false);
+        return;
+      }
 
-        // Step 2: Store email and initiate verification code process
-        setUserEmailFromEntra(userEmail);
-        
-        // Step 3: Send verification code
-        const codeSuccess = await sendVerificationCode();
-        if (codeSuccess) {
-          setShowConfirmation(true);
-        }
+      console.log("Extracted user email:", userEmail);
+      
+      // Step 1: Verify the user is an admin
+      const isValidAdmin = await verifyAdminCredentials(userEmail);
+      
+      if (!isValidAdmin) {
+        setMsalError("Access denied. This email is not authorized as an admin.");
+        setLoading(false);
+        return;
+      }
+
+      // Step 2: Store email and initiate verification code process
+      setUserEmailFromEntra(userEmail);
+      
+      // Step 3: Send verification code
+      const codeSuccess = await sendVerificationCode();
+      if (codeSuccess) {
+        setShowConfirmation(true);
       }
     } catch (err) {
       let message = "Microsoft login failed. Please try again.";

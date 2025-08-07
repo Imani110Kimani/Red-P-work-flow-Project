@@ -10,6 +10,7 @@ import ApplicantList from "./pages/ApplicantList";
 import ApplicantDetails from "./pages/ApplicantDetails";
 import AdmissionDetails from "./pages/AdmissionsDetails";
 import PendingDetails from "./pages/PendingDetails";
+import AdminsTable from "./pages/AdminsTable";
 import { useApplicantData } from "./contexts/ApplicantDataContext";
 
 
@@ -63,6 +64,7 @@ const App: React.FC = () => (
           <Route path="applicants/:id" element={<ApplicantDetails />} />
           <Route path="pending" element={<PendingDetailsWithFetch />} />
           <Route path="pending/:id" element={<PendingDetailsWithFetch />} />
+          <Route path="admins" element={<AdminsTable />} />
           {/* Change notifications route to logs */}
           <Route path="logs" element={<Notifications />} />
         </Route>
