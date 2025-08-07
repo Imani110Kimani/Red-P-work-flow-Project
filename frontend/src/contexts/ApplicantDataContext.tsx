@@ -18,6 +18,7 @@ export type ApplicantDetailed = {
   status: string;
   partitionKey: string;
   rowKey: string;
+  // Legacy approval/denial fields (maintained for backward compatibility)
   approval1?: string;
   approval2?: string;
   denial1?: string;
@@ -26,6 +27,7 @@ export type ApplicantDetailed = {
   timeOfApproval2?: string;
   timeOfDenial1?: string;
   timeOfDenial2?: string;
+  // Allow unlimited approval/denial fields (approval3, approval4, denial3, denial4, etc.)
   [key: string]: any;
 };
 
@@ -42,7 +44,7 @@ interface ApplicantDataContextType {
   lastFetched: Date | null;
   refetchApplicants: (force?: boolean) => Promise<void>;
   fetchApplicantDetails: (partitionKey: string, rowKey: string) => Promise<ApplicantDetailed | null>;
-  fetchAllApplicantDetails: (applicants: ApplicantBasic[]) => Promise<void>;
+  fetchAllApplicantDetails: (applicants: ApplicantBasic[], force?: boolean) => Promise<void>;
   
   // Status update handlers (will automatically refetch after status changes)
   onStatusChange: (partitionKey: string, rowKey: string, newStatus: string) => void;
@@ -157,11 +159,11 @@ export const ApplicantDataProvider: React.FC<ApplicantDataProviderProps> = ({ ch
   }, [detailedApplicants, isCacheValid]);
 
   // Fetch detailed data for multiple applicants efficiently
-  const fetchAllApplicantDetails = useCallback(async (applicantsList: ApplicantBasic[]) => {
-    console.log(`ApplicantDataContext: Fetching detailed data for ${applicantsList.length} applicants`);
+  const fetchAllApplicantDetails = useCallback(async (applicantsList: ApplicantBasic[], force = false) => {
+    console.log(`ApplicantDataContext: Fetching detailed data for ${applicantsList.length} applicants (force: ${force})`);
     
-    // Filter out applicants we already have detailed data for
-    const applicantsToFetch = applicantsList.filter(applicant => {
+    // Filter out applicants we already have detailed data for (unless forced)
+    const applicantsToFetch = force ? applicantsList : applicantsList.filter(applicant => {
       const key = `${applicant.partitionKey}|${applicant.rowKey}`;
       return !detailedApplicants[key];
     });
@@ -171,7 +173,7 @@ export const ApplicantDataProvider: React.FC<ApplicantDataProviderProps> = ({ ch
       return;
     }
 
-    console.log(`ApplicantDataContext: Fetching ${applicantsToFetch.length} new detailed records`);
+    console.log(`ApplicantDataContext: Fetching ${applicantsToFetch.length} ${force ? 'forced' : 'new'} detailed records`);
 
     // Fetch detailed data for all missing applicants in parallel
     const fetchPromises = applicantsToFetch.map(async (applicant) => {

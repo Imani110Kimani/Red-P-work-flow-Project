@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { PublicClientApplication } from '@azure/msal-browser';
-import { msalConfig } from '../config/msalConfig';
+import { msalConfig, loginRequest } from '../config/msalConfig';
 import { useNavigate } from "react-router-dom";
 import { useUser } from "../contexts/UserContext";
 import logo from "../assets/redp-logo.png";
@@ -75,8 +75,9 @@ const LandingLoginPage: React.FC = () => {
   };
 
   // Send verification code to the admin's email
-  const sendVerificationCode = async () => {
-    if (!userEmailFromEntra) {
+  const sendVerificationCode = async (email?: string) => {
+    const emailToUse = email || userEmailFromEntra;
+    if (!emailToUse) {
       setMsalError("No user email available from Entra ID login.");
       return false;
     }
@@ -91,7 +92,7 @@ const LandingLoginPage: React.FC = () => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          email: userEmailFromEntra
+          email: emailToUse
         })
       });
 
@@ -134,35 +135,121 @@ const LandingLoginPage: React.FC = () => {
       setLoading(true);
       await msalInstance.initialize();
       
-      // Try silent login first
-      const accounts = msalInstance.getAllAccounts();
       let userEmail: string | null = null;
       
+      console.log("=== MSAL Login Debug ===");
+      
+      // Try silent login first
+      const accounts = msalInstance.getAllAccounts();
+      console.log("Available accounts:", accounts.length, accounts);
+      
       if (accounts.length > 0) {
-        try {
-          const silentResponse = await msalInstance.acquireTokenSilent({ scopes: ["User.Read"], account: accounts[0] });
-          // Get email from the account in the silent response
-          userEmail = silentResponse.account?.username || accounts[0].username;
-        } catch (silentError) {
-          console.log("Silent login failed, trying popup:", silentError);
-          // Fallback to popup
-          const loginResponse = await msalInstance.loginPopup({ scopes: ["User.Read"] });
-          userEmail = loginResponse.account?.username;
+        // Try to get email from existing account first
+        const account = accounts[0];
+        console.log("Account object:", account);
+        console.log("Account username:", account.username);
+        console.log("Account name:", account.name);
+        console.log("Account localAccountId:", account.localAccountId);
+        
+        userEmail = account.username;
+        console.log("Email from existing account:", userEmail);
+        
+        if (!userEmail) {
+          try {
+            console.log("Username not available, attempting silent token acquisition...");
+            const silentResponse = await msalInstance.acquireTokenSilent({ 
+              scopes: loginRequest.scopes, 
+              account: account 
+            });
+            console.log("Silent response:", silentResponse);
+            console.log("Silent response account:", silentResponse.account);
+            userEmail = silentResponse.account?.username;
+            console.log("Email from silent response:", userEmail);
+          } catch (silentError) {
+            console.log("Silent login failed:", silentError);
+            console.log("Attempting popup login...");
+            
+            try {
+              const loginResponse = await msalInstance.loginPopup(loginRequest);
+              console.log("Popup login response:", loginResponse);
+              console.log("Popup login account:", loginResponse.account);
+              userEmail = loginResponse.account?.username;
+              console.log("Email from popup login:", userEmail);
+            } catch (popupError) {
+              console.error("Popup login failed:", popupError);
+              throw popupError;
+            }
+          }
         }
       } else {
-        // Popup login
-        const loginResponse = await msalInstance.loginPopup({ scopes: ["User.Read"] });
-        userEmail = loginResponse.account?.username;
+        console.log("No existing accounts, performing popup login...");
+        try {
+          const loginResponse = await msalInstance.loginPopup(loginRequest);
+          console.log("Fresh popup login response:", loginResponse);
+          console.log("Fresh popup login account:", loginResponse.account);
+          userEmail = loginResponse.account?.username;
+          console.log("Email from fresh popup login:", userEmail);
+        } catch (popupError) {
+          console.error("Fresh popup login failed:", popupError);
+          throw popupError;
+        }
       }
 
+      console.log("=== Final Results ===");
+      console.log("Final extracted user email:", userEmail);
+      
       // Ensure we have a valid email
       if (!userEmail) {
-        setMsalError("No user email available from Entra ID login. Please try again.");
-        setLoading(false);
-        return;
+        console.error("No user email extracted from any login method");
+        console.log("Attempting Microsoft Graph API call to get user profile...");
+        
+        try {
+          // Get an access token for Microsoft Graph
+          const accounts = msalInstance.getAllAccounts();
+          if (accounts.length > 0) {
+            const tokenResponse = await msalInstance.acquireTokenSilent({
+              scopes: ["User.Read"],
+              account: accounts[0]
+            });
+            
+            // Call Microsoft Graph API to get user profile
+            const response = await fetch('https://graph.microsoft.com/v1.0/me', {
+              headers: {
+                'Authorization': `Bearer ${tokenResponse.accessToken}`
+              }
+            });
+            
+            if (response.ok) {
+              const userProfile = await response.json();
+              console.log("Microsoft Graph user profile:", userProfile);
+              userEmail = userProfile.mail || userProfile.userPrincipalName;
+              console.log("Email from Graph API:", userEmail);
+            } else {
+              console.error("Graph API call failed:", response.status, response.statusText);
+            }
+          }
+        } catch (graphError) {
+          console.error("Microsoft Graph API call failed:", graphError);
+        }
+        
+        // Let's try one more time to get accounts after login
+        if (!userEmail) {
+          const finalAccounts = msalInstance.getAllAccounts();
+          console.log("Final accounts check:", finalAccounts);
+          if (finalAccounts.length > 0) {
+            userEmail = finalAccounts[0].username;
+            console.log("Email from final accounts check:", userEmail);
+          }
+        }
+        
+        if (!userEmail) {
+          setMsalError("No user email available from Entra ID login. Please check browser console for debug information and try again.");
+          setLoading(false);
+          return;
+        }
       }
 
-      console.log("Extracted user email:", userEmail);
+      console.log("Successfully extracted email:", userEmail);
       
       // Step 1: Verify the user is an admin
       const isValidAdmin = await verifyAdminCredentials(userEmail);
@@ -176,8 +263,8 @@ const LandingLoginPage: React.FC = () => {
       // Step 2: Store email and initiate verification code process
       setUserEmailFromEntra(userEmail);
       
-      // Step 3: Send verification code
-      const codeSuccess = await sendVerificationCode();
+      // Step 3: Send verification code (pass email directly to avoid state timing issues)
+      const codeSuccess = await sendVerificationCode(userEmail);
       if (codeSuccess) {
         setShowConfirmation(true);
       }

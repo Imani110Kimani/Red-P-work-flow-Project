@@ -11,4 +11,11 @@ export const msalConfig = {
     cacheLocation: 'localStorage',
     storeAuthStateInCookie: false,
   },
+  system: {
+    allowNativeBroker: false,
+  }
+};
+
+export const loginRequest = {
+  scopes: ["User.Read", "User.ReadBasic.All", "profile", "email"]
 };
