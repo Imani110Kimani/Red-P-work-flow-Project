@@ -179,6 +179,47 @@ def trigger_power_automate_flow(recipient, address, verdict):
         logging.error(f"Unexpected error triggering Power Automate flow: {str(e)}")
         return False
 
+def initialize_approved_student(row_key):
+    """
+    Initialize an approved student by calling the initStudent endpoint
+    """
+    try:
+        init_student_url = "https://simbamanageapprovedapplicants-c3a7cghkgjg5grfy.westus-01.azurewebsites.net/api/initStudent"
+        
+        payload = {
+            "rowKey": row_key
+        }
+        
+        logging.info(f"Initializing approved student with rowKey: {row_key}")
+        
+        response = requests.post(
+            init_student_url,
+            json=payload,
+            headers={'Content-Type': 'application/json'},
+            timeout=30
+        )
+        
+        if response.status_code == 200:
+            result = response.json()
+            logging.info(f"Successfully initialized student {row_key} with status: {result.get('redpStatus', 'unknown')}")
+            return True, result.get('message', 'Student initialized successfully')
+        else:
+            result = response.json()
+            error_msg = result.get('error', 'Unknown error')
+            if 'already initialized' in error_msg or 'already has email sent status' in error_msg:
+                logging.info(f"Student {row_key} already initialized: {error_msg}")
+                return True, error_msg  # This is okay - student was already processed
+            else:
+                logging.warning(f"Failed to initialize student {row_key}: {error_msg}")
+                return False, error_msg
+            
+    except requests.exceptions.RequestException as e:
+        logging.error(f"Network error initializing student {row_key}: {str(e)}")
+        return False, f"Network error: {str(e)}"
+    except Exception as e:
+        logging.error(f"Unexpected error initializing student {row_key}: {str(e)}")
+        return False, f"Unexpected error: {str(e)}"
+
 def main(req: HttpRequest) -> HttpResponse:
     logging.info('AddApproval function processed a request.')
     
@@ -320,6 +361,15 @@ def main(req: HttpRequest) -> HttpResponse:
                         response_message = f'Approval #{current_approval_count} added successfully. Approval threshold reached ({current_approval_count}/{approval_threshold})!'
                     status_code = 201  # Created - approval complete
                     logging.info(f"Approval threshold reached: {current_approval_count}/{approval_threshold}")
+                    
+                    # Initialize the approved student
+                    init_success, init_message = initialize_approved_student(row_key)
+                    if init_success:
+                        logging.info(f"Student initialization successful: {init_message}")
+                        response_message += f" Student automatically initialized for next steps."
+                    else:
+                        logging.warning(f"Student initialization failed: {init_message}")
+                        response_message += f" Note: Student initialization failed - {init_message}"
                     
                     # Trigger Power Automate flow for approval verdict
                     recipient_name = f"{entity.get('firstName', 'Applicant')} {entity.get('lastName', '')}"
