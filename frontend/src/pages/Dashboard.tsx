@@ -12,7 +12,7 @@ import ApplicantList from './ApplicantList';
 import AdmissionsTable from './AdmissionsTable';
 import './Dashboard.css';
 import logo from '../assets/redp-logo.png';
-import { FaTachometerAlt, FaUsers, FaUserGraduate, FaBell, FaSignOutAlt, FaBars, FaTimes } from 'react-icons/fa';
+import { FaTachometerAlt, FaUsers, FaUserGraduate, FaBell, FaSignOutAlt, FaBars, FaTimes, FaUserShield } from 'react-icons/fa';
 import NewAdmissionForm from './NewAdmissionForm';
 import { statusToString } from './utils';
 
@@ -207,6 +207,7 @@ const Dashboard: React.FC = () => {
           <button onClick={() => { navigate('/dashboard/applicants'); setSidebarOpen(false); }} style={{ width: '100%', textAlign: 'left', padding: '1rem 2rem', border: 'none', background: 'none' }}><FaUsers /> Applicants</button>
           <button onClick={() => { navigate('/dashboard/admissions'); setSidebarOpen(false); }} style={{ width: '100%', textAlign: 'left', padding: '1rem 2rem', border: 'none', background: 'none' }}><FaTachometerAlt /> Admissions</button>
           <button onClick={() => { navigate('/dashboard/student-verification'); setSidebarOpen(false); }} style={{ width: '100%', textAlign: 'left', padding: '1rem 2rem', border: 'none', background: 'none' }}><FaUserGraduate /> Students</button>
+          <button onClick={() => { navigate('/dashboard/admins'); setSidebarOpen(false); }} style={{ width: '100%', textAlign: 'left', padding: '1rem 2rem', border: 'none', background: 'none' }}><FaUserShield /> Admins</button>
           {/* Pending removed from sidebar */}
           <button onClick={() => { navigate('/dashboard/logs'); setSidebarOpen(false); }} style={{ width: '100%', textAlign: 'left', padding: '1rem 2rem', border: 'none', background: 'none' }}><FaBell /> Logs</button>
           
@@ -263,6 +264,7 @@ const Dashboard: React.FC = () => {
           <button onClick={() => navigate('/dashboard/applicants')}><FaUsers /> Applicants</button>
           <button onClick={() => navigate('/dashboard/admissions')}><FaTachometerAlt /> Admissions</button>
           <button onClick={() => navigate('/dashboard/student-verification')}><FaUserGraduate /> Students</button>
+          <button onClick={() => navigate('/dashboard/admins')}><FaUserShield /> Admins</button>
           <button onClick={() => navigate('/dashboard/logs')}><FaBell /> Logs</button>
           <button className="sidebar-logout" onClick={handleLogout}><FaSignOutAlt /> Logout</button>
         </nav>
@@ -592,6 +594,8 @@ const Dashboard: React.FC = () => {
           />
         ) : location.pathname === '/dashboard/admissions' ? (
           <AdmissionsTable applicants={apiApplicants} />
+        ) : location.pathname === '/dashboard/admins' ? (
+          <Outlet />
         ) : location.pathname === '/dashboard/logs' ? (
           <Outlet />
         ) : null}
