@@ -13,7 +13,7 @@ const BG = "#fff"; // White background
 
 const LandingLoginPage: React.FC = () => {
   const navigate = useNavigate();
-  const { setUserEmail } = useUser();
+  const { setUserEmail, setUserName, setUserPhoto } = useUser();
   const msalInstance = new PublicClientApplication(msalConfig);
   const [msalError, setMsalError] = useState("");
   const [loading, setLoading] = useState(true);
@@ -260,10 +260,53 @@ const LandingLoginPage: React.FC = () => {
         return;
       }
 
-      // Step 2: Store email and initiate verification code process
+      // Step 2: Fetch user profile and photo from Microsoft Graph
+  let userName: string | null = null;
+      let userPhoto: string | null = null;
+      try {
+        const accounts = msalInstance.getAllAccounts();
+        if (accounts.length > 0) {
+          const tokenResponse = await msalInstance.acquireTokenSilent({
+            scopes: ["User.Read"],
+            account: accounts[0]
+          });
+          // Fetch profile
+          const profileRes = await fetch('https://graph.microsoft.com/v1.0/me', {
+            headers: { 'Authorization': `Bearer ${tokenResponse.accessToken}` }
+          });
+          if (profileRes.ok) {
+            const profile = await profileRes.json();
+            userName = profile.displayName || profile.givenName || profile.surname || null;
+          }
+          // Fetch photo (returns binary, convert to base64)
+          const photoRes = await fetch('https://graph.microsoft.com/v1.0/me/photo/$value', {
+            headers: { 'Authorization': `Bearer ${tokenResponse.accessToken}` }
+          });
+          if (photoRes.ok) {
+            const blob = await photoRes.blob();
+            userPhoto = await new Promise<string>((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onloadend = () => resolve(reader.result as string);
+              reader.onerror = reject;
+              reader.readAsDataURL(blob);
+            });
+          }
+        }
+      } catch (e) {
+        console.warn('Could not fetch user profile/photo from Microsoft Graph:', e);
+      }
+
+      // Step 3: Store email, name, photo and initiate verification code process
       setUserEmailFromEntra(userEmail);
-      
-      // Step 3: Send verification code (pass email directly to avoid state timing issues)
+      // Fallback: if userName is null/empty, use the part before '@' from email
+      let fallbackName = userName;
+      if (!fallbackName && userEmail) {
+        fallbackName = userEmail.split('@')[0];
+      }
+      setUserName(fallbackName);
+      setUserPhoto(userPhoto);
+
+      // Step 4: Send verification code (pass email directly to avoid state timing issues)
       const codeSuccess = await sendVerificationCode(userEmail);
       if (codeSuccess) {
         setShowConfirmation(true);

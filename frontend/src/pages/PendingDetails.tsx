@@ -46,7 +46,7 @@ const PendingDetails: React.FC<{ applicants: Applicant[] }> = ({ applicants }) =
         />
       </div>
       <div style={{overflowX: 'auto'}}>
-        <table className="pending-table" style={{minWidth: 700}}>
+        <table className="pending-table" style={{minWidth: 700, color: 'var(--redp-text)', background: 'var(--redp-card)'}}>
           <thead>
             <tr>
               <th>Name</th>
