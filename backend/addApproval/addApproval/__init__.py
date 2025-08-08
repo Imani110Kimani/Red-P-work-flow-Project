@@ -143,41 +143,30 @@ def add_denial(entity, email, timestamp):
     entity[f'timeOfDenial{i}'] = timestamp
     return i
 
-def trigger_power_automate_flow(recipient, address, verdict):
+def trigger_power_automate_flow(recipient, address, verdict, row_key=None):
     """
     Trigger Power Automate flow when a verdict is reached
+    Now includes rowKey in the payload.
     """
     try:
         power_automate_url = "https://prod-37.westus.logic.azure.com:443/workflows/c2a9b1269e53415197930e5fffcb788a/triggers/manual/paths/invoke?api-version=2016-06-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=9KZ72xAJyzhzneU7_ntAIL8P-x-InfvHh613oiHyA2w"
-        
         payload = {
             "recipient": recipient,
             "address": address,
-            "verdict": verdict
+            "verdict": verdict,
+            "rowKey": row_key
         }
-        
-        logging.info(f"Triggering Power Automate flow for {recipient} with verdict: {verdict}")
-        
-        response = requests.post(
+        logging.info(f"Triggering Power Automate flow for {recipient} with verdict: {verdict} and rowKey: {row_key}")
+        # Fire-and-forget: do not wait for or check the response
+        requests.post(
             power_automate_url,
             json=payload,
             headers={'Content-Type': 'application/json'},
-            timeout=10
+            timeout=5
         )
-        
-        if response.status_code == 200:
-            logging.info(f"Successfully triggered Power Automate flow for {recipient}")
-            return True
-        else:
-            logging.warning(f"Power Automate flow returned status {response.status_code}: {response.text}")
-            return False
-            
-    except requests.exceptions.RequestException as e:
-        logging.error(f"Failed to trigger Power Automate flow: {str(e)}")
-        return False
     except Exception as e:
-        logging.error(f"Unexpected error triggering Power Automate flow: {str(e)}")
-        return False
+        logging.error(f"Error triggering Power Automate flow: {str(e)}")
+    # No return value, fire-and-forget
 
 def initialize_approved_student(row_key):
     """
@@ -222,7 +211,6 @@ def initialize_approved_student(row_key):
 
 def main(req: HttpRequest) -> HttpResponse:
     logging.info('AddApproval function processed a request.')
-    
     try:
         # Get connection string from environment variables
         connection_string = os.getenv('AZURE_STORAGE_CONNECTION_STRING')
@@ -317,6 +305,16 @@ def main(req: HttpRequest) -> HttpResponse:
                 status_code=404,
                 mimetype="application/json"
             )
+        except Exception as e:
+            logging.error(f"Unexpected error fetching entity: {str(e)}")
+            return HttpResponse(
+                json.dumps({
+                    "error": "Unexpected error fetching entity",
+                    "details": str(e)
+                }),
+                status_code=500,
+                mimetype="application/json"
+            )
         
         response_message = ""
         status_code = 200
@@ -361,20 +359,19 @@ def main(req: HttpRequest) -> HttpResponse:
                         response_message = f'Approval #{current_approval_count} added successfully. Approval threshold reached ({current_approval_count}/{approval_threshold})!'
                     status_code = 201  # Created - approval complete
                     logging.info(f"Approval threshold reached: {current_approval_count}/{approval_threshold}")
-                    
-                    # Initialize the approved student
-                    init_success, init_message = initialize_approved_student(row_key)
-                    if init_success:
-                        logging.info(f"Student initialization successful: {init_message}")
-                        response_message += f" Student automatically initialized for next steps."
+
+                    # Directly update RedpStatus instead of calling initStudent
+                    current_status = entity.get('RedpStatus', '').lower()
+                    if current_status != 'email sent':
+                        entity['RedpStatus'] = 'pending'
+                        response_message += " Student status set to Pending."
                     else:
-                        logging.warning(f"Student initialization failed: {init_message}")
-                        response_message += f" Note: Student initialization failed - {init_message}"
-                    
+                        response_message += " Student status remains 'email sent'."
+
                     # Trigger Power Automate flow for approval verdict
                     recipient_name = f"{entity.get('firstName', 'Applicant')} {entity.get('lastName', '')}"
                     recipient_email = entity.get('email', 'Unknown')
-                    trigger_power_automate_flow(recipient_name, recipient_email, "Approved")
+                    trigger_power_automate_flow(recipient_name, recipient_email, "Approved", row_key=row_key)
                 else:
                     # Still need more approvals
                     if denial_changed:
@@ -420,7 +417,7 @@ def main(req: HttpRequest) -> HttpResponse:
                     # Trigger Power Automate flow for denial verdict
                     recipient_name = f"{entity.get('firstName', 'Applicant')} {entity.get('lastName', '')}"
                     recipient_email = entity.get('email', 'Unknown')
-                    trigger_power_automate_flow(recipient_name, recipient_email, "Denied")
+                    trigger_power_automate_flow(recipient_name, recipient_email, "Denied", row_key=row_key)
                 else:
                     # Still need more denials
                     if approval_changed:
