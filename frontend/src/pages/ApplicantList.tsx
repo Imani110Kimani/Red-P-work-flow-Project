@@ -413,10 +413,11 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
           const applicantKey = `${applicant.partitionKey}|${applicant.rowKey}`;
           // Get actual approval and denial data from API
           const actualApprovalData = approvalData[applicantKey];
-          const approvedByEmails: string[] = actualApprovalData?.approvals || [];
-          const deniedByEmails: string[] = actualApprovalData?.denials || [];
+          const approvedByEmails: string[] | undefined = actualApprovalData?.approvals;
+          const deniedByEmails: string[] | undefined = actualApprovalData?.denials;
           // Use backend status for display
           const status = statusToString(applicant.status === undefined ? null : Number(applicant.status));
+          const isLoadingDetails = actualApprovalData === undefined;
           return (
             <div className="applicant-list-row" key={applicantKey} style={{display: 'grid', gridTemplateColumns: '0.5fr 0.7fr 1.5fr 1.5fr 1fr 2fr 2fr 1.5fr', gap: 16, alignItems: 'center', padding: '1rem', borderBottom: '1px solid #eee', background: idx % 2 === 0 ? '#fff' : '#f7f7f7'}}>
               {/* Checkbox */}
@@ -489,9 +490,11 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
                     display: 'flex',
                     alignItems: 'center',
                   }}
-                  title={`Approvals: ${approvedByEmails.length > 0 ? approvedByEmails.join(', ') : 'None'}`}
+                  title={isLoadingDetails ? 'Loading approvals...' : `Approvals: ${approvedByEmails && approvedByEmails.length > 0 ? approvedByEmails.join(', ') : 'None'}`}
                 >
-                  {approvedByEmails.length > 0 ? (
+                  {isLoadingDetails ? (
+                    <span style={{ color: '#bbb', fontStyle: 'italic' }}>Loading...</span>
+                  ) : approvedByEmails && approvedByEmails.length > 0 ? (
                     <div style={{ lineHeight: '1.2' }}>
                       {approvedByEmails.map((email, emailIdx) => (
                         <div key={emailIdx} style={{ marginBottom: emailIdx < approvedByEmails.length - 1 ? '2px' : '0' }}>
@@ -520,9 +523,11 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
                     display: 'flex',
                     alignItems: 'center',
                   }}
-                  title={`Denials: ${deniedByEmails.length > 0 ? deniedByEmails.join(', ') : 'None'}`}
+                  title={isLoadingDetails ? 'Loading denials...' : `Denials: ${deniedByEmails && deniedByEmails.length > 0 ? deniedByEmails.join(', ') : 'None'}`}
                 >
-                  {deniedByEmails.length > 0 ? (
+                  {isLoadingDetails ? (
+                    <span style={{ color: '#bbb', fontStyle: 'italic' }}>Loading...</span>
+                  ) : deniedByEmails && deniedByEmails.length > 0 ? (
                     <div style={{ lineHeight: '1.2' }}>
                       {deniedByEmails.map((email, emailIdx) => (
                         <div key={emailIdx} style={{ marginBottom: emailIdx < deniedByEmails.length - 1 ? '2px' : '0' }}>
