@@ -1,0 +1,57 @@
+.faceid-camera-container {
+  max-width: 420px;
+  margin: 48px auto 0 auto;
+  background: #f1f5f5;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px 0 rgba(2,60,105,0.04);
+  padding: 32px 18px 24px 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.camera-box {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+.camera-controls {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+.camera-controls button {
+  border-radius: 10px;
+  background: linear-gradient(135deg, #f39c12, #e67e22);
+  color: #fff;
+  border: none;
+  padding: 0.6em 1.2em;
+  font-size: 1em;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.25s, color 0.25s;
+}
+.camera-controls button:hover {
+  background: linear-gradient(135deg, #e67e22, #d35400);
+}
+.camera-controls button:disabled {
+  background: #ccc !important;
+  color: #666 !important;
+  cursor: not-allowed;
+}
+.preview-box {
+  margin-top: 1rem;
+  text-align: center;
+}
+.loading {
+  color: #dc2626;
+  margin-top: 1rem;
+}
+.result {
+  color: #22c55e;
+  margin-top: 1rem;
+}
+.error {
+  color: #dc2626;
+  margin-top: 1rem;
+}

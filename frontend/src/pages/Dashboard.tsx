@@ -210,6 +210,7 @@ const Dashboard: React.FC = () => {
           <button onClick={() => { navigate('/dashboard/admins'); setSidebarOpen(false); }} style={{ width: '100%', textAlign: 'left', padding: '1rem 2rem', border: 'none', background: 'none' }}><FaUserShield /> Admins</button>
           {/* Pending removed from sidebar */}
           <button onClick={() => { navigate('/dashboard/logs'); setSidebarOpen(false); }} style={{ width: '100%', textAlign: 'left', padding: '1rem 2rem', border: 'none', background: 'none' }}><FaBell /> Logs</button>
+
           
           {/* User info in mobile menu */}
           {userEmail && (
@@ -266,6 +267,7 @@ const Dashboard: React.FC = () => {
           <button onClick={() => navigate('/dashboard/student-verification')}><FaUserGraduate /> Students</button>
           <button onClick={() => navigate('/dashboard/admins')}><FaUserShield /> Admins</button>
           <button onClick={() => navigate('/dashboard/logs')}><FaBell /> Logs</button>
+
           <button className="sidebar-logout" onClick={handleLogout}><FaSignOutAlt /> Logout</button>
         </nav>
       </aside>

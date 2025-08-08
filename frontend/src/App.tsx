@@ -1,6 +1,7 @@
 import redpLogo from './assets/redp-logo.png';
 import React from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import FaceIDCamera from "./pages/FaceIDCamera";
 import Dashboard from "./pages/Dashboard";
 import Notifications from "./pages/Notifications";
 import LandingLoginPage from "./pages/LandingLoginPage";
@@ -68,8 +69,9 @@ const App: React.FC = () => (
           {/* Change notifications route to logs */}
           <Route path="logs" element={<Notifications />} />
         </Route>
-        {/* Fallback for 404 */}
-        <Route path="*" element={<div style={{padding: '2rem', textAlign: 'center'}}><h2>404 - Page Not Found</h2></div>} />
+  <Route path="faceid-camera" element={<FaceIDCamera />} />
+  {/* Fallback for 404 */}
+  <Route path="*" element={<div style={{padding: '2rem', textAlign: 'center'}}><h2>404 - Page Not Found</h2></div>} />
       </Routes>
     </BrowserRouter>
     {/* Notifications are now only shown on /dashboard/logs route */}
