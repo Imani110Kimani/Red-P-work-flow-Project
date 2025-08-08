@@ -9,6 +9,10 @@ const FaceIDCamera: React.FC = () => {
   const [result, setResult] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+
+  // Camera state
+  const [cameraActive, setCameraActive] = useState(false);
+
   // Start the camera
   const startCamera = async () => {
     setError(null);
@@ -20,9 +24,20 @@ const FaceIDCamera: React.FC = () => {
         videoRef.current.srcObject = stream;
         videoRef.current.play();
       }
+      setCameraActive(true);
     } catch (err) {
       setError('Could not access camera.');
     }
+  };
+
+  // Stop the camera
+  const stopCamera = () => {
+    if (videoRef.current && videoRef.current.srcObject) {
+      const stream = videoRef.current.srcObject as MediaStream;
+      stream.getTracks().forEach(track => track.stop());
+      videoRef.current.srcObject = null;
+    }
+    setCameraActive(false);
   };
 
   // Capture the image
@@ -67,9 +82,24 @@ const FaceIDCamera: React.FC = () => {
         <canvas ref={canvasRef} width={320} height={240} style={{ display: 'none' }} />
       </div>
       <div className="camera-controls">
-        <button onClick={startCamera}>Start Camera</button>
-        <button onClick={captureImage} disabled={!videoRef.current || !videoRef.current.srcObject}>Capture</button>
-        <button onClick={sendToBackend} disabled={!capturedImage || loading}>Verify</button>
+        {/* Initial state: only show Start Camera */}
+        {!cameraActive && !capturedImage && (
+          <button onClick={startCamera}>Start Camera</button>
+        )}
+        {/* Camera active, no image: show Capture and Stop Camera */}
+        {cameraActive && !capturedImage && (
+          <>
+            <button onClick={captureImage}>Capture</button>
+            <button onClick={stopCamera}>Stop Camera</button>
+          </>
+        )}
+        {/* Image captured: show Capture (to retake) and Verify */}
+        {capturedImage && (
+          <>
+            <button onClick={() => { setCapturedImage(null); setResult(null); setError(null); setTimeout(() => { if (!cameraActive) startCamera(); }, 0); }}>Retake</button>
+            <button onClick={sendToBackend}>Verify</button>
+          </>
+        )}
       </div>
       {capturedImage && (
         <div className="preview-box">
