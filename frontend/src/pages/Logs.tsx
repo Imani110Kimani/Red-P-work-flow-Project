@@ -27,7 +27,7 @@ const Logs: React.FC = () => {
 
   // Transform detailed applicant data into logs
   const logs = useMemo(() => {
-    let allLogs: Array<{ id: string; applicantName: string; action: string; by: string; time: string }> = [];
+    const allLogs: Array<{ id: string; applicantName: string; action: string; by: string; time: string }> = [];
     applicants.forEach(app => {
       const key = `${app.partitionKey}|${app.rowKey}`;
       const details = detailedApplicants[key];

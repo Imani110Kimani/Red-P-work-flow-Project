@@ -11,10 +11,11 @@ const PRIMARY = "#ff3d00"; // REDP Red
 const ACCENT = "#ff9800"; // REDP Orange
 const BG = "#fff"; // White background
 
+const msalInstance = new PublicClientApplication(msalConfig);
+
 const LandingLoginPage: React.FC = () => {
   const navigate = useNavigate();
   const { setUserEmail, setUserName, setUserPhoto } = useUser();
-  const msalInstance = new PublicClientApplication(msalConfig);
   const [msalError, setMsalError] = useState("");
   const [loading, setLoading] = useState(true);
   const [showConfirmation, setShowConfirmation] = useState(false);
@@ -33,7 +34,7 @@ const LandingLoginPage: React.FC = () => {
       }
     };
     initializeMsal();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, []);
 
   // Check if the email is a valid admin user using the admin management API
