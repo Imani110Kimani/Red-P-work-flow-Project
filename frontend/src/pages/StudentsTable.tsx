@@ -36,8 +36,8 @@ const StudentsTable: React.FC<{ applicants: Applicant[] }> = ({ applicants }) =>
   // Dropdown options for applicants per page
   const pageSizeOptions = [10, 25, 50, 100];
 
-  // Filter for approved students only
-  const approvedStudents = applicants.filter(a => a.status === 'Approved');
+  // Filter for approved students only (status 2 or '2' or 'Approved')
+  const approvedStudents = applicants.filter(a => String(a.status) === '2' || a.status === 'Approved');
 
   // Filter by search
   const filteredStudents = approvedStudents.filter(a => {
@@ -58,56 +58,36 @@ const StudentsTable: React.FC<{ applicants: Applicant[] }> = ({ applicants }) =>
 
   // Reset to page 1 if search changes
   useEffect(() => { setCurrentPage(1); }, [search]);
-
+  // ...existing code...
   return (
-    <div className="students-table-container" style={{maxWidth: 1100, width: '100%', margin: '2rem auto'}}>
+  <div className="students-table-container" style={{maxWidth: 600, width: '100%', margin: '2rem auto'}}>
       <h2>Approved Students</h2>
       {/* Search bar */}
       <div style={{ marginBottom: 16 }}>
         <input
           type="text"
-          placeholder="Search by name or school..."
+          placeholder="Search by first or last name..."
           value={search}
           onChange={e => setSearch(e.target.value)}
           style={{ padding: '8px 12px', borderRadius: 6, border: '1px solid #ccc', fontSize: 16, width: 240 }}
         />
       </div>
       <div style={{overflowX: 'auto'}}>
-        <table className="students-table" style={{minWidth: 700}}>
+        <table className="dashboard-table" style={{ color: 'var(--redp-text)', background: 'var(--redp-card)' }}>
           <thead>
             <tr>
-              <th>Name</th>
-              <th>School</th>
-              <th>Grade Level</th>
-              <th>Contact</th>
-              <th>Status</th>
+      <th className="dashboard-table-header-cell" style={{ color: 'var(--redp-table-header)', background: 'var(--redp-table-header-bg)' }}>First Name</th>
+      <th className="dashboard-table-header-cell" style={{ color: 'var(--redp-table-header)', background: 'var(--redp-table-header-bg)' }}>Last Name</th>
             </tr>
           </thead>
           <tbody>
             {paginatedStudents.length === 0 ? (
-              <tr><td colSpan={5} style={{ textAlign: 'center', color: '#888' }}>No approved students found.</td></tr>
+              <tr><td colSpan={2} className="dashboard-table-cell" style={{ textAlign: 'center', color: 'var(--redp-text)', background: 'var(--redp-table-bg)' }}>No approved students found.</td></tr>
             ) : (
               paginatedStudents.map(student => (
-                <tr key={student.id} style={{ borderBottom: '1.5px solid #ff9800', background: '#fff' }}>
-                  <td style={{ color: '#222', fontWeight: 500 }}>{student.firstName}</td>
-                  <td style={{ color: '#222', fontWeight: 500 }}>{student.lastName}</td>
-                  <td style={{ color: '#222', fontWeight: 500 }}>{student.schoolName}</td>
-                  <td style={{ color: '#222', fontWeight: 500 }}>{student.gradeLevel}</td>
-                  <td style={{ color: '#222', fontWeight: 500 }}>{student.email}</td>
-                  <td style={{ color: '#222', fontWeight: 500 }}>{student.phone}</td>
-                  <td style={{ color: '#222', fontWeight: 500 }}>{student.dateOfBirth}</td>
-                  <td style={{ color: '#222', fontWeight: 500 }}>{student.location}</td>
-                  <td style={{
-                    padding: '4px 12px',
-                    borderRadius: '20px',
-                    fontSize: '0.875rem',
-                    fontWeight: 600,
-                    textAlign: 'center',
-                    color: 'white',
-                    background: '#4caf50'
-                  }}>
-                    {statusToString(student.status)}
-                  </td>
+                <tr key={student.id} className="dashboard-table-row">
+                  <td className="dashboard-table-cell" style={{ color: 'var(--redp-text)', background: 'var(--redp-table-bg)' }}>{student.firstName}</td>
+                  <td className="dashboard-table-cell" style={{ color: 'var(--redp-text)', background: 'var(--redp-table-bg)' }}>{student.lastName}</td>
                 </tr>
               ))
             )}

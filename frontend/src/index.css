@@ -1,3 +1,21 @@
+:root {
+  --redp-table-header: #e53935;
+  --redp-table-header-bg: #ffe0b2;
+  --redp-table-bg: #fff;
+  --redp-table-btn-bg: #fff;
+  --redp-status-approved: #00c853;
+  --redp-status-denied: #e53935;
+  --redp-status-pending: #ff9800;
+}
+.dark {
+  --redp-table-header: #fff;
+  --redp-table-header-bg: #b71c1c;
+  --redp-table-bg: #232526;
+  --redp-table-btn-bg: #232526;
+  --redp-status-approved: #00e676;
+  --redp-status-denied: #ff5252;
+  --redp-status-pending: #ffd600;
+}
 /* Professional admin dashboard container style */
 .container {
   background: #fff;
@@ -9,19 +27,35 @@
   max-width: 1100px;
   width: 100%;
 }
+
 :root {
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
-
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
-
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+.redp-app-bg {
+  min-height: 100vh;
+  background: var(--redp-bg);
+  transition: background 0.3s;
+}
+
+:root {
+  --redp-bg: #fff;
+  --redp-card: #fff;
+  --redp-text: #222;
+  --redp-accent: #e53935;
+}
+
+.dark {
+  --redp-bg: #181a1b;
+  --redp-card: #232526;
+  --redp-text: #f5f5f5;
+  --redp-accent: #ff9800;
 }
 
 a {

@@ -419,7 +419,7 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
           const status = statusToString(applicant.status === undefined ? null : Number(applicant.status));
           const isLoadingDetails = actualApprovalData === undefined;
           return (
-            <div className="applicant-list-row" key={applicantKey} style={{display: 'grid', gridTemplateColumns: '0.5fr 0.7fr 1.5fr 1.5fr 1fr 2fr 2fr 1.5fr', gap: 16, alignItems: 'center', padding: '1rem', borderBottom: '1px solid #eee', background: idx % 2 === 0 ? '#fff' : '#f7f7f7'}}>
+            <div className="applicant-list-row dashboard-table-row" key={applicantKey} style={{display: 'grid', gridTemplateColumns: '0.5fr 0.7fr 1.5fr 1.5fr 1fr 2fr 2fr 1.5fr', gap: 16, alignItems: 'center', padding: '1rem', borderBottom: '1px solid #eee', background: idx % 2 === 0 ? '#fff' : '#f7f7f7'}}>
               {/* Checkbox */}
               <span>
                 <input
@@ -459,22 +459,10 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
                   </span>
                 )}
               </span>
-              <span>{applicant.firstName}</span>
-              <span>{applicant.lastName}</span>
-              <span style={{
-                padding: '4px 12px',
-                borderRadius: '20px',
-                fontSize: '0.875rem',
-                fontWeight: 600,
-                textAlign: 'center',
-                color: 'white',
-                background: status === 'Approved' ? '#43a047' : status === 'Pending' ? '#ff9800' : status === 'Denied' ? '#f44336' : '#ff9800',
-                minWidth: 90,
-                display: 'inline-block',
-              }}>
-                {status}
-              </span>
-              <span style={{ minWidth: 120 }}>
+              <span className="dashboard-table-cell">{applicant.firstName}</span>
+              <span className="dashboard-table-cell">{applicant.lastName}</span>
+              <span className={`dashboard-table-cell dashboard-status ${status.toLowerCase()}`}>{status}</span>
+              <span className="dashboard-table-cell" style={{ minWidth: 120 }}>
                 <div
                   style={{
                     border: '1.5px solid #ff9800',
@@ -507,7 +495,7 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
                   )}
                 </div>
               </span>
-              <span style={{ minWidth: 120 }}>
+              <span className="dashboard-table-cell" style={{ minWidth: 120 }}>
                 <div
                   style={{
                     border: '1.5px solid #f44336',
@@ -540,31 +528,10 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
                   )}
                 </div>
               </span>
-              <span style={{display: 'flex', gap: 8, alignItems: 'center'}}>
+              <span className="dashboard-table-cell" style={{display: 'flex', gap: 8, alignItems: 'center'}}>
                 {/* Only show View button */}
                 <button
-                  className="details-link"
-                  style={{
-                    marginLeft: 8,
-                    background: 'transparent',
-                    color: '#ff3d00',
-                    border: '1.5px solid #ff3d00',
-                    borderRadius: 5,
-                    padding: '4px 12px',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    transition: 'background 0.2s, color 0.2s',
-                  }}
-                  onMouseOver={e => {
-                    e.currentTarget.style.background = '#ff9800';
-                    e.currentTarget.style.color = '#fff';
-                    e.currentTarget.style.borderColor = '#ff9800';
-                  }}
-                  onMouseOut={e => {
-                    e.currentTarget.style.background = 'transparent';
-                    e.currentTarget.style.color = '#ff3d00';
-                    e.currentTarget.style.borderColor = '#ff3d00';
-                  }}
+                  className="details-link dashboard-table-btn"
                   onClick={() => handleViewApplicant(applicant.partitionKey, applicant.rowKey)}
                 >
                   View
