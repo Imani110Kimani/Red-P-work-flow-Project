@@ -5,7 +5,7 @@ import { statusToString } from './utils';
 // Backend engineers: Integrate API calls for fetching applicants, updating status, and deleting applicants where noted below.
 // For Azure Functions, connect the action handlers to your HTTP triggers or function endpoints.
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import './ApplicantList.css';
 import { FaUserCircle } from 'react-icons/fa';
 import { useUser } from '../contexts/UserContext';
@@ -48,6 +48,9 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
     refetchApplicants
   } = useApplicantData();
   
+  // Track if this is the first load to force fresh data
+  const isFirstLoad = useRef(true);
+  
   // State for storing detailed applicant data for modal
   const [modalApplicant, setModalApplicant] = useState<ApplicantDetailed | null>(null);
   // State for modal loading (separate from main loading)
@@ -77,28 +80,41 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
   
   // Add state for storing actual approval and denial data from the API
   const [approvalData, setApprovalData] = useState<{ [key: string]: { 
-    approval1?: string, 
-    approval2?: string,
-    denial1?: string,
-    denial2?: string
+    approvals: string[],
+    denials: string[]
   } }>({});
+
+  // Helper function to extract all approval and denial emails from an applicant object
+  const extractApprovalDenialEmails = (applicant: any) => {
+    const approvals: string[] = [];
+    const denials: string[] = [];
+    
+    // Extract all approval fields (approval1, approval2, approval3, etc.)
+    let i = 1;
+    while (applicant[`approval${i}`]) {
+      approvals.push(applicant[`approval${i}`]);
+      i++;
+    }
+    
+    // Extract all denial fields (denial1, denial2, denial3, etc.)
+    i = 1;
+    while (applicant[`denial${i}`]) {
+      denials.push(applicant[`denial${i}`]);
+      i++;
+    }
+    
+    return { approvals, denials };
+  };
 
   // Update approval data when detailed applicants change
   useEffect(() => {
     const newApprovalData: { [key: string]: { 
-      approval1?: string, 
-      approval2?: string,
-      denial1?: string,
-      denial2?: string
+      approvals: string[],
+      denials: string[]
     } } = {};
     
     Object.entries(detailedApplicants).forEach(([key, applicant]) => {
-      newApprovalData[key] = {
-        approval1: applicant.approval1 || '',
-        approval2: applicant.approval2 || '',
-        denial1: applicant.denial1 || '',
-        denial2: applicant.denial2 || ''
-      };
+      newApprovalData[key] = extractApprovalDenialEmails(applicant);
     });
     
     setApprovalData(newApprovalData);
@@ -109,8 +125,16 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
     const fetchAllDetails = async () => {
       if (applicants.length === 0) return;
 
-      console.log('ApplicantList: Triggering batch fetch for all applicants');
-      await fetchAllApplicantDetails(applicants);
+      // Force fetch on first load to ensure fresh approval/denial data
+      const shouldForce = isFirstLoad.current;
+      if (isFirstLoad.current) {
+        isFirstLoad.current = false;
+        console.log('ApplicantList: First load - forcing fresh fetch of all approval/denial data');
+      } else {
+        console.log('ApplicantList: Triggering batch fetch for all applicants');
+      }
+      
+      await fetchAllApplicantDetails(applicants, shouldForce);
     };
 
     // Fetch detailed data for all applicants using the efficient batch method
@@ -140,7 +164,14 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
   const handleRefresh = async () => {
     try {
       console.log('Manual refresh triggered by user');
-      await refetchApplicants(true); // Force refresh with true parameter
+      await refetchApplicants(true); // Force refresh basic applicant data
+      
+      // Also force refresh detailed data with approval/denial information
+      if (applicants.length > 0) {
+        console.log('Manual refresh - forcing fresh fetch of all approval/denial data');
+        await fetchAllApplicantDetails(applicants, true);
+      }
+      
       addNotification('Data refreshed successfully', 'success');
     } catch (error) {
       console.error('Error refreshing data:', error);
@@ -384,16 +415,11 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
           const applicantKey = `${applicant.partitionKey}|${applicant.rowKey}`;
           // Get actual approval and denial data from API
           const actualApprovalData = approvalData[applicantKey];
-          const approvedByEmails: string[] = [];
-          const deniedByEmails: string[] = [];
-          if (actualApprovalData) {
-            if (actualApprovalData.approval1) approvedByEmails.push(actualApprovalData.approval1);
-            if (actualApprovalData.approval2) approvedByEmails.push(actualApprovalData.approval2);
-            if (actualApprovalData.denial1) deniedByEmails.push(actualApprovalData.denial1);
-            if (actualApprovalData.denial2) deniedByEmails.push(actualApprovalData.denial2);
-          }
+          const approvedByEmails: string[] | undefined = actualApprovalData?.approvals;
+          const deniedByEmails: string[] | undefined = actualApprovalData?.denials;
           // Use backend status for display
           const status = statusToString(applicant.status === undefined ? null : Number(applicant.status));
+          const isLoadingDetails = actualApprovalData === undefined;
           return (
             <div className="applicant-list-row" key={applicantKey} style={{display: 'grid', gridTemplateColumns: '0.5fr 0.7fr 1.5fr 1.5fr 1fr 2fr 2fr 1.5fr', gap: 16, alignItems: 'center', padding: '1rem', borderBottom: '1px solid #eee', background: idx % 2 === 0 ? '#fff' : '#f7f7f7'}}>
               {/* Checkbox */}
@@ -466,9 +492,11 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
                     display: 'flex',
                     alignItems: 'center',
                   }}
-                  title={`Approvals: ${approvedByEmails.length > 0 ? approvedByEmails.join(', ') : 'None'}`}
+                  title={isLoadingDetails ? 'Loading approvals...' : `Approvals: ${approvedByEmails && approvedByEmails.length > 0 ? approvedByEmails.join(', ') : 'None'}`}
                 >
-                  {approvedByEmails.length > 0 ? (
+                  {isLoadingDetails ? (
+                    <span style={{ color: '#bbb', fontStyle: 'italic' }}>Loading...</span>
+                  ) : approvedByEmails && approvedByEmails.length > 0 ? (
                     <div style={{ lineHeight: '1.2' }}>
                       {approvedByEmails.map((email, emailIdx) => (
                         <div key={emailIdx} style={{ marginBottom: emailIdx < approvedByEmails.length - 1 ? '2px' : '0' }}>
@@ -497,9 +525,11 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
                     display: 'flex',
                     alignItems: 'center',
                   }}
-                  title={`Denials: ${deniedByEmails.length > 0 ? deniedByEmails.join(', ') : 'None'}`}
+                  title={isLoadingDetails ? 'Loading denials...' : `Denials: ${deniedByEmails && deniedByEmails.length > 0 ? deniedByEmails.join(', ') : 'None'}`}
                 >
-                  {deniedByEmails.length > 0 ? (
+                  {isLoadingDetails ? (
+                    <span style={{ color: '#bbb', fontStyle: 'italic' }}>Loading...</span>
+                  ) : deniedByEmails && deniedByEmails.length > 0 ? (
                     <div style={{ lineHeight: '1.2' }}>
                       {deniedByEmails.map((email, emailIdx) => (
                         <div key={emailIdx} style={{ marginBottom: emailIdx < deniedByEmails.length - 1 ? '2px' : '0' }}>

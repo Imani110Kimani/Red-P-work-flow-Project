@@ -1,0 +1,3 @@
+[submodule "backend/redpEmailForm"]
+	path = backend/redpEmailForm
+	url = https://github.com/leejustin01/redpConfirmEmail

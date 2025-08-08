@@ -11,9 +11,16 @@ import StudentVerificationDetails from "./pages/StudentVerificationDetails";
 import SchoolVerificationDetails from "./pages/SchoolVerificationDetails";
 import ApplicantList from "./pages/ApplicantList";
 import ApplicantDetails from "./pages/ApplicantDetails";
+<<<<<<< HEAD
 // import AdmissionDetails from "./pages/AdmissionsDetails";
 import Students from "./pages/Students";
 import Admissions from "./pages/Admissions";
+=======
+import AdmissionDetails from "./pages/AdmissionsDetails";
+import PendingDetails from "./pages/PendingDetails";
+import AdminsTable from "./pages/AdminsTable";
+import { useApplicantData } from "./contexts/ApplicantDataContext";
+>>>>>>> 3d5021cbf3ada6c1272a1ddc84a4f7903aff7c15
 
 // Handler for approve/deny actions
 const handleApplicantAction = async (partitionKey, rowKey, newStatus, adminEmail) => {
@@ -59,6 +66,13 @@ const App: React.FC = () => (
           <Route path="school-verification/:id" element={<SchoolVerificationDetails />} />
         <Route path="applicants" element={<ApplicantList onAction={handleApplicantAction} />} />
           <Route path="applicants/:id" element={<ApplicantDetails />} />
+<<<<<<< HEAD
+=======
+          <Route path="pending" element={<PendingDetailsWithFetch />} />
+          <Route path="pending/:id" element={<PendingDetailsWithFetch />} />
+          <Route path="admins" element={<AdminsTable />} />
+          {/* Change notifications route to logs */}
+>>>>>>> 3d5021cbf3ada6c1272a1ddc84a4f7903aff7c15
           <Route path="logs" element={<Notifications />} />
           <Route path="fee-portal" element={<FeePortal />} />
           {/* Let Dashboard handle unmatched dashboard routes (shows creative info page) */}

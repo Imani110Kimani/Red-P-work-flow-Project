@@ -4,6 +4,12 @@ import { useNavigate, Outlet, useLocation } from 'react-router-dom';
 import { useUser } from '../contexts/UserContext';
 import { useApplicantData } from '../contexts/ApplicantDataContext';
 import './Dashboard.css';
+<<<<<<< HEAD
+=======
+import logo from '../assets/redp-logo.png';
+import { FaTachometerAlt, FaUsers, FaUserGraduate, FaBell, FaSignOutAlt, FaBars, FaTimes, FaUserShield } from 'react-icons/fa';
+import NewAdmissionForm from './NewAdmissionForm';
+>>>>>>> 3d5021cbf3ada6c1272a1ddc84a4f7903aff7c15
 import { statusToString } from './utils';
 
 // Sidebar navigation links with SVG icons
@@ -92,6 +98,7 @@ const Dashboard: React.FC = () => {
   const isDashboardHome = location.pathname === '/dashboard' || location.pathname === '/dashboard/';
 
   return (
+<<<<<<< HEAD
     <div className="dashboard-layout" style={{ display: 'flex', minHeight: '100vh', background: '#f7f7fa' }}>
       {/* Sidebar */}
       <aside className="dashboard-sidebar" style={{ width: 240, background: '#fff', borderRight: '1px solid #eee', display: 'flex', flexDirection: 'column', alignItems: 'stretch', padding: '2rem 0 1rem 0', boxShadow: '2px 0 12px 0 rgba(34,34,34,0.04)', zIndex: 10 }}>
@@ -117,6 +124,109 @@ const Dashboard: React.FC = () => {
               {link.label}
             </button>
           ))}
+=======
+    <div className="admin-layout" style={{ position: 'relative' }}>
+      {/* Hamburger menu for mobile */}
+      <button
+        className="dashboard-hamburger"
+        style={{
+          position: 'fixed',
+          top: 18,
+          left: 18,
+          zIndex: 30,
+          background: '#fff',
+          border: 'none',
+          borderRadius: 6,
+          padding: 8,
+        }}
+        onClick={() => setSidebarOpen(!sidebarOpen)}
+        aria-label="Open menu"
+      >
+        {sidebarOpen ? <FaTimes size={22} /> : <FaBars size={22} />}
+      </button>
+      {/* Dropdown menu for mobile */}
+      {sidebarOpen && (
+        <nav
+          className="sidebar-dropdown"
+          style={{
+            position: 'fixed',
+            top: 60,
+            left: 0,
+            width: '100vw',
+            background: '#fff',
+            boxShadow: '0 4px 16px rgba(0,0,0,0.10)',
+            zIndex: 31,
+            display: isMobile ? 'block' : 'none',
+            borderBottomLeftRadius: 12,
+            borderBottomRightRadius: 12,
+            padding: '1rem 0',
+          }}
+        >
+          <button onClick={() => { navigate('/dashboard'); setSidebarOpen(false); }} style={{ width: '100%', textAlign: 'left', padding: '1rem 2rem', border: 'none', background: 'none' }}><FaTachometerAlt /> Dashboard</button>
+          <button onClick={() => { navigate('/dashboard/applicants'); setSidebarOpen(false); }} style={{ width: '100%', textAlign: 'left', padding: '1rem 2rem', border: 'none', background: 'none' }}><FaUsers /> Applicants</button>
+          <button onClick={() => { navigate('/dashboard/admissions'); setSidebarOpen(false); }} style={{ width: '100%', textAlign: 'left', padding: '1rem 2rem', border: 'none', background: 'none' }}><FaTachometerAlt /> Admissions</button>
+          <button onClick={() => { navigate('/dashboard/student-verification'); setSidebarOpen(false); }} style={{ width: '100%', textAlign: 'left', padding: '1rem 2rem', border: 'none', background: 'none' }}><FaUserGraduate /> Students</button>
+          <button onClick={() => { navigate('/dashboard/admins'); setSidebarOpen(false); }} style={{ width: '100%', textAlign: 'left', padding: '1rem 2rem', border: 'none', background: 'none' }}><FaUserShield /> Admins</button>
+          {/* Pending removed from sidebar */}
+          <button onClick={() => { navigate('/dashboard/logs'); setSidebarOpen(false); }} style={{ width: '100%', textAlign: 'left', padding: '1rem 2rem', border: 'none', background: 'none' }}><FaBell /> Logs</button>
+          
+          {/* User info in mobile menu */}
+          {userEmail && (
+            <div style={{ 
+              padding: '1rem 2rem', 
+              borderTop: '1px solid #eee',
+              fontSize: '0.85rem',
+              color: '#666'
+            }}>
+              <strong>Logged in as:</strong><br />
+              <span style={{ color: '#ff3d00' }}>{userEmail}</span>
+            </div>
+          )}
+          
+          <button className="sidebar-logout" onClick={() => { handleLogout(); setSidebarOpen(false); }} style={{ width: '100%', textAlign: 'left', padding: '1rem 2rem', border: 'none', background: 'none' }}><FaSignOutAlt /> Logout</button>
+        </nav>
+      )}
+      {/* Sidebar for desktop only */}
+      <aside
+        className="admin-sidebar"
+        style={{
+          display: isMobile ? 'none' : 'flex',
+          flexDirection: 'column',
+          minHeight: '100vh',
+          width: 170,
+          background: '#fff',
+          borderRight: '1px solid #e5e7eb',
+          zIndex: 10,
+        }}
+      >
+        <div className="sidebar-logo" onClick={() => navigate('/dashboard')}>
+          <img src={logo} alt="RED(P) Logo" />
+          <span>RED(P) Admin</span>
+        </div>
+        
+        {/* User info section */}
+        {userEmail && (
+          <div style={{ 
+            padding: '1rem', 
+            borderBottom: '1px solid #eee', 
+            margin: '0 1rem',
+            fontSize: '0.85rem',
+            color: '#666'
+          }}>
+            <strong>Logged in as:</strong><br />
+            <span style={{ color: '#ff3d00' }}>{userEmail}</span>
+          </div>
+        )}
+        
+        <nav className="sidebar-nav">
+          <button onClick={() => navigate('/dashboard')}><FaTachometerAlt /> Dashboard</button>
+          <button onClick={() => navigate('/dashboard/applicants')}><FaUsers /> Applicants</button>
+          <button onClick={() => navigate('/dashboard/admissions')}><FaTachometerAlt /> Admissions</button>
+          <button onClick={() => navigate('/dashboard/student-verification')}><FaUserGraduate /> Students</button>
+          <button onClick={() => navigate('/dashboard/admins')}><FaUserShield /> Admins</button>
+          <button onClick={() => navigate('/dashboard/logs')}><FaBell /> Logs</button>
+          <button className="sidebar-logout" onClick={handleLogout}><FaSignOutAlt /> Logout</button>
+>>>>>>> 3d5021cbf3ada6c1272a1ddc84a4f7903aff7c15
         </nav>
         <button
           className="sidebar-link"
@@ -257,6 +367,7 @@ const Dashboard: React.FC = () => {
                     });
                   })()}
                 </ul>
+<<<<<<< HEAD
               </section>
               </aside>
             </div>
@@ -265,6 +376,174 @@ const Dashboard: React.FC = () => {
           )}
         </main>
       </div>
+=======
+              </div>
+            </aside>
+          </div>
+        ) : location.pathname === '/dashboard/student-verification' ? (
+          <StudentsTable applicants={apiApplicants.map((a) => ({
+            id: a.rowKey, // Use full rowKey as id
+            firstName: a.firstName,
+            lastName: a.lastName,
+            email: '',
+            phone: '',
+            dateOfBirth: '',
+            gradeLevel: 0,
+            schoolName: '',
+            location: '',
+            status: getStatusDisplay(a.status === undefined ? null : Number(a.status)),
+          }))} />
+        ) : location.pathname === '/dashboard/pending' ? (
+          <PendingDetails applicants={apiApplicants.map((a) => ({
+            id: a.rowKey, // Use full rowKey as id
+            name: `${a.firstName} ${a.lastName}`,
+            school: '',
+            status: getStatusDisplay(a.status === undefined ? null : Number(a.status)),
+            submittedOn: '',
+            reason: '',
+            notes: ''
+          }))} />
+        ) : location.pathname === '/dashboard/applicants' ? (
+          <ApplicantList
+            onAction={async (partitionKey, rowKey, newStatus, adminEmail) => {
+              // Handle approval and denial workflows with dual tracking system
+              if (newStatus === 'Approved') {
+                // Call the dual approval Azure Function
+                try {
+                  const approvalResponse = await fetch('https://simbaaddapproval-f8h7g2ffe2cefchh.westus-01.azurewebsites.net/api/addApproval', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      email: adminEmail || 'admin@company.com',
+                      partitionKey,
+                      rowKey,
+                      action: 'approve',
+                    }),
+                  });
+
+                  const approvalData = await approvalResponse.json();
+                  
+                  if (approvalResponse.ok) {
+                    // Check if approvals are now complete
+                    if (approvalResponse.status === 201 && approvalData.isComplete) {
+                      // Approval threshold reached - update the final status to approved
+                      console.log('Approval threshold reached, updating status to Approved');
+                      
+                      const statusResponse = await fetch('https://approval-function-6370.azurewebsites.net/api/changestatusfunction', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          partitionKey,
+                          rowKey,
+                          action: 'approve',
+                        }),
+                      });
+
+                      if (statusResponse.ok) {
+                        // Build approval list message
+                        const approvalsList = Object.keys(approvalData.approvals || {})
+                          .filter(key => key.startsWith('approval') && !key.includes('time'))
+                          .map((key, index) => {
+                            const timeKey = key.replace('approval', 'timeOfApproval');
+                            return `Approver ${index + 1}: ${approvalData.approvals[key]} (${approvalData.approvals[timeKey] || 'N/A'})`;
+                          })
+                          .join('\n');
+                        
+                        alert(`Success: Approval threshold reached (${approvalData.currentApprovalCount}/${approvalData.approvalThreshold})!\n${approvalsList}\nApplication has been approved!`);
+                      } else {
+                        alert(`Approvals complete but status update failed: ${await statusResponse.text()}`);
+                      }
+                    } else {
+                      // Still need more approvals
+                      alert(`Success: ${approvalData.message}\nProgress: ${approvalData.currentApprovalCount}/${approvalData.approvalThreshold} approvals\nAdmin Count: ${approvalData.adminCount}`);
+                    }
+                  } else {
+                    alert(`Approval Error: ${approvalData.error || await approvalResponse.text()}`);
+                  }
+                } catch (error) {
+                  alert('Approval Error: ' + error);
+                }
+              } else if (newStatus === 'Denied') {
+                // Handle denial with dual denial system
+                try {
+                  const denialResponse = await fetch('https://simbaaddapproval-f8h7g2ffe2cefchh.westus-01.azurewebsites.net/api/addApproval', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      email: adminEmail || 'admin@company.com',
+                      partitionKey,
+                      rowKey,
+                      action: 'deny',
+                    }),
+                  });
+
+                  const denialData = await denialResponse.json();
+                  
+                  if (denialResponse.ok) {
+                    // Check if denials are now complete
+                    if (denialResponse.status === 201 && denialData.isDenialComplete) {
+                      // Denial threshold reached - update the final status to denied
+                      console.log('Denial threshold reached, updating status to Denied');
+                      
+                      const statusResponse = await fetch('https://approval-function-6370.azurewebsites.net/api/changestatusfunction', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          partitionKey,
+                          rowKey,
+                          action: 'deny',
+                        }),
+                      });
+
+                      if (statusResponse.ok) {
+                        // Build denial list message
+                        const denialsList = Object.keys(denialData.denials || {})
+                          .filter(key => key.startsWith('denial') && !key.includes('time'))
+                          .map((key, index) => {
+                            const timeKey = key.replace('denial', 'timeOfDenial');
+                            return `Denier ${index + 1}: ${denialData.denials[key]} (${denialData.denials[timeKey] || 'N/A'})`;
+                          })
+                          .join('\n');
+                        
+                        alert(`Success: Denial threshold reached (${denialData.currentDenialCount}/${denialData.denialThreshold})!\n${denialsList}\nApplication has been denied!`);
+                      } else {
+                        alert(`Denials complete but status update failed: ${await statusResponse.text()}`);
+                      }
+                    } else {
+                      // Still need more denials
+                      alert(`Success: ${denialData.message}\nProgress: ${denialData.currentDenialCount}/${denialData.denialThreshold} denials\nAdmin Count: ${denialData.adminCount}`);
+                    }
+                  } else {
+                    alert(`Denial Error: ${denialData.error || await denialResponse.text()}`);
+                  }
+                } catch (error) {
+                  alert('Denial Error: ' + error);
+                }
+              }
+
+              // Notify the cache context that a status change occurred
+              onStatusChange(partitionKey, rowKey, newStatus);
+            }}
+          />
+        ) : location.pathname === '/dashboard/admissions' ? (
+          <AdmissionsTable applicants={apiApplicants} />
+        ) : location.pathname === '/dashboard/admins' ? (
+          <Outlet />
+        ) : location.pathname === '/dashboard/logs' ? (
+          <Outlet />
+        ) : null}
+      </main>
+      {/* ModalApplicant modal and all modal code fully removed */}
+      {/* Admission Form Modal */}
+      {showAdmissionForm && (
+        <div className="modal-overlay" onClick={() => setShowAdmissionForm(false)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: 520, margin: '0 auto', borderRadius: 16, boxShadow: '0 8px 32px rgba(2,60,105,0.18)', padding: '2.5rem 2rem 2rem 2rem', background: '#fff', display: 'flex', flexDirection: 'column', alignItems: 'center', overflow: 'visible' }}>
+            <button className="modal-close" onClick={() => setShowAdmissionForm(false)} style={{ position: 'absolute', top: 18, right: 24, fontSize: 28, color: '#888', background: 'none', border: 'none', cursor: 'pointer' }}>&times;</button>
+            <NewAdmissionForm />
+          </div>
+        </div>
+      )}
+>>>>>>> 3d5021cbf3ada6c1272a1ddc84a4f7903aff7c15
     </div>
   );
 };

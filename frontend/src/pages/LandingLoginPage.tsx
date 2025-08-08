@@ -1,4 +1,6 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useEffect } from "react";
+import { PublicClientApplication } from '@azure/msal-browser';
+import { msalConfig, loginRequest } from '../config/msalConfig';
 import { useNavigate } from "react-router-dom";
 import { useUser } from "../contexts/UserContext";
 import logo from "../assets/redp-logo.png";
@@ -12,144 +14,282 @@ const BG = "#fff"; // White background
 const LandingLoginPage: React.FC = () => {
   const navigate = useNavigate();
   const { setUserEmail } = useUser();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const [idImage, setIdImage] = useState<string | null>(null);
+  const msalInstance = new PublicClientApplication(msalConfig);
+  const [msalError, setMsalError] = useState("");
+  const [loading, setLoading] = useState(true);
   const [showConfirmation, setShowConfirmation] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [userEmailFromEntra, setUserEmailFromEntra] = useState<string | null>(null);
   const [codeTimestamp, setCodeTimestamp] = useState<number | null>(null);
 
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const cameraInputRef = useRef<HTMLInputElement | null>(null);
+  // Initialize MSAL on mount (without auto-login check)
+  useEffect(() => {
+    const initializeMsal = async () => {
+      try {
+        await msalInstance.initialize();
+      } catch (err) {
+        console.error('MSAL initialization error:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    initializeMsal();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  const sendVerificationCode = async () => {
-    setIsLoading(true);
-    setError("");
+  // Check if the email is a valid admin user using the admin management API
+  const verifyAdminCredentials = async (email: string) => {
+    try {
+      console.log(`Verifying admin credentials for: ${email}`);
+      
+      // Call the admin management API to check if the email exists in the admin table
+      const response = await fetch(`https://simbamanageadmins-egambyhtfxbfhabc.westus-01.azurewebsites.net/api/read-admin?email=${encodeURIComponent(email)}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.admin) {
+          console.log(`Admin verification: ${email} -> AUTHORIZED (Role: ${data.admin.role})`);
+          return true;
+        } else {
+          console.log(`Admin verification: ${email} -> DENIED (Not found in admin table)`);
+          return false;
+        }
+      } else if (response.status === 404) {
+        // Admin not found
+        console.log(`Admin verification: ${email} -> DENIED (404 - Not found)`);
+        return false;
+      } else {
+        // Other error - fallback to deny for security
+        console.error(`Admin verification API error for ${email}:`, response.status);
+        return false;
+      }
+    } catch (error) {
+      console.error('Admin verification network error:', error);
+      // In case of network error, deny access for security
+      return false;
+    }
+  };
+
+  // Send verification code to the admin's email
+  const sendVerificationCode = async (email?: string) => {
+    const emailToUse = email || userEmailFromEntra;
+    if (!emailToUse) {
+      setMsalError("No user email available from Entra ID login.");
+      return false;
+    }
+
+    setLoading(true);
+    setMsalError("");
 
     try {
-      // Call Azure Function to generate and send verification code
       const response = await fetch('https://simbaemailverificationapi-g4g4f9cfgtgtfsbu.westus-01.azurewebsites.net/api/generate-code', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          email: email
+          email: emailToUse
         })
       });
 
       if (response.ok) {
         const data = await response.json();
         
-        // Azure Function returns: { message, email, code, email_sent }
         if (data.code && data.email_sent) {
           setCodeTimestamp(Date.now());
           return true;
         } else {
-          setError("Failed to generate verification code. Please try again.");
+          setMsalError("Failed to generate verification code. Please try again.");
           return false;
         }
       } else {
         const errorData = await response.json().catch(() => null);
-        setError(errorData?.message || "Authentication service unavailable. Please try again later.");
+        setMsalError(errorData?.message || "Email verification service unavailable. Please try again later.");
         return false;
       }
     } catch (error) {
       console.error('Verification code generation error:', error);
-      setError("Network error. Please check your connection and try again.");
+      setMsalError("Network error. Please check your connection and try again.");
       return false;
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
-  const verifyLoginCredentials = async (username: string, password: string) => {
-    try {
-      const response = await fetch('https://simbaloginverification-buekhfdhdba5esdn.westus-01.azurewebsites.net/api/verify-login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          username: username,
-          password: password
-        })
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        // Assuming the API returns a success field or similar indicator
-        return result.success === true || result.valid === true || result.authenticated === true || response.status === 200;
-      } else {
-        return false;
-      }
-    } catch (error) {
-      console.error('Login verification error:', error);
-      return false;
+  // Handle successful email verification
+  const handleConfirmationSuccess = () => {
+    if (userEmailFromEntra) {
+      setUserEmail(userEmailFromEntra);
+      navigate("/dashboard");
     }
   };
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-    setIsLoading(true);
-
-    // Basic validation
-    if (!email || !password || !idImage) {
-      setError("Please provide valid credentials and upload or capture your ID.");
-      setIsLoading(false);
-      return;
-    }
-
+  // MSAL Microsoft login handler
+  const handleMicrosoftLogin = async () => {
+    setMsalError("");
     try {
-      // Verify credentials with Azure function
-      const isValidLogin = await verifyLoginCredentials(email, password);
+      setLoading(true);
+      await msalInstance.initialize();
       
-      if (!isValidLogin) {
-        setError("Invalid email or password. Please try again.");
-        setIsLoading(false);
+      let userEmail: string | null = null;
+      
+      console.log("=== MSAL Login Debug ===");
+      
+      // Try silent login first
+      const accounts = msalInstance.getAllAccounts();
+      console.log("Available accounts:", accounts.length, accounts);
+      
+      if (accounts.length > 0) {
+        // Try to get email from existing account first
+        const account = accounts[0];
+        console.log("Account object:", account);
+        console.log("Account username:", account.username);
+        console.log("Account name:", account.name);
+        console.log("Account localAccountId:", account.localAccountId);
+        
+        userEmail = account.username;
+        console.log("Email from existing account:", userEmail);
+        
+        if (!userEmail) {
+          try {
+            console.log("Username not available, attempting silent token acquisition...");
+            const silentResponse = await msalInstance.acquireTokenSilent({ 
+              scopes: loginRequest.scopes, 
+              account: account 
+            });
+            console.log("Silent response:", silentResponse);
+            console.log("Silent response account:", silentResponse.account);
+            userEmail = silentResponse.account?.username;
+            console.log("Email from silent response:", userEmail);
+          } catch (silentError) {
+            console.log("Silent login failed:", silentError);
+            console.log("Attempting popup login...");
+            
+            try {
+              const loginResponse = await msalInstance.loginPopup(loginRequest);
+              console.log("Popup login response:", loginResponse);
+              console.log("Popup login account:", loginResponse.account);
+              userEmail = loginResponse.account?.username;
+              console.log("Email from popup login:", userEmail);
+            } catch (popupError) {
+              console.error("Popup login failed:", popupError);
+              throw popupError;
+            }
+          }
+        }
+      } else {
+        console.log("No existing accounts, performing popup login...");
+        try {
+          const loginResponse = await msalInstance.loginPopup(loginRequest);
+          console.log("Fresh popup login response:", loginResponse);
+          console.log("Fresh popup login account:", loginResponse.account);
+          userEmail = loginResponse.account?.username;
+          console.log("Email from fresh popup login:", userEmail);
+        } catch (popupError) {
+          console.error("Fresh popup login failed:", popupError);
+          throw popupError;
+        }
+      }
+
+      console.log("=== Final Results ===");
+      console.log("Final extracted user email:", userEmail);
+      
+      // Ensure we have a valid email
+      if (!userEmail) {
+        console.error("No user email extracted from any login method");
+        console.log("Attempting Microsoft Graph API call to get user profile...");
+        
+        try {
+          // Get an access token for Microsoft Graph
+          const accounts = msalInstance.getAllAccounts();
+          if (accounts.length > 0) {
+            const tokenResponse = await msalInstance.acquireTokenSilent({
+              scopes: ["User.Read"],
+              account: accounts[0]
+            });
+            
+            // Call Microsoft Graph API to get user profile
+            const response = await fetch('https://graph.microsoft.com/v1.0/me', {
+              headers: {
+                'Authorization': `Bearer ${tokenResponse.accessToken}`
+              }
+            });
+            
+            if (response.ok) {
+              const userProfile = await response.json();
+              console.log("Microsoft Graph user profile:", userProfile);
+              userEmail = userProfile.mail || userProfile.userPrincipalName;
+              console.log("Email from Graph API:", userEmail);
+            } else {
+              console.error("Graph API call failed:", response.status, response.statusText);
+            }
+          }
+        } catch (graphError) {
+          console.error("Microsoft Graph API call failed:", graphError);
+        }
+        
+        // Let's try one more time to get accounts after login
+        if (!userEmail) {
+          const finalAccounts = msalInstance.getAllAccounts();
+          console.log("Final accounts check:", finalAccounts);
+          if (finalAccounts.length > 0) {
+            userEmail = finalAccounts[0].username;
+            console.log("Email from final accounts check:", userEmail);
+          }
+        }
+        
+        if (!userEmail) {
+          setMsalError("No user email available from Entra ID login. Please check browser console for debug information and try again.");
+          setLoading(false);
+          return;
+        }
+      }
+
+      console.log("Successfully extracted email:", userEmail);
+      
+      // Step 1: Verify the user is an admin
+      const isValidAdmin = await verifyAdminCredentials(userEmail);
+      
+      if (!isValidAdmin) {
+        setMsalError("Access denied. This email is not authorized as an admin.");
+        setLoading(false);
         return;
       }
 
-      // If login is valid, proceed to send verification code
-      const success = await sendVerificationCode();
-      if (success) {
+      // Step 2: Store email and initiate verification code process
+      setUserEmailFromEntra(userEmail);
+      
+      // Step 3: Send verification code (pass email directly to avoid state timing issues)
+      const codeSuccess = await sendVerificationCode(userEmail);
+      if (codeSuccess) {
         setShowConfirmation(true);
       }
-    } catch (error) {
-      console.error('Login process error:', error);
-      setError("Login verification failed. Please try again.");
+    } catch (err) {
+      let message = "Microsoft login failed. Please try again.";
+      const errorObj = err as any;
+      if (errorObj && errorObj.errorMessage) {
+        message = errorObj.errorMessage;
+      } else if (errorObj && errorObj.message) {
+        message = errorObj.message;
+      }
+      setMsalError(message);
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file && file.type.startsWith("image/")) {
-      const reader = new FileReader();
-      reader.onload = (ev) => setIdImage(ev.target?.result as string);
-      reader.readAsDataURL(file);
-      setError("");
-    } else {
-      setError("Please upload a valid image file.");
-    }
-  };
-
-  const handleConfirmationSuccess = () => {
-    // Store the logged-in user's email in context
-    setUserEmail(email);
-    navigate("/dashboard");
-  };
-
-  if (showConfirmation) {
+  // Show confirmation code if we're in that step
+  if (showConfirmation && userEmailFromEntra) {
     return (
       <div className="landing-login-root" style={{ background: BG }}>
         <div className="login-section" style={{ flex: 1, width: "100vw", justifyContent: "center", alignItems: "center", display: "flex" }}>
           <ConfirmationCode 
             onSuccess={handleConfirmationSuccess} 
-            email={email} 
+            email={userEmailFromEntra} 
             codeTimestamp={codeTimestamp}
             onResend={sendVerificationCode}
           />
@@ -173,7 +313,7 @@ const LandingLoginPage: React.FC = () => {
           Welcome to <span style={{ color: PRIMARY, fontFamily: 'inherit' }}>RED(P)</span> <span style={{ color: ACCENT, fontFamily: 'inherit' }}>Admin</span>
         </h1>
         <p>
-          Streamline student admissions, verification, and notifications with a modern, secure workflow.
+          Admins must sign in with Microsoft Entra ID and complete email verification to access the dashboard.
         </p>
         <ul className="landing-features">
           <li>
@@ -188,122 +328,32 @@ const LandingLoginPage: React.FC = () => {
         </ul>
       </div>
       <div className="login-section">
-        <form className="login-form" onSubmit={handleLogin}>
-          <h2 style={{ color: PRIMARY, fontFamily: "'Playfair Display', serif", fontWeight: 800 }}>Admin Login</h2>
-          {error && <div className="login-error">{error}</div>}
-          <label>
-            Email
-            <input
-              type="email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              required
-              autoFocus
-              placeholder="admin1@red-p.org"
-              style={{ borderColor: ACCENT }}
-            />
-          </label>
-          <label>
-            Password
-            <input
-              type="password"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              required
-              placeholder="admin123"
-              style={{ borderColor: ACCENT }}
-            />
-          </label>
-          <label>
-            Upload or Capture ID
-            <div className="id-upload-row">
-              <input
-                type="file"
-                accept="image/*"
-                style={{ display: "none" }}
-                ref={fileInputRef}
-                onChange={handleFileChange}
-              />
-              <input
-                type="file"
-                accept="image/*"
-                capture="environment"
-                style={{ display: "none" }}
-                ref={cameraInputRef}
-                onChange={handleFileChange}
-              />
-              <button
-                type="button"
-                className="id-upload-btn"
-                style={{
-                  background: PRIMARY,
-                  color: "#fff",
-                  border: `1.5px solid ${PRIMARY}`,
-                  borderRadius: 6,
-                  padding: "0.5rem 1rem",
-                  fontWeight: 600,
-                  cursor: "pointer",
-                  transition: "background 0.2s, border-color 0.2s"
-                }}
-                onClick={() => fileInputRef.current?.click()}
-              >
-                Upload ID
-              </button>
-              <button
-                type="button"
-                className="id-upload-btn"
-                style={{
-                  background: ACCENT,
-                  color: "#fff",
-                  border: `1.5px solid ${ACCENT}`,
-                  borderRadius: 6,
-                  padding: "0.5rem 1rem",
-                  fontWeight: 600,
-                  cursor: "pointer",
-                  transition: "background 0.2s, border-color 0.2s"
-                }}
-                onClick={() => cameraInputRef.current?.click()}
-              >
-                Open Camera
-              </button>
-              {idImage && (
-                <img
-                  src={idImage}
-                  alt="ID Preview"
-                  className="id-preview"
-                  style={{
-                    width: 48,
-                    height: 48,
-                    objectFit: "cover",
-                    borderRadius: 6,
-                    marginLeft: 12,
-                    border: `2px solid ${ACCENT}`,
-                    background: BG
-                  }}
-                />
-              )}
-            </div>
-          </label>
-          <button
-            type="submit"
-            className="login-btn"
-            disabled={isLoading}
-            style={{
-              background: isLoading ? "#ccc" : PRIMARY,
-              color: "#fff",
-              border: `1.5px solid ${isLoading ? "#ccc" : PRIMARY}`,
-              borderRadius: 6,
-              padding: "0.8rem 0",
-              fontWeight: 700,
-              fontSize: "1.1rem",
-              marginTop: "0.5rem",
-              transition: "background 0.2s, border-color 0.2s",
-              cursor: isLoading ? "not-allowed" : "pointer"
-            }}
-          >
-            {isLoading ? "Sending code..." : "Login"}
-          </button>
-        </form>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
+          {loading && <div className="login-error">Checking login status and admin permissions...</div>}
+          {msalError && <div className="login-error">{msalError}</div>}
+          {!loading && (
+            <button
+              type="button"
+              className="login-btn"
+              style={{
+                background: '#0078d4',
+                color: '#fff',
+                border: '1.5px solid #0078d4',
+                borderRadius: 6,
+                padding: '0.8rem 0',
+                fontWeight: 700,
+                fontSize: '1.1rem',
+                marginTop: '1.5rem',
+                width: '80%',
+                transition: 'background 0.2s, border-color 0.2s',
+                cursor: 'pointer'
+              }}
+              onClick={handleMicrosoftLogin}
+            >
+              Sign in with Microsoft
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -1,4 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { PublicClientApplication } from '@azure/msal-browser';
+import { msalConfig } from '../config/msalConfig';
 import type { ReactNode } from 'react';
 
 interface UserContextType {
@@ -42,11 +44,13 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     }
   };
 
-  const logout = () => {
+  const logout = async () => {
     setUserEmail(null);
-    // Clear any other user-related data from localStorage
     localStorage.removeItem('redp-user-email');
-    // You can add more cleanup here if needed
+    // MSAL logout
+    const msalInstance = new PublicClientApplication(msalConfig);
+    await msalInstance.initialize();
+    msalInstance.logoutPopup({ postLogoutRedirectUri: window.location.origin });
   };
 
   const isLoggedIn = userEmail !== null;
