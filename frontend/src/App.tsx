@@ -8,7 +8,7 @@ import Notifications from "./pages/Notifications";
 import LandingLoginPage from "./pages/LandingLoginPage";
 import StudentVerificationDetails from "./pages/StudentVerificationDetails";
 import SchoolVerificationDetails from "./pages/SchoolVerificationDetails";
-import ApplicantList from "./pages/ApplicantList";
+import ApplicantListWithAction from "./pages/ApplicantListWithAction";
 import ApplicantDetails from "./pages/ApplicantDetails";
 import AdmissionDetails from "./pages/AdmissionsDetails";
 import PendingDetails from "./pages/PendingDetails";
@@ -17,6 +17,7 @@ import { useApplicantData } from "./contexts/ApplicantDataContext";
 import { ToastProvider } from './contexts/ToastContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import Help from './pages/Help';
+
 
 
 // Wrapper to fetch applicants and pass to PendingDetails using cached data
@@ -44,7 +45,7 @@ const PendingDetailsWithFetch: React.FC = () => {
 const App: React.FC = () => (
   <ThemeProvider>
     <ToastProvider>
-      <div className="redp-app-bg">
+      <div className="redp-app-bg" style={{ display: 'flex', minHeight: '100vh', width: '100vw', overflowX: 'hidden' }}>
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<LandingLoginPage />} />
@@ -56,14 +57,14 @@ const App: React.FC = () => (
               <Route path="students" />
               <Route path="school-verification" element={<SchoolVerificationDetails />} />
               <Route path="school-verification/:id" element={<SchoolVerificationDetails />} />
-              <Route path="applicants" element={<ApplicantList />} />
+              <Route path="applicants" element={<ApplicantListWithAction />} />
               <Route path="applicants/:id" element={<ApplicantDetails />} />
               <Route path="pending" element={<PendingDetailsWithFetch />} />
               <Route path="pending/:id" element={<PendingDetailsWithFetch />} />
               <Route path="admins" element={<AdminsTable />} />
               <Route path="logs" element={<Logs />} />
               <Route path="logs" element={<Notifications />} />
-                <Route path="fee-portal" element={<FeePortal />} />
+              <Route path="fee-portal" element={<FeePortal />} />
             </Route>
             <Route path="help" element={<Help />} />
             {/* Fallback for 404 */}

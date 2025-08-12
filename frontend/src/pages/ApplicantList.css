@@ -1,10 +1,27 @@
+/* Sticky bulk action buttons at bottom */
+.sticky-actions-top {
+  position: sticky;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  margin-left: calc(-50vw + 50%);
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  padding: 1rem 2rem;
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  z-index: 1000;
+}
 .applicant-list-container {
-  max-width: 700px;
-  margin: 48px auto 0 auto;
+  width: 100%;
+  max-width: 1200px;
+  margin: 32px auto 0 auto;
   background: #fff;
   border-radius: 14px;
   box-shadow: 0 2px 8px 0 rgba(2,60,105,0.04);
-  padding: 32px 18px 24px 18px;
+  padding: 24px 12px 18px 12px;
+  box-sizing: border-box;
 }
 .applicant-list-title {
   font-size: 1.4rem;
@@ -15,11 +32,13 @@
 }
 .applicant-list-table {
   width: 100%;
+  overflow-x: auto;
+  min-width: 340px;
 }
 .applicant-list-header,
 .applicant-list-row {
   display: grid;
-  grid-template-columns: 2fr 2fr 1fr 1fr;
+  grid-template-columns: 0.5fr 0.7fr 1.5fr 1.5fr 1fr 2fr 2fr 1.5fr;
   gap: 12px;
   align-items: center;
 }
@@ -29,6 +48,7 @@
   border-bottom: 2px solid #e3e8ee;
   padding-bottom: 8px;
   margin-bottom: 8px;
+  background: #fafafa;
 }
 .applicant-list-row {
   background: #f7fafd;
@@ -74,35 +94,55 @@
 
 @media (max-width: 700px) {
   .applicant-list-container {
-    max-width: 98vw;
-    padding: 12px 2vw 12px 2vw;
+    max-width: 100vw;
+    padding: 8px 1vw 8px 1vw;
   }
   .applicant-list-header,
   .applicant-list-row {
-    grid-template-columns: 0.8fr 1.2fr 1.2fr 1fr;
-    font-size: 0.97em;
-    gap: 8px;
-    padding: 8px 0;
+    grid-template-columns: 0.7fr 1fr 1.2fr 1.2fr 1fr 1.5fr 1.5fr 1fr;
+    font-size: 0.95em;
+    gap: 6px;
+    padding: 6px 0;
   }
   .applicant-img-placeholder {
-    width: 32px;
-    height: 32px;
+    width: 28px;
+    height: 28px;
   }
   .applicant-list-title {
-    font-size: 1.1rem;
+    font-size: 1.05rem;
   }
 }
 @media (max-width: 480px) {
   .applicant-list-header,
   .applicant-list-row {
-    grid-template-columns: 0.7fr 1fr 1fr;
-    /* Hide Actions column for very small screens */
+    grid-template-columns: 1fr 1.2fr 1.2fr 1fr;
+    font-size: 0.92em;
+    gap: 4px;
+    padding: 4px 0;
+    overflow-x: auto;
   }
   .applicant-img-placeholder {
-    width: 24px;
-    height: 24px;
+    width: 20px;
+    height: 20px;
   }
   .applicant-list-title {
-    font-size: 1rem;
+    font-size: 0.98rem;
   }
+  .applicant-list-table {
+    min-width: 340px;
+    overflow-x: auto;
+  }
+}
+
+/* Modal responsiveness */
+.modal-overlay, .modal-content {
+  max-width: 98vw;
+  box-sizing: border-box;
+}
+.modal-content {
+  min-width: 0;
+  width: 100%;
+  max-width: 480px;
+  padding: 16px;
+  font-size: 1em;
 }

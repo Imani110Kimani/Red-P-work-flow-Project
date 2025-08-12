@@ -1,3 +1,4 @@
+
 import { statusToString } from './utils';
 // ApplicantList.tsx
 // This component displays all scholarship applications in a table with action controls for admin workflow.
@@ -29,7 +30,13 @@ import type { ApplicantDetailed } from '../contexts/ApplicantDataContext';
 // Props:
 // - onAction: Handler for status change (should call backend API/Azure Function to update status or delete)
 interface ApplicantListProps {
-  onAction?: (partitionKey: string, rowKey: string, newStatus: 'Approved' | 'Pending' | 'Denied', adminEmail?: string) => void;
+  onAction?: (
+    partitionKey: string,
+    rowKey: string,
+    newStatus: 'Approved' | 'Pending' | 'Denied',
+    adminEmail?: string,
+    reason?: string
+  ) => void;
 }
 
 import { useNotification } from '../contexts/NotificationContext';
@@ -198,13 +205,11 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
   // Confirm bulk/single action with reason
   const confirmActionWithReason = async () => {
     if (!pendingAction) return;
-    
-    // Call onAction for each applicant to handle the approval/denial logic
-    // The Dashboard component will handle the backend API calls and Power Automate triggers
+    // Call onAction for each applicant to handle the approval/denial logic, passing reason
     for (const key of pendingAction.keys) {
       const [partitionKey, rowKey] = key.split('|');
       if (onAction) {
-        await onAction(partitionKey, rowKey, pendingAction.action, adminEmail);
+        await onAction(partitionKey, rowKey, pendingAction.action, adminEmail, reasonValue);
       }
     }
 
@@ -419,7 +424,7 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
           const status = statusToString(applicant.status === undefined ? null : Number(applicant.status));
           const isLoadingDetails = actualApprovalData === undefined;
           return (
-            <div className="applicant-list-row dashboard-table-row" key={applicantKey} style={{display: 'grid', gridTemplateColumns: '0.5fr 0.7fr 1.5fr 1.5fr 1fr 2fr 2fr 1.5fr', gap: 16, alignItems: 'center', padding: '1rem', borderBottom: '1px solid #eee', background: idx % 2 === 0 ? '#fff' : '#f7f7f7'}}>
+            <div className="applicant-list-row" key={applicantKey} style={{display: 'grid', gridTemplateColumns: '0.5fr 0.7fr 1.5fr 1.5fr 1fr 2fr 2fr 1.5fr', gap: 16, alignItems: 'center', padding: '1rem', borderBottom: '1px solid #eee', background: idx % 2 === 0 ? '#fff' : '#f7f7f7'}}>
               {/* Checkbox */}
               <span>
                 <input
@@ -430,21 +435,7 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
                   disabled={status === 'Approved'}
                 />
               </span>
-              {/* Approve/Deny buttons for single action (show only if not approved) */}
-              {/*
-              <span>
-                <button onClick={() => {
-                  setPendingAction({ action: 'Approved', keys: [applicantKey] });
-                  setReasonValue('');
-                  setReasonModalOpen(true);
-                }} disabled={status === 'Approved'}>Approve</button>
-                <button onClick={() => {
-                  setPendingAction({ action: 'Denied', keys: [applicantKey] });
-                  setReasonValue('');
-                  setReasonModalOpen(true);
-                }} disabled={status === 'Approved'}>Deny</button>
-              </span>
-              */}
+
               {/* Avatar/Initials */}
               <span>
                 {applicant.profileImage ? (
@@ -459,10 +450,22 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
                   </span>
                 )}
               </span>
-              <span className="dashboard-table-cell">{applicant.firstName}</span>
-              <span className="dashboard-table-cell">{applicant.lastName}</span>
-              <span className={`dashboard-table-cell dashboard-status ${status.toLowerCase()}`}>{status}</span>
-              <span className="dashboard-table-cell" style={{ minWidth: 120 }}>
+              <span>{applicant.firstName}</span>
+              <span>{applicant.lastName}</span>
+              <span style={{
+                padding: '4px 12px',
+                borderRadius: '20px',
+                fontSize: '0.875rem',
+                fontWeight: 600,
+                textAlign: 'center',
+                color: 'white',
+                background: status === 'Approved' ? '#43a047' : status === 'Pending' ? '#ff9800' : status === 'Denied' ? '#f44336' : '#ff9800',
+                minWidth: 90,
+                display: 'inline-block',
+              }}>
+                {status}
+              </span>
+              <span style={{ minWidth: 120 }}>
                 <div
                   style={{
                     border: '1.5px solid #ff9800',
@@ -495,7 +498,7 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
                   )}
                 </div>
               </span>
-              <span className="dashboard-table-cell" style={{ minWidth: 120 }}>
+              <span style={{ minWidth: 120 }}>
                 <div
                   style={{
                     border: '1.5px solid #f44336',
@@ -528,10 +531,31 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
                   )}
                 </div>
               </span>
-              <span className="dashboard-table-cell" style={{display: 'flex', gap: 8, alignItems: 'center'}}>
+              <span style={{display: 'flex', gap: 8, alignItems: 'center'}}>
                 {/* Only show View button */}
                 <button
-                  className="details-link dashboard-table-btn"
+                  className="details-link"
+                  style={{
+                    marginLeft: 8,
+                    background: 'transparent',
+                    color: '#ff3d00',
+                    border: '1.5px solid #ff3d00',
+                    borderRadius: 5,
+                    padding: '4px 12px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    transition: 'background 0.2s, color 0.2s',
+                  }}
+                  onMouseOver={e => {
+                    e.currentTarget.style.background = '#ff9800';
+                    e.currentTarget.style.color = '#fff';
+                    e.currentTarget.style.borderColor = '#ff9800';
+                  }}
+                  onMouseOut={e => {
+                    e.currentTarget.style.background = 'transparent';
+                    e.currentTarget.style.color = '#ff3d00';
+                    e.currentTarget.style.borderColor = '#ff3d00';
+                  }}
                   onClick={() => handleViewApplicant(applicant.partitionKey, applicant.rowKey)}
                 >
                   View

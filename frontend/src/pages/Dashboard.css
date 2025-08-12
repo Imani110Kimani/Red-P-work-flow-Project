@@ -1,4 +1,3 @@
-
 /* Alternative hover colors for stats cards */
 .dashboard-summary-card-medium,
 .dashboard-summary-card {
@@ -56,7 +55,7 @@
   flex-direction: column;
   align-items: stretch;
   width: 100%;
-  max-width: 100%;
+  max-width: none;
   overflow-x: auto;
 }
 .dashboard-widget-card {
@@ -179,14 +178,16 @@
 /* Dashboard main content and right panel layout */
 .dashboard-content-flex {
   display: flex;
-  gap: 32px;
+  gap: 24px;
   align-items: stretch;
   min-height: 420px;
+  width: 100%;
+  max-width: none;
 }
 .dashboard-right-panel {
   flex: 1 1 340px;
   min-width: 260px;
-  max-width: 340px;
+  max-width: 400px;
   display: flex;
   flex-direction: column;
   gap: 14px;
@@ -214,8 +215,8 @@
 
 /* Center main table containers on desktop */
 .dashboard-recent-table, .pending-details-container, .applicant-list-container, .admissions-table-container {
-  max-width: 1100px;
-  margin: 2rem auto;
+  width: 100%;
+  margin: 2rem 0;
   display: block;
   overflow-x: auto;
   background: #fff;
@@ -975,8 +976,8 @@ body, html {
 }
 
 .dashboard-recent-table, .pending-details-container, .applicant-list-container, .admissions-table-container {
-  max-width: 1100px;
-  margin: 2rem auto;
+  width: 100%;
+  margin: 2rem 0;
   display: block;
   overflow-x: auto;
   background: #fff;
