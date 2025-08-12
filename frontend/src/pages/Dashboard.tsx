@@ -274,7 +274,7 @@ const Dashboard: React.FC = () => {
                         <tr>
                           <th className="dashboard-table-header-cell" style={{ color: 'var(--redp-table-header)', background: 'var(--redp-table-header-bg)' }}>Avatar</th>
                           <th className="dashboard-table-header-cell" style={{ color: 'var(--redp-table-header)', background: 'var(--redp-table-header-bg)' }}>Name</th>
-                          <th className="dashboard-table-header-cell" style={{ color: 'var(--redp-table-header)', background: 'var(--redp-table-header-bg)', width: 120, border: '1px solid #e0e0e0' }}>Status</th>
+                          <th className="dashboard-table-header-cell" style={{ color: 'var(--redp-table-header)', background: 'var(--redp-table-header-bg)', width: 120, textAlign: 'center' }}>Status</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -284,19 +284,23 @@ const Dashboard: React.FC = () => {
                             : a.status;
                           return (
                             <tr key={a.partitionKey + '-' + a.rowKey} className="dashboard-table-row">
-                              <td className="dashboard-table-cell" style={{ color: 'var(--redp-text)', background: 'var(--redp-table-bg)', border: '1px solid #e0e0e0' }}>
+                              <td className="dashboard-table-cell" style={{ color: 'var(--redp-text)', background: 'var(--redp-table-bg)' }}>
                                 <span className="avatar-initials dashboard-recent-avatar" style={{ width: 44, height: 44, fontSize: '1.25em' }}>
                                   {a.firstName && a.lastName ? `${a.firstName[0]}${a.lastName[0]}`.toUpperCase() : '?'}
                                 </span>
                               </td>
-                              <td className="dashboard-table-cell" style={{ color: 'var(--redp-text)', background: 'var(--redp-table-bg)', border: '1px solid #e0e0e0' }}>{a.firstName} {a.lastName}</td>
+                              <td className="dashboard-table-cell" style={{ color: 'var(--redp-text)', background: 'var(--redp-table-bg)' }}>{a.firstName} {a.lastName}</td>
                               <td className={`dashboard-table-cell dashboard-status ${status && status.toLowerCase()}`}
                                   style={{
                                     color: status === 'Approved' ? 'var(--redp-status-approved)' : status === 'Denied' ? 'var(--redp-status-denied)' : status === 'Pending' ? 'var(--redp-status-pending)' : 'var(--redp-text)',
                                     background: 'var(--redp-table-bg)',
                                     width: 120,
-                                    border: '1px solid #e0e0e0',
-                                    textAlign: 'center'
+                                    minWidth: 120,
+                                    maxWidth: 120,
+                                    textAlign: 'center',
+                                    borderRadius: 8,
+                                    padding: '6px 0',
+                                    fontWeight: 600
                                   }}>{status}</td>
                             </tr>
                           );
