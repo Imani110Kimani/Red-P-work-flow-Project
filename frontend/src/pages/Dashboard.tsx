@@ -8,6 +8,7 @@ import './Dashboard.css';
 import StudentsTable from './StudentsTable';
 import AdmissionsTable from './AdmissionsTable';
 import Notifications from './Notifications';
+import ApplicantList from './ApplicantList';
 import { useApplicantData } from '../contexts/ApplicantDataContext';
 import { useAdmins } from '../hooks/useAdmins';
 
@@ -83,8 +84,8 @@ const Dashboard: React.FC = () => {
   const { darkMode, toggleDarkMode } = useTheme();
   return (
     <div>
-  {/* Slim orange banner filling the top */}
-  <div style={{
+      {/* Slim orange banner filling the top */}
+      <div style={{
         width: '100%',
         height: '100px',
         background: darkMode ? '#e53935' : '#ffb224',
@@ -108,7 +109,7 @@ const Dashboard: React.FC = () => {
         </span>
       </div>
       <div style={{ display: 'flex', minHeight: '100vh' }}>
-  <aside style={{
+        <aside style={{
           width: 220,
           background: darkMode ? 'linear-gradient(180deg, #232526 80%, var(--redp-accent) 100%)' : 'linear-gradient(180deg, #fff 80%, var(--redp-accent) 100%)',
           borderRight: '1px solid #eee',
@@ -121,55 +122,14 @@ const Dashboard: React.FC = () => {
           gap: 0
         }}>
           <nav className="sidebar-nav">
-            <button
-              className={`sidebar-btn${activeBtn === 'dashboard' ? ' active' : ''}`}
-              onClick={() => navigate('/dashboard')}
-              // hover handled by CSS
-            >
-              <span role="img" aria-label="dashboard">🏠</span> Dashboard
-            </button>
-            <button
-              className={`sidebar-btn${activeBtn === 'applicants' ? ' active' : ''}`}
-              onClick={() => navigate('/dashboard/applicants')}
-              // hover handled by CSS
-            >
-              <span role="img" aria-label="applicants">📝</span> Applicants
-            </button>
-            <button
-              className={`sidebar-btn${activeBtn === 'admissions' ? ' active' : ''}`}
-              onClick={() => navigate('/dashboard/admissions')}
-              // hover handled by CSS
-            >
-              <span role="img" aria-label="admissions">🎓</span> Admissions
-            </button>
-            <button
-              className={`sidebar-btn${activeBtn === 'students' ? ' active' : ''}`}
-              onClick={() => navigate('/dashboard/students')}
-              // hover handled by CSS
-            >
-              <span role="img" aria-label="students">👩‍🎓</span> Students
-            </button>
-            <button
-              className={`sidebar-btn${activeBtn === 'admins' ? ' active' : ''}`}
-              onClick={() => navigate('/dashboard/admins')}
-              // hover handled by CSS
-            >
-              <span role="img" aria-label="admins">🛡️</span> Admins
-            </button>
-            <button
-              className={`sidebar-btn${activeBtn === 'logs' ? ' active' : ''}`}
-              onClick={() => navigate('/dashboard/logs')}
-              // hover handled by CSS
-            >
-              <span role="img" aria-label="logs">📋</span> Logs
-            </button>
-            <button
-              className={`sidebar-btn${activeBtn === 'fee-portal' ? ' active' : ''}`}
-              onClick={() => navigate('/dashboard/fee-portal')}
-              // hover handled by CSS
-            >
-              <span role="img" aria-label="fee portal">💳</span> Fee Portal
-            </button>
+            {/* ...existing code for sidebar buttons... */}
+            <button className={`sidebar-btn${activeBtn === 'dashboard' ? ' active' : ''}`} onClick={() => navigate('/dashboard')}><span role="img" aria-label="dashboard">🏠</span> Dashboard</button>
+            <button className={`sidebar-btn${activeBtn === 'applicants' ? ' active' : ''}`} onClick={() => navigate('/dashboard/applicants')}><span role="img" aria-label="applicants">📝</span> Applicants</button>
+            <button className={`sidebar-btn${activeBtn === 'admissions' ? ' active' : ''}`} onClick={() => navigate('/dashboard/admissions')}><span role="img" aria-label="admissions">🎓</span> Admissions</button>
+            <button className={`sidebar-btn${activeBtn === 'students' ? ' active' : ''}`} onClick={() => navigate('/dashboard/students')}><span role="img" aria-label="students">👩‍🎓</span> Students</button>
+            <button className={`sidebar-btn${activeBtn === 'admins' ? ' active' : ''}`} onClick={() => navigate('/dashboard/admins')}><span role="img" aria-label="admins">🛡️</span> Admins</button>
+            <button className={`sidebar-btn${activeBtn === 'logs' ? ' active' : ''}`} onClick={() => navigate('/dashboard/logs')}><span role="img" aria-label="logs">📋</span> Logs</button>
+            <button className={`sidebar-btn${activeBtn === 'fee-portal' ? ' active' : ''}`} onClick={() => navigate('/dashboard/fee-portal')}><span role="img" aria-label="fee portal">💳</span> Fee Portal</button>
           </nav>
           <button
             style={{
@@ -192,7 +152,7 @@ const Dashboard: React.FC = () => {
           </button>
         </aside>
         {/* Main content */}
-  <main style={{ flex: 1, background: 'var(--redp-bg)', padding: '2rem', display: 'flex', flexDirection: 'column', gap: 24, color: 'var(--redp-text)' }}>
+        <main style={{ flex: 1, background: 'var(--redp-bg)', padding: '2rem', display: 'flex', flexDirection: 'column', gap: 24, color: 'var(--redp-text)' }}>
           {isFeePortalRoute ? (
             <section style={{ marginBottom: 0, flex: '0 0 auto' }}>
               <div style={{
@@ -209,7 +169,7 @@ const Dashboard: React.FC = () => {
             </section>
           ) : isTableRoute ? (
             <section style={{ marginBottom: 0, flex: '0 0 auto' }}>
-              <div style={{
+              <div className="max-w-3xl mx-auto" style={{
                 background: 'var(--redp-card)',
                 borderRadius: 14,
                 boxShadow: '0 1px 8px 0 rgba(34,34,34,0.08)',
@@ -233,6 +193,18 @@ const Dashboard: React.FC = () => {
                   }))} />
                 ) : location.pathname.includes('/dashboard/admissions') ? (
                   <AdmissionsTable applicants={applicants} />
+                ) : location.pathname.includes('/dashboard/applicants') ? (
+                  <ApplicantList
+                    onAction={async (
+                      partitionKey: string,
+                      rowKey: string,
+                      newStatus: 'Approved' | 'Pending' | 'Denied',
+                      adminEmail?: string,
+                      reason?: string
+                    ) => {
+                      // ...existing code for onAction...
+                    }}
+                  />
                 ) : (
                   <Outlet />
                 )}
@@ -240,9 +212,9 @@ const Dashboard: React.FC = () => {
             </section>
           ) : (
             <React.Fragment>
-              {/* Stats row and Admin Profile at the top */}
-              <div style={{ display: 'flex', gap: 24, alignItems: 'stretch', marginBottom: '2.2rem', width: '100%', maxWidth: 1400, margin: '0 auto' }}>
-                <div className="dashboard-summary dashboard-summary-row">
+              {/* Stats row at the top, profile/progress/notifications in right column */}
+              <div style={{ display: 'flex', gap: 24, alignItems: 'flex-start', marginBottom: '2.2rem', width: '100%', maxWidth: 1400, margin: '0 auto' }}>
+                <div className="dashboard-summary dashboard-summary-row" style={{ flex: 3, minWidth: 0, marginRight: 32 }}>
                   {summaryStats.map(stat => (
                     <div
                       key={stat.label}
@@ -256,89 +228,83 @@ const Dashboard: React.FC = () => {
                     </div>
                   ))}
                 </div>
-                <AdminProfile />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 18, width: 260, alignItems: 'flex-start' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 18, width: 300, alignItems: 'flex-end', position: 'relative', right: 0 }}>
+                    <div style={{ width: 260, background: '#fff', borderRadius: 18, boxShadow: '0 4px 18px 0 rgba(2,60,105,0.10)', padding: '18px 16px', marginBottom: 16 }}>
+                      <AdminProfile />
+                    </div>
+                    <div style={{ width: 260, background: '#fff', borderRadius: 18, boxShadow: '0 4px 18px 0 rgba(2,60,105,0.10)', padding: '18px 16px', marginBottom: 16 }}>
+                      <div style={{ fontWeight: 700, color: '#ff3d00', marginBottom: 8, fontSize: 16 }}>Admissions Progress</div>
+                      <div style={{ width: '100%', background: '#ffe0b2', borderRadius: 8, height: 14, marginBottom: 8 }}>
+                        <div style={{
+                          width: `${applicantsCount === 0 ? 0 : (studentsCount / applicantsCount) * 100}%`,
+                          height: '100%',
+                          background: 'linear-gradient(90deg, #ff9800 60%, #ff3d00 100%)',
+                          borderRadius: 8,
+                          transition: 'width 0.4s'
+                        }} />
+                      </div>
+                      <div style={{ fontWeight: 600, color: '#ff9800', fontSize: 13, textAlign: 'right' }}>{studentsCount} of {applicantsCount} Approved</div>
+                    </div>
+                    <div className="dashboard-widget-card" style={{ width: 260, marginBottom: 0 }}>
+                      <div style={{ fontWeight: 700, color: '#ff3d00', marginBottom: 8, fontSize: 16 }}>Recent Notifications</div>
+                      <div style={{ maxHeight: 220, overflowY: 'auto' }}>
+                        <Notifications />
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
-              {/* Main grid: table left, widgets right */}
-              <div className="dashboard-content-flex">
-                {/* Left: Recent Applications Table */}
-                <div className="dashboard-table-container">
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                    <span style={{ fontWeight: 700, color: 'var(--redp-accent)', fontSize: '1.05rem', letterSpacing: 0.01 }}>Recent Applications</span>
+              {/* Main grid: Recent Applications Table and Notifications side by side */}
+              <div style={{ display: 'flex', flexDirection: 'row', gap: 0, alignItems: 'flex-start', marginTop: '-25rem', justifyContent: 'flex-start' }}>
+                <section aria-labelledby="recent-apps-title" className="rounded-2xl bg-card text-card-foreground border border-border shadow-md" style={{ width: 600, minWidth: 320, flex: '0 0 600px', marginLeft: 0 }}>
+                  <div className="flex items-center justify-between px-6 pt-5">
+                    <h2 id="recent-apps-title" className="text-lg font-bold text-primary">Recent Applications</h2>
                     <button
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        color: '#ff9800',
-                        fontWeight: 600,
-                        fontSize: '0.97rem',
-                        cursor: 'pointer',
-                        textDecoration: 'underline',
-                        padding: 0
-                      }}
+                      className="text-sm font-semibold text-brand hover:text-brand-strong transition-colors underline"
                       onClick={() => navigate('/dashboard/applicants')}
                       aria-label="View all applicants"
                     >
                       View All
                     </button>
                   </div>
-                  <table className="dashboard-recent-table dashboard-table dashboard-recent-apps-table dashboard-table-large" style={{ color: 'var(--redp-text)', background: 'var(--redp-card)' }}>
-                    <thead>
-                      <tr>
-                        <th className="dashboard-table-header-cell" style={{ color: 'var(--redp-table-header)', background: 'var(--redp-table-header-bg)' }}>Avatar</th>
-                        <th className="dashboard-table-header-cell" style={{ color: 'var(--redp-table-header)', background: 'var(--redp-table-header-bg)' }}>Name</th>
-                        <th className="dashboard-table-header-cell" style={{ color: 'var(--redp-table-header)', background: 'var(--redp-table-header-bg)' }}>Status</th>
-                        <th className="dashboard-table-header-cell" style={{ color: 'var(--redp-table-header)', background: 'var(--redp-table-header-bg)' }}>Action</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {(applicants.slice(0, 4) as ApplicantWithExtras[]).map((a) => {
-                        const status = typeof a.status === 'number'
-                          ? (a.status === 1 ? 'Pending' : a.status === 2 ? 'Approved' : a.status === 3 ? 'Denied' : a.status)
-                          : a.status;
-                        return (
-                          <tr key={a.partitionKey + '-' + a.rowKey} className="dashboard-table-row">
-                            <td className="dashboard-table-cell" style={{ color: 'var(--redp-text)', background: 'var(--redp-table-bg)' }}>
-                              <span className="avatar-initials dashboard-recent-avatar" style={{ width: 44, height: 44, fontSize: '1.25em' }}>
-                                {a.firstName && a.lastName ? `${a.firstName[0]}${a.lastName[0]}`.toUpperCase() : '?'}
-                              </span>
-                            </td>
-                            <td className="dashboard-table-cell" style={{ color: 'var(--redp-text)', background: 'var(--redp-table-bg)' }}>{a.firstName} {a.lastName}</td>
-                            <td className={`dashboard-table-cell dashboard-status ${status && status.toLowerCase()}`}
-                                style={{
-                                  color: status === 'Approved' ? 'var(--redp-status-approved)' : status === 'Denied' ? 'var(--redp-status-denied)' : status === 'Pending' ? 'var(--redp-status-pending)' : 'var(--redp-text)',
-                                  background: 'var(--redp-table-bg)'
-                                }}>{status}</td>
-                            <td className="dashboard-table-cell" style={{ color: 'var(--redp-text)', background: 'var(--redp-table-bg)' }}>
-                              <button className="dashboard-table-btn" style={{ color: 'var(--redp-accent)', background: 'var(--redp-table-btn-bg)', borderColor: 'var(--redp-accent)' }}>View</button>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-                {/* Right: Progress, Notifications */}
-                <div className="dashboard-right-panel">
-                  <div className="dashboard-widget-card">
-                    <div style={{ fontWeight: 700, color: '#ff3d00', marginBottom: 8, fontSize: 16 }}>Admissions Progress</div>
-                    <div style={{ width: '100%', background: '#ffe0b2', borderRadius: 8, height: 14, marginBottom: 8 }}>
-                      <div style={{
-                        width: `${applicantsCount === 0 ? 0 : (studentsCount / applicantsCount) * 100}%`,
-                        height: '100%',
-                        background: 'linear-gradient(90deg, #ff9800 60%, #ff3d00 100%)',
-                        borderRadius: 8,
-                        transition: 'width 0.4s'
-                      }} />
-                    </div>
-                    <div style={{ fontWeight: 600, color: '#ff9800', fontSize: 13, textAlign: 'right' }}>{studentsCount} of {applicantsCount} Approved</div>
+                  <div className="overflow-x-auto px-2 pb-4">
+                    <table className="w-full min-w-[320px] text-left">
+                      <thead>
+                        <tr>
+                          <th className="dashboard-table-header-cell" style={{ color: 'var(--redp-table-header)', background: 'var(--redp-table-header-bg)' }}>Avatar</th>
+                          <th className="dashboard-table-header-cell" style={{ color: 'var(--redp-table-header)', background: 'var(--redp-table-header-bg)' }}>Name</th>
+                          <th className="dashboard-table-header-cell" style={{ color: 'var(--redp-table-header)', background: 'var(--redp-table-header-bg)', width: 120, border: '1px solid #e0e0e0' }}>Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(applicants.slice(0, 4) as ApplicantWithExtras[]).map((a) => {
+                          const status = typeof a.status === 'number'
+                            ? (a.status === 1 ? 'Pending' : a.status === 2 ? 'Approved' : a.status === 3 ? 'Denied' : a.status)
+                            : a.status;
+                          return (
+                            <tr key={a.partitionKey + '-' + a.rowKey} className="dashboard-table-row">
+                              <td className="dashboard-table-cell" style={{ color: 'var(--redp-text)', background: 'var(--redp-table-bg)', border: '1px solid #e0e0e0' }}>
+                                <span className="avatar-initials dashboard-recent-avatar" style={{ width: 44, height: 44, fontSize: '1.25em' }}>
+                                  {a.firstName && a.lastName ? `${a.firstName[0]}${a.lastName[0]}`.toUpperCase() : '?'}
+                                </span>
+                              </td>
+                              <td className="dashboard-table-cell" style={{ color: 'var(--redp-text)', background: 'var(--redp-table-bg)', border: '1px solid #e0e0e0' }}>{a.firstName} {a.lastName}</td>
+                              <td className={`dashboard-table-cell dashboard-status ${status && status.toLowerCase()}`}
+                                  style={{
+                                    color: status === 'Approved' ? 'var(--redp-status-approved)' : status === 'Denied' ? 'var(--redp-status-denied)' : status === 'Pending' ? 'var(--redp-status-pending)' : 'var(--redp-text)',
+                                    background: 'var(--redp-table-bg)',
+                                    width: 120,
+                                    border: '1px solid #e0e0e0',
+                                    textAlign: 'center'
+                                  }}>{status}</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
                   </div>
-                  <div className="dashboard-widget-card">
-                    <div style={{ fontWeight: 700, color: '#ff3d00', marginBottom: 8, fontSize: 16 }}>Recent Notifications</div>
-                    <div style={{ maxHeight: 220, overflowY: 'auto' }}>
-                      <Notifications />
-                    </div>
-                  </div>
-                </div>
+                </section>
               </div>
             </React.Fragment>
           )}
