@@ -1,0 +1,24 @@
+﻿
+
+StatusCode        : 200
+StatusDescription : OK
+Content           : [{"firstName": "Erick", "lastName": "Njenga", "status": 1, "partitionKey": "signup", "rowKey": 
+                    "06d0c037-8fa2-40f5-918c-d129a233387a"}, {"firstName": "Keren", "lastName": "Muthoni", "status": 2, "part...
+RawContent        : HTTP/1.1 200 OK
+                    Transfer-Encoding: chunked
+                    Request-Context: appId=cid-v1:3127b568-9f14-441d-93bf-2c2c692ff510
+                    Content-Type: application/json
+                    Date: Fri, 08 Aug 2025 09:59:55 GMT
+                    Server: Kestrel
+                    ...
+Forms             : {}
+Headers           : {[Transfer-Encoding, chunked], [Request-Context, appId=cid-v1:3127b568-9f14-441d-93bf-2c2c692ff510], [Content-Type, application/json], 
+                    [Date, Fri, 08 Aug 2025 09:59:55 GMT]...}
+Images            : {}
+InputFields       : {}
+Links             : {}
+ParsedHtml        : mshtml.HTMLDocumentClass
+RawContentLength  : 2256
+
+
+

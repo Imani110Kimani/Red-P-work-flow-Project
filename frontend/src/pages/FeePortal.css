@@ -1,0 +1,94 @@
+/* Modern Fee Portal Table Styles */
+.fee-portal-table {
+	width: 100%;
+	border-collapse: separate;
+	border-spacing: 0;
+	background: #fff;
+	border-radius: 16px;
+	box-shadow: 0 2px 16px 0 rgba(34,34,34,0.08);
+	margin: 2rem auto;
+	overflow: hidden;
+	font-size: 1.08em;
+	letter-spacing: 0.01em;
+}
+.fee-portal-table th {
+	background: #ffe0b2;
+	color: #e53935;
+	font-weight: 800;
+	font-size: 1.13em;
+	padding: 16px 18px;
+	border: 1px solid #eee;
+	text-align: left;
+}
+.fee-portal-table td {
+	padding: 16px 18px;
+	border: 1px solid #eee;
+	font-size: 1.08em;
+	background: #fff;
+}
+.fee-portal-table tr {
+	transition: background 0.18s;
+}
+.fee-portal-table tr:hover {
+	background: #fff8e1;
+	cursor: pointer;
+}
+.fee-status.paid {
+	background: #e0f7fa;
+	color: #00c853;
+	border-radius: 8px;
+	padding: 4px 12px;
+	font-weight: 700;
+}
+.fee-status.pending {
+	background: #fff3e0;
+	color: #ff9800;
+	border-radius: 8px;
+	padding: 4px 12px;
+	font-weight: 700;
+}
+.pay-btn {
+	background: #ff9800;
+	color: #fff;
+	border: none;
+	border-radius: 6px;
+	padding: 6px 18px;
+	font-weight: 700;
+	font-size: 1em;
+	cursor: pointer;
+	transition: background 0.2s;
+}
+.pay-btn:hover {
+	background: #e53935;
+}
+.fee-name {
+	font-weight: 700;
+	color: #222;
+}
+.fee-portal-root {
+	max-width: 1200px;
+	margin: 0 auto;
+	padding: 2.5rem 1.5rem;
+}
+.fee-portal-table th:first-child, .fee-portal-table td:first-child {
+	text-align: center;
+}
+/* Circular avatar for Fee Portal table */
+.fee-avatar {
+	width: 44px;
+	height: 44px;
+	border-radius: 50%;
+	background: #023c69;
+	color: #fff;
+	font-weight: bold;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 1.25em;
+	margin: 0 auto;
+	box-shadow: 0 1px 4px 0 rgba(2,60,105,0.08);
+	letter-spacing: 0.01em;
+	user-select: none;
+	transition: background 0.2s;
+	overflow: hidden;
+}

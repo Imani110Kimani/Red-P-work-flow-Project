@@ -1,3 +1,4 @@
+
 import { statusToString } from './utils';
 // ApplicantList.tsx
 // This component displays all scholarship applications in a table with action controls for admin workflow.
@@ -29,7 +30,13 @@ import type { ApplicantDetailed } from '../contexts/ApplicantDataContext';
 // Props:
 // - onAction: Handler for status change (should call backend API/Azure Function to update status or delete)
 interface ApplicantListProps {
-  onAction?: (partitionKey: string, rowKey: string, newStatus: 'Approved' | 'Pending' | 'Denied', adminEmail?: string) => void;
+  onAction?: (
+    partitionKey: string,
+    rowKey: string,
+    newStatus: 'Approved' | 'Pending' | 'Denied',
+    adminEmail?: string,
+    reason?: string
+  ) => void;
 }
 
 import { useNotification } from '../contexts/NotificationContext';
@@ -198,13 +205,11 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
   // Confirm bulk/single action with reason
   const confirmActionWithReason = async () => {
     if (!pendingAction) return;
-    
-    // Call onAction for each applicant to handle the approval/denial logic
-    // The Dashboard component will handle the backend API calls and Power Automate triggers
+    // Call onAction for each applicant to handle the approval/denial logic, passing reason
     for (const key of pendingAction.keys) {
       const [partitionKey, rowKey] = key.split('|');
       if (onAction) {
-        await onAction(partitionKey, rowKey, pendingAction.action, adminEmail);
+        await onAction(partitionKey, rowKey, pendingAction.action, adminEmail, reasonValue);
       }
     }
 
@@ -430,21 +435,7 @@ const ApplicantList: React.FC<ApplicantListProps> = ({ onAction }) => {
                   disabled={status === 'Approved'}
                 />
               </span>
-              {/* Approve/Deny buttons for single action (show only if not approved) */}
-              {/*
-              <span>
-                <button onClick={() => {
-                  setPendingAction({ action: 'Approved', keys: [applicantKey] });
-                  setReasonValue('');
-                  setReasonModalOpen(true);
-                }} disabled={status === 'Approved'}>Approve</button>
-                <button onClick={() => {
-                  setPendingAction({ action: 'Denied', keys: [applicantKey] });
-                  setReasonValue('');
-                  setReasonModalOpen(true);
-                }} disabled={status === 'Approved'}>Deny</button>
-              </span>
-              */}
+
               {/* Avatar/Initials */}
               <span>
                 {applicant.profileImage ? (

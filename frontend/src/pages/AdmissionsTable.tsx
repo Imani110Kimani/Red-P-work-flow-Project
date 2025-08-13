@@ -22,44 +22,40 @@ interface AdmissionsTableProps {
 
 const AdmissionsTable: React.FC<AdmissionsTableProps> = ({ applicants }) => {
   return (
-    <div className="dashboard-recent-table" style={{maxWidth: 1100, width: '100%', minWidth: 0, margin: '2rem auto', padding: '0 1rem', boxSizing: 'border-box'}}>
+  <div className="dashboard-recent-table" style={{maxWidth: 1100, width: '100%', minWidth: 0, margin: '2rem auto', padding: '0 1rem', boxSizing: 'border-box'}}>
       <h2>New Admissions</h2>
       <div style={{overflowX: 'auto'}}>
-        <table className="dashboard-table" style={{minWidth: 1100, width: '100%'}}>
+  <table className="dashboard-table" style={{ color: 'var(--redp-text)', background: 'var(--redp-card)' }}>
           <thead>
             <tr>
-              <th>First Name</th>
-              <th>Last Name</th>
-              <th>Email</th>
-              <th>Phone</th>
-              <th>Date of Birth</th>
-              <th>Grade</th>
-              <th>School</th>
-              <th>Location</th>
-              <th>Essay</th>
-              <th>Status</th>
+      <th className="dashboard-table-header-cell" style={{ color: 'var(--redp-table-header)', background: 'var(--redp-table-header-bg)' }}>First Name</th>
+      <th className="dashboard-table-header-cell" style={{ color: 'var(--redp-table-header)', background: 'var(--redp-table-header-bg)' }}>Last Name</th>
+      <th className="dashboard-table-header-cell" style={{ color: 'var(--redp-table-header)', background: 'var(--redp-table-header-bg)' }}>Email</th>
+      <th className="dashboard-table-header-cell" style={{ color: 'var(--redp-table-header)', background: 'var(--redp-table-header-bg)' }}>Phone</th>
+      <th className="dashboard-table-header-cell" style={{ color: 'var(--redp-table-header)', background: 'var(--redp-table-header-bg)' }}>Date of Birth</th>
+      <th className="dashboard-table-header-cell" style={{ color: 'var(--redp-table-header)', background: 'var(--redp-table-header-bg)' }}>Grade</th>
+      <th className="dashboard-table-header-cell" style={{ color: 'var(--redp-table-header)', background: 'var(--redp-table-header-bg)' }}>School</th>
+      <th className="dashboard-table-header-cell" style={{ color: 'var(--redp-table-header)', background: 'var(--redp-table-header-bg)' }}>Location</th>
+      <th className="dashboard-table-header-cell" style={{ color: 'var(--redp-table-header)', background: 'var(--redp-table-header-bg)' }}>Essay</th>
+      <th className="dashboard-table-header-cell" style={{ color: 'var(--redp-table-header)', background: 'var(--redp-table-header-bg)' }}>Status</th>
             </tr>
           </thead>
           <tbody>
             {applicants.length === 0 ? (
-              <tr><td colSpan={10} style={{ textAlign: 'center', color: '#888' }}>No new admissions.</td></tr>
+      <tr><td colSpan={10} className="dashboard-table-cell" style={{ textAlign: 'center', color: 'var(--redp-text)', background: 'var(--redp-table-bg)' }}>No new admissions.</td></tr>
             ) : (
               applicants.map((applicant, idx) => (
-                <tr key={applicant.rowKey || idx}>
-                  <td>{applicant.firstName}</td>
-                  <td>{applicant.lastName}</td>
-                  <td>{applicant.email || 'N/A'}</td>
-                  <td>{applicant.phone || 'N/A'}</td>
-                  <td>{applicant.dateOfBirth || 'N/A'}</td>
-                  <td>{applicant.gradeLevel || 'N/A'}</td>
-                  <td>{applicant.schoolName || 'N/A'}</td>
-                  <td>{applicant.location || 'N/A'}</td>
-                  <td>{applicant.essay || 'N/A'}</td>
-                  <td>
-                    <span className={`status-badge ${statusToString(applicant.status).toLowerCase().replace(' ', '-')}`}>
-                      {statusToString(applicant.status)}
-                    </span>
-                  </td>
+                <tr key={applicant.rowKey || idx} className="dashboard-table-row">
+                  <td className="dashboard-table-cell">{applicant.firstName}</td>
+                  <td className="dashboard-table-cell">{applicant.lastName}</td>
+                  <td className="dashboard-table-cell">{applicant.email || 'N/A'}</td>
+                  <td className="dashboard-table-cell">{applicant.phone || 'N/A'}</td>
+                  <td className="dashboard-table-cell">{applicant.dateOfBirth || 'N/A'}</td>
+                  <td className="dashboard-table-cell">{applicant.gradeLevel || 'N/A'}</td>
+                  <td className="dashboard-table-cell">{applicant.schoolName || 'N/A'}</td>
+                  <td className="dashboard-table-cell">{applicant.location || 'N/A'}</td>
+                  <td className="dashboard-table-cell">{applicant.essay || 'N/A'}</td>
+                  <td className={`dashboard-table-cell dashboard-status ${statusToString(applicant.status).toLowerCase()}`}>{statusToString(applicant.status)}</td>
                 </tr>
               ))
             )}

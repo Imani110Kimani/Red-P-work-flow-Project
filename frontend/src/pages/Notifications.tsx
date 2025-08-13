@@ -1,7 +1,7 @@
 import React from 'react';
 import './Notifications.css';
 // Import legacy applicants and API applicants logic from Dashboard
-import { initialApplicants } from './Dashboard';
+import { initialApplicants } from './initialApplicants';
 import { statusToString, joinName, notificationMessage } from './utils';
 
 const getRecentNotifications = (apiApplicants: any[], applicants: any[]) => {
@@ -24,28 +24,34 @@ const getRecentNotifications = (apiApplicants: any[], applicants: any[]) => {
       return db.getTime() - da.getTime();
     });
   }
-  // Show up to 10 most recent
-  return sorted.slice(0, 10).map((a, idx) => {
-    let msg = '';
+  // Show only the 7 most recent applicants
+  return sorted.slice(0, 7).map((a, idx) => {
     const status = statusToString(a.status).toLowerCase();
     const firstName = (a as any).firstName || (hasName(a) ? a.name.split(' ')[0] : '');
     const lastName = (a as any).lastName || (hasName(a) ? a.name.split(' ').slice(1).join(' ') : '');
+    let action = '';
     if (status === 'approved') {
-      msg = `${firstName} ${lastName} was approved.`;
+      action = 'Approved';
     } else if (status === 'pending') {
-      msg = `New application received from ${firstName} ${lastName}.`;
+      action = 'Applied';
     } else if (status === 'denied') {
-      msg = `${firstName} ${lastName} was denied.`;
+      action = 'Denied';
     } else {
-      msg = `${firstName} ${lastName} application is in progress.`;
+      action = 'In Progress';
     }
+    // Admin and reason fields (empty for now, will fill if present)
+    const admin = a.approval1 || a.denial1 || '';
+    const reason = a.reason || '';
     // Date string
     const dateStr = hasDateOfBirth(a) ? a.dateOfBirth : hasDate(a) ? a.date : '';
     return {
       id: idx + 1,
-      message: msg,
-      date: dateStr,
+      action,
+      applicant: `${firstName} ${lastName}`.trim(),
       status,
+      admin,
+      reason,
+      date: dateStr,
     };
   });
 };
@@ -79,25 +85,38 @@ const Notifications: React.FC = () => {
   const notifications = getRecentNotifications(apiApplicants, initialApplicants);
   return (
     <div className="logs-container">
-      <h2 className="logs-title">Logs</h2>
-      <div className="logs-list">
+      <h2 className="logs-title">Recent Notifications</h2>
+      <div className="logs-list" style={{padding:0}}>
         {loading ? (
-          <div style={{textAlign:'center', color:'#888', padding:'2rem'}}>Loading logs...</div>
+          <div style={{textAlign:'center', color:'#888', padding:'2rem'}}>Loading notifications...</div>
         ) : error ? (
           <div style={{textAlign:'center', color:'#f44336', padding:'2rem'}}>{error}</div>
         ) : notifications.length === 0 ? (
-          <div style={{textAlign:'center', color:'#888', padding:'2rem'}}>No logs available.</div>
+          <div style={{textAlign:'center', color:'#888', padding:'2rem'}}>No notifications available.</div>
         ) : notifications.map((n) => (
-          <div className="log-item" key={n.id}>
-            <div className="log-message" style={{color: n.status === 'approved' ? '#ff9800' : n.status === 'denied' ? '#f44336' : '#ff3d00', fontWeight: 700}}>
-              {n.message}
-              {n.status === 'approved' && (
-                <span style={{color:'#222', fontWeight:400, marginLeft:8, fontSize:'0.97em'}}>
-                  — Approved by Admin
-                </span>
+          <div className="log-item" key={n.id} style={{
+            background:'#fff8e1',
+            borderRadius:8,
+            marginBottom:10,
+            padding:'10px 14px',
+            boxShadow:'0 1px 4px 0 rgba(255,152,0,0.07)',
+            display:'flex',
+            flexDirection:'column',
+            borderLeft:`4px solid ${n.status === 'approved' ? '#ff9800' : n.status === 'denied' ? '#f44336' : '#ff3d00'}`
+          }}>
+            <div style={{fontWeight:700, color: n.status === 'approved' ? '#ff9800' : n.status === 'denied' ? '#f44336' : '#ff3d00'}}>
+              {n.action}: {n.applicant}
+            </div>
+            <div style={{fontSize:'0.97em', color:'#444', marginTop:2}}>
+              {n.status.charAt(0).toUpperCase() + n.status.slice(1)}
+              {n.admin && (
+                <span style={{marginLeft:8, color:'#888'}}>by {n.admin}</span>
+              )}
+              {n.reason && (
+                <span style={{marginLeft:8, color:'#888'}}>({n.reason})</span>
               )}
             </div>
-            {n.date && <div className="log-date">{n.date}</div>}
+            {n.date && <div style={{fontSize:'0.93em', color:'#888', marginTop:2}}>{n.date}</div>}
           </div>
         ))}
       </div>

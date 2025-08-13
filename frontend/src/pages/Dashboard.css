@@ -1,18 +1,197 @@
+/* Alternative hover colors for stats cards */
+.dashboard-summary-card-medium,
+.dashboard-summary-card {
+  transition: background 0.2s, color 0.2s, border 0.2s, box-shadow 0.2s;
+}
+.dashboard-summary-card-medium[style*='#e53935']:hover,
+.dashboard-summary-card[style*='#e53935']:hover {
+  background: #b71c1c !important;
+  color: #fff !important;
+}
+.dashboard-summary-card-medium[style*='#ffb224']:hover,
+.dashboard-summary-card[style*='#ffb224']:hover {
+  background: #ff9800 !important;
+  color: #fff !important;
+}
+.dashboard-summary-card-medium[style*='background: #fff']:hover,
+.dashboard-summary-card[style*='background: #fff']:hover {
+  background: #f5f5f5 !important;
+  color: #e53935 !important;
+  border-color: #ffe0b2 !important;
+}
+.dashboard-summary-card-medium {
+  min-width: 120px !important;
+  max-width: 170px !important;
+  padding: 16px 16px !important;
+}
+.dashboard-summary-card-small {
+  min-width: 90px !important;
+  max-width: 120px !important;
+  padding: 10px 10px !important;
+}
+.dashboard-summary-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  margin-bottom: 0.7rem;
+  width: 100%;
+  justify-content: flex-start;
+}
+.dashboard-table-large .dashboard-table-cell,
+.dashboard-table-large .dashboard-table-header-cell {
+  font-size: 1.18em;
+  padding: 22px 28px;
+}
+.dashboard-table-container {
+  flex: 2 1 0;
+  min-width: 0;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 2px 16px 0 rgba(34,34,34,0.08);
+  padding: 2rem 2.5rem 1.2rem 2.5rem;
+  margin-right: 0;
+  margin-bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  width: 100%;
+  max-width: none;
+  overflow-x: auto;
+}
+.dashboard-widget-card {
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 1px 8px 0 rgba(255,61,0,0.07);
+  padding: 0.7rem 0.7rem 0.8rem 0.7rem;
+  margin-bottom: 0;
+}
+/* Logs table customizations */
+.logs-table .dashboard-table-header-cell {
+  font-size: 1.08em;
+  letter-spacing: 0.01em;
+  padding: 14px 10px;
+}
+.logs-table .dashboard-table-cell {
+  font-size: 1.04em;
+  padding: 13px 10px;
+}
+.logs-table .dashboard-table-row {
+  border-bottom: 1.5px solid #ffe0b2;
+}
+/* Dashboard table action button */
+.dashboard-table-btn {
+  margin-left: 8px;
+  background: transparent;
+  color: #ff3d00;
+  border: 1.5px solid #ff3d00;
+  border-radius: 5px;
+  padding: 4px 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+.dashboard-table-btn:hover {
+  background: #ff9800;
+  color: #fff;
+  border-color: #ff9800;
+}
+/* Modern dashboard table styles */
+.dashboard-table {
+  width: 100%;
+  min-width: 0;
+  border-collapse: collapse;
+  font-size: 1.08em;
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 1px 12px 0 rgba(2,60,105,0.07);
+  overflow: hidden;
+  letter-spacing: 0.01em;
+}
+.dashboard-table-header-cell {
+  background: #ffe0b2;
+  color: #e53935;
+  font-weight: 800;
+  font-size: 1.13em;
+  padding: 16px 18px;
+  border: 1px solid #eee;
+  text-align: left;
+  letter-spacing: 0.01em;
+}
+.dashboard-table-row {
+  transition: background 0.18s;
+}
+.dashboard-table-row:hover {
+  background: #fff8e1;
+}
+.dashboard-table-cell {
+  padding: 16px 18px;
+  border: 1px solid #eee;
+  font-size: 1.08em;
+}
+.dashboard-status {
+  font-weight: 700;
+  text-transform: capitalize;
+  border-radius: 8px;
+  padding: 4px 12px;
+  display: inline-block;
+}
+.dashboard-status.pending {
+  background: #fff3e0;
+  color: #ff9800;
+}
+.dashboard-status.approved {
+  background: #e0f7fa;
+  color: #00c853;
+}
+.dashboard-status.denied {
+  background: #ffebee;
+  color: #f44336;
+}
+/* Modern sidebar button styles for Dashboard */
+.sidebar-btn {
+  background: none;
+  border: none;
+  text-align: left;
+  padding: 12px 18px;
+  border-radius: 8px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #222;
+  transition: background 0.18s, color 0.18s, font-weight 0.18s, box-shadow 0.18s;
+  font-size: 1.05em;
+  margin-bottom: 2px;
+  cursor: pointer;
+}
+.sidebar-btn:hover {
+  background: #fff3e0;
+  color: #ff9800;
+  font-weight: 700;
+}
+.sidebar-btn.active {
+  background: #ffe0b2;
+  color: #e53935;
+  font-weight: 900;
+  box-shadow: 0 2px 8px 0 rgba(229,57,53,0.08);
+}
 /* Dashboard main content and right panel layout */
 .dashboard-content-flex {
   display: flex;
-  gap: 32px;
-  align-items: flex-start;
+  gap: 24px;
+  align-items: stretch;
+  min-height: 420px;
+  width: 100%;
+  max-width: none;
 }
 .dashboard-right-panel {
-  flex: 1;
+  flex: 1 1 340px;
   min-width: 260px;
-  max-width: 340px;
-  background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 1px 8px 0 rgba(2,60,105,0.07);
-  padding: 1.5rem 1.2rem;
-  margin-top: 8px;
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  height: 100%;
 }
 
 @media (max-width: 900px) {
@@ -36,8 +215,8 @@
 
 /* Center main table containers on desktop */
 .dashboard-recent-table, .pending-details-container, .applicant-list-container, .admissions-table-container {
-  max-width: 1100px;
-  margin: 2rem auto;
+  width: 100%;
+  margin: 2rem 0;
   display: block;
   overflow-x: auto;
   background: #fff;
@@ -132,6 +311,7 @@
   display: flex;
   min-height: 100vh;
   background: #f7fafd;
+  gap: 44px;
 }
 .admin-sidebar {
   width: 170px;
@@ -143,7 +323,10 @@
   padding: 0;
   position: relative;
   z-index: 2;
-}
+  box-shadow: 2px 0 16px rgba(34,34,34,0.08);
+  margin-right: 32px;
+  border-radius: 0 18px 18px 0;
+  transition: box-shadow 0.2s, margin 0.2s;
 .sidebar-logo {
   display: flex;
   align-items: center;
@@ -793,8 +976,8 @@ body, html {
 }
 
 .dashboard-recent-table, .pending-details-container, .applicant-list-container, .admissions-table-container {
-  max-width: 1100px;
-  margin: 2rem auto;
+  width: 100%;
+  margin: 2rem 0;
   display: block;
   overflow-x: auto;
   background: #fff;

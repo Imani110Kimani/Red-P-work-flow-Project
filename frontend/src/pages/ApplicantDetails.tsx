@@ -202,23 +202,26 @@ const ApplicantDetails: React.FC = () => {
         )}
       </div>
 
-      <div className="applicant-details-card">
+      <div className="applicant-details-card compact-details-grid">
         <div><strong>Name:</strong> {joinName(applicant.name)}</div>
-        <div><strong>School:</strong> {applicant.school} {' '}
-          <Link to={`/school-verification/1`} className="related-link">(View School Verification)</Link>
-        </div>
+        <div><strong>School:</strong> {applicant.school} <Link to={`/school-verification/1`} className="related-link">(View School Verification)</Link></div>
         <div><strong>Date:</strong> {applicant.date}</div>
         <div><strong>Contact Email:</strong> {applicant.contact}</div>
         <div><strong>Phone:</strong> {applicant.phone}</div>
         <div><strong>Address:</strong> {applicant.address}</div>
         <div><strong>Guardian:</strong> {applicant.guardian} ({applicant.guardianPhone})</div>
         <div><strong>Scores:</strong> Math: {applicant.scores.math}, English: {applicant.scores.english}, Science: {applicant.scores.science}</div>
-        <div><strong>Other Info:</strong> {applicant.extra}</div>
         <div><strong>Admission:</strong> <Link to={`/admissions/1`} className="related-link">View Admission Details</Link></div>
       </div>
+      {applicant.extra && (
+        <div className="applicant-extra-info">
+          <strong>Other Info:</strong> {applicant.extra}
+        </div>
+      )}
       <div className="details-nav-links">
         <Link to="/applicants" className="back-link">Back to List</Link>
         <Link to="/dashboard" className="back-link">Back to Dashboard</Link>
+        <Link to={`/dashboard/logs?applicant=${encodeURIComponent(joinName(applicant.name))}`} className="back-link">View Approval Logs</Link>
       </div>
     </div>
   );

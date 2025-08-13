@@ -200,7 +200,7 @@ const AdminsTable: React.FC = () => {
       )}
 
       <div className="admins-table-container">
-        <table className="admins-table">
+  <table className="admins-table" style={{ color: 'var(--redp-text)', background: 'var(--redp-card)' }}>
           <thead>
             <tr>
               <th>Email</th>
