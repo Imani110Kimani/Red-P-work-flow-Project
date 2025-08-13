@@ -202,25 +202,26 @@ celerybeat-schedule
 /site
 
 # mypy
-.mypy_cache/
-.dmypy.json
-dmypy.json
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.env
+.venv/
+.env/
+local.settings.json
 
-# ============ FRONTEND SPECIFIC ============
-# Build tools
-.parcel-cache
-.cache
+# Node.js
+frontend/node_modules/
+frontend/dist/
 
-# Next.js
-.next
-out
+# OS
+.DS_Store
+Thumbs.db
 
-# Nuxt.js
-.nuxt
-
-# Vuepress
-.vuepress/dist
-
+# VS Code
+.vscode/
 # Serverless directories
 .serverless/
 
