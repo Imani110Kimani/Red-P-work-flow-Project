@@ -14,7 +14,8 @@ const BG = "#fff"; // White background
 const LandingLoginPage: React.FC = () => {
   const navigate = useNavigate();
   const { setUserEmail } = useUser();
-  const msalInstance = new PublicClientApplication(msalConfig);
+  // msalInstance already declared, removed duplicate
+  const msalInstance = new PublicClientApplication(msalConfig as any);
   const [msalError, setMsalError] = useState("");
   const [loading, setLoading] = useState(true);
   const [showConfirmation, setShowConfirmation] = useState(false);
@@ -124,7 +125,7 @@ const LandingLoginPage: React.FC = () => {
   const handleConfirmationSuccess = () => {
     if (userEmailFromEntra) {
       setUserEmail(userEmailFromEntra);
-      navigate("/dashboard");
+      navigate("/faceid-camera");
     }
   };
 
