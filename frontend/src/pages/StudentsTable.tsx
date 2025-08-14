@@ -4,7 +4,7 @@
 // For Azure Functions, connect data fetching to your HTTP triggers or function endpoints.
 import React, { useState, useEffect } from 'react';
 import './ApplicantList.css';
-import { statusToString, joinName, paginate } from './utils';
+// ...existing code...
 
 
 // Applicant type should match backend data model for a student
@@ -22,9 +22,7 @@ type Applicant = {
   // Add any additional fields from backend as needed
 };
 
-interface StudentsTableProps {
-  applicants: Applicant[];
-}
+// ...existing code...
 
 
 const StudentsTable: React.FC<{ applicants: Applicant[] }> = ({ applicants }) => {

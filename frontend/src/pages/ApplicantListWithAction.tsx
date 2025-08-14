@@ -2,18 +2,11 @@ import React from 'react';
 // ...existing code...
 import { useNotification } from '../contexts/NotificationContext';
 import { useApplicantData } from '../contexts/ApplicantDataContext';
+import ApplicantList from './ApplicantList'; // ✅ Make sure this path is correct
 
 // Backend API endpoint for approval/denial
-const APPROVAL_API_URL = 'https://simbagetaddapproval-hcf5cffbcccmgsbn.westus-01.azurewebsites.net/api/add-approval';
-
-
-interface ActionWithReason {
-  partitionKey: string;
-  rowKey: string;
-  newStatus: 'Approved' | 'Pending' | 'Denied';
-  adminEmail?: string;
-  reason?: string;
-}
+const APPROVAL_API_URL =
+  'https://simbagetaddapproval-hcf5cffbcccmgsbn.westus-01.azurewebsites.net/api/add-approval';
 
 const ApplicantListWithAction: React.FC = () => {
   const { addNotification } = useNotification();
@@ -27,7 +20,7 @@ const ApplicantListWithAction: React.FC = () => {
     adminEmail?: string,
     reason?: string
   ) => {
-    // Removed unused ActionWithReason interface
+    try {
       const response = await fetch(APPROVAL_API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -39,12 +32,15 @@ const ApplicantListWithAction: React.FC = () => {
           reason: reason || '',
         }),
       });
+
       const data = await response.json();
+
       if (response.ok) {
         addNotification(
           data.message || `Application ${newStatus.toLowerCase()} successfully!`,
           'success'
         );
+
         // Force refresh applicants and their details so the table updates
         await refetchApplicants(true);
         if (applicants.length > 0) {

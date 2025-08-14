@@ -9,12 +9,12 @@ import { useUser } from '../contexts/UserContext';
 
 const AdminProfile: React.FC = () => {
   const { userName, userEmail, userPhoto, setUserPhoto, logout } = useUser();
-  const { admins, loading: adminsLoading } = useAdmins();
+  const { admins } = useAdmins();
   // Find current admin info
   const currentAdmin = admins.find((a: Admin) => a.email === userEmail);
   const isSuperAdmin = currentAdmin?.role === 'super_admin';
   const lastLogin = currentAdmin?.last_login || 'Unknown';
-  const { darkMode, toggleDarkMode } = useTheme();
+  const { darkMode } = useTheme();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [copied, setCopied] = useState(false);

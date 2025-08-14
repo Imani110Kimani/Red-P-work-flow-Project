@@ -11,7 +11,10 @@ const PRIMARY = "#ff3d00"; // REDP Red
 const ACCENT = "#ff9800"; // REDP Orange
 const BG = "#fff"; // White background
 
-const msalInstance = new PublicClientApplication(msalConfig);
+const msalInstance = new PublicClientApplication({
+  ...msalConfig,
+  system: {}, // Remove or update to match BrowserSystemOptions if needed
+});
 
 const LandingLoginPage: React.FC = () => {
   const navigate = useNavigate();

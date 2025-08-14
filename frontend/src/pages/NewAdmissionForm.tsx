@@ -72,7 +72,11 @@ const NewAdmissionForm: React.FC = () => {
       setStudentIdFile(null);
       setSchoolDocFile(null);
   } catch (err: unknown) {
-      setError(err.message || 'Submission failed.');
+      if (typeof err === 'object' && err !== null && 'message' in err) {
+        setError((err as { message?: string }).message || 'Submission failed.');
+      } else {
+        setError('Submission failed.');
+      }
     } finally {
       setLoading(false);
     }

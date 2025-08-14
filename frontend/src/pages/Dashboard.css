@@ -558,6 +558,7 @@
   margin-right: 32px;
   border-radius: 0 18px 18px 0;
   transition: box-shadow 0.2s, margin 0.2s;
+}
 .sidebar-logo {
   display: flex;
   align-items: center;

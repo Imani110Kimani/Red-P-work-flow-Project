@@ -86,7 +86,7 @@ const Dashboard: React.FC = () => {
     { label: 'Admins', value: adminsLoading ? '...' : adminsCount, icon: '🛡️', color: '#fff', route: '/dashboard/admins', textColor: '#222' }
   ];
 
-  const { darkMode, toggleDarkMode } = useTheme();
+  const { darkMode } = useTheme();
   return (
     <div className={`dashboard-root${darkMode ? ' dark' : ''}`}>
       {/* Hamburger for mobile/tablet */}
