@@ -261,7 +261,19 @@ const Dashboard: React.FC = () => {
                   <div className="flex items-center justify-between px-6 pt-5">
                     <h2 id="recent-apps-title" className="text-lg font-bold text-primary">Recent Applications</h2>
                     <button
-                      className="text-sm font-semibold text-brand hover:text-brand-strong transition-colors underline"
+                      style={{
+                        background: '#ff3d00',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: 18,
+                        padding: '6px 22px',
+                        fontWeight: 700,
+                        fontSize: '1rem',
+                        boxShadow: '0 2px 8px #e5393533',
+                        cursor: 'pointer',
+                        transition: 'background 0.2s, color 0.2s, border 0.2s',
+                        outline: 'none',
+                      }}
                       onClick={() => navigate('/dashboard/applicants')}
                       aria-label="View all applicants"
                     >
