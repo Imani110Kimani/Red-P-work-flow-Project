@@ -7,9 +7,20 @@ import { useUser } from '../contexts/UserContext';
 
 const AdminProfile: React.FC = () => {
   const { userName, userEmail, userPhoto, setUserPhoto, logout } = useUser();
-  // For demo: super admin and last login (replace with real data if available)
-  const isSuperAdmin = true; // TODO: get from context or API
-  const lastLogin = '2025-08-08 09:00'; // TODO: get from context or API
+  // Admin info from API
+  const [adminRole, setAdminRole] = useState<string | null>(null);
+  // Fetch admin info (role) from API
+  useEffect(() => {
+    if (!userEmail) return;
+    fetch(`https://simbamanageadmins-egambyhtfxbfhabc.westus-01.azurewebsites.net/api/read-admin?email=${encodeURIComponent(userEmail)}`)
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        if (data && data.success && data.admin && data.admin.role) {
+          setAdminRole(data.admin.role);
+        }
+      })
+      .catch(() => setAdminRole(null));
+  }, [userEmail]);
   const { darkMode, toggleDarkMode } = useTheme();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -119,7 +130,11 @@ const AdminProfile: React.FC = () => {
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
               <span style={{ fontWeight: 700, fontSize: '1.1rem', color: darkMode ? '#ffb224' : '#e53935' }}>{userName}</span>
-              {isSuperAdmin && <span style={{ fontSize: 12, color: '#fff', background: '#e53935', borderRadius: 6, padding: '2px 8px', marginLeft: 4 }}>Super Admin</span>}
+              {adminRole && (
+                <span style={{ fontSize: 12, color: '#fff', background: adminRole === 'super_admin' ? '#e53935' : '#ff9800', borderRadius: 6, padding: '2px 8px', marginLeft: 4 }}>
+                  {adminRole === 'super_admin' ? 'Super Admin' : adminRole.charAt(0).toUpperCase() + adminRole.slice(1)}
+                </span>
+              )}
             </div>
             <div style={{ color: darkMode ? '#eee' : '#444', fontSize: '0.98rem', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
               {userEmail}
@@ -131,7 +146,7 @@ const AdminProfile: React.FC = () => {
               >📋</button>
               {copied && <span style={{ color: '#4caf50', fontSize: 13 }}>Copied!</span>}
             </div>
-            <div style={{ color: darkMode ? '#bbb' : '#888', fontSize: '0.93rem', marginBottom: 2 }}>Last login: {lastLogin}</div>
+            {/* Removed last login */}
             <div style={{ borderTop: '1px solid #eee', margin: '8px 0 8px 0' }} />
             <button
               style={{
@@ -150,23 +165,7 @@ const AdminProfile: React.FC = () => {
             >
               My Profile
             </button>
-            <button
-              style={{
-                background: '#fff',
-                color: '#222',
-                border: '1px solid #eee',
-                borderRadius: 8,
-                padding: '6px 18px',
-                fontWeight: 600,
-                cursor: 'pointer',
-                fontSize: '1rem',
-                textAlign: 'left'
-              }}
-              tabIndex={0}
-              // onClick={() => {}}
-            >
-              Help
-            </button>
+            {/* Removed Help button */}
             <button
               style={{
                 background: darkMode ? '#ffb224' : '#eee',
