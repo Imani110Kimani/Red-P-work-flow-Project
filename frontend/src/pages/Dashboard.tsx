@@ -1,4 +1,5 @@
 import AdminProfile from './AdminProfile';
+import ResizableTable from '../components/ResizableTable';
 import React from 'react';
 import { useTheme } from '../contexts/ThemeContext';
 import redpLogo from '../assets/redp-logo.png';
@@ -14,6 +15,10 @@ import { useAdmins } from '../hooks/useAdmins';
 
 
 const Dashboard: React.FC = () => {
+  // State for approval message
+  const [showApprovalMsg, setShowApprovalMsg] = React.useState(false);
+  // State for sidebar toggle (hamburger menu)
+  const [sidebarOpen, setSidebarOpen] = React.useState(true);
   // Helper function for stat card colors (Red-P branding)
 
   // Sidebar button style - must be defined before JSX
@@ -83,76 +88,43 @@ const Dashboard: React.FC = () => {
 
   const { darkMode, toggleDarkMode } = useTheme();
   return (
-    <div>
+    <div className={`dashboard-root${darkMode ? ' dark' : ''}`}>
+      {/* Hamburger for mobile/tablet */}
+      <button
+        className="dashboard-hamburger"
+        aria-label="Toggle sidebar"
+        onClick={() => setSidebarOpen(open => !open)}
+      >
+        <span className="dashboard-hamburger-icon">&#9776;</span>
+      </button>
       {/* Slim orange banner filling the top */}
-      <div style={{
-        width: '100%',
-        height: '100px',
-        background: darkMode ? '#e53935' : '#ffb224',
-        color: darkMode ? '#fff' : '#222',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'flex-start',
-        fontWeight: 700,
-        fontSize: '1.7rem',
-        letterSpacing: '0.04em',
-        paddingLeft: '25%',
-        borderTopLeftRadius: 8,
-        borderTopRightRadius: 8,
-        borderBottom: '1px solid #ff7043',
-        zIndex: 10,
-        boxShadow: '0 2px 8px 0 rgba(229,57,53,0.04)'
-      }}>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 32 }}>
-          <img src={redpLogo} alt="REDP logo" style={{ height: 140, width: 140, objectFit: 'contain', background: 'transparent', marginRight: 28, fontWeight: 900, filter: 'drop-shadow(0 2px 8px #e5393555)' }} />
-          <span style={{ fontWeight: 900, fontSize: '2.8rem', letterSpacing: '0.04em', color: '#e53935', fontFamily: 'inherit', textShadow: '0 2px 8px #fff, 0 1px 0 #e53935' }}></span>
+      <div className="dashboard-banner">
+        <span className="dashboard-banner-content">
+          <img src={redpLogo} alt="REDP logo" className="dashboard-logo" />
+          <span className="dashboard-title"></span>
         </span>
       </div>
-      <div style={{ display: 'flex', minHeight: '100vh' }}>
-        <aside style={{
-          width: 220,
-          background: darkMode ? 'linear-gradient(180deg, #232526 80%, var(--redp-accent) 100%)' : 'linear-gradient(180deg, #fff 80%, var(--redp-accent) 100%)',
-          borderRight: '1px solid #eee',
-          padding: '2.5rem 1.2rem 2rem 1.2rem',
-          minHeight: '100vh',
-          boxShadow: '2px 0 8px 0 rgba(229,57,53,0.04)',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'stretch',
-          gap: 0
-        }}>
-          <nav className="sidebar-nav">
-            {/* ...existing code for sidebar buttons... */}
-            <button className={`sidebar-btn${activeBtn === 'dashboard' ? ' active' : ''}`} onClick={() => navigate('/dashboard')}><span role="img" aria-label="dashboard">🏠</span> Dashboard</button>
-            <button className={`sidebar-btn${activeBtn === 'applicants' ? ' active' : ''}`} onClick={() => navigate('/dashboard/applicants')}><span role="img" aria-label="applicants">📝</span> Applicants</button>
-            <button className={`sidebar-btn${activeBtn === 'admissions' ? ' active' : ''}`} onClick={() => navigate('/dashboard/admissions')}><span role="img" aria-label="admissions">🎓</span> Admissions</button>
-            <button className={`sidebar-btn${activeBtn === 'students' ? ' active' : ''}`} onClick={() => navigate('/dashboard/students')}><span role="img" aria-label="students">👩‍🎓</span> Students</button>
-            <button className={`sidebar-btn${activeBtn === 'admins' ? ' active' : ''}`} onClick={() => navigate('/dashboard/admins')}><span role="img" aria-label="admins">🛡️</span> Admins</button>
-            <button className={`sidebar-btn${activeBtn === 'logs' ? ' active' : ''}`} onClick={() => navigate('/dashboard/logs')}><span role="img" aria-label="logs">📋</span> Logs</button>
-            <button className={`sidebar-btn${activeBtn === 'fee-portal' ? ' active' : ''}`} onClick={() => navigate('/dashboard/fee-portal')}><span role="img" aria-label="fee portal">💳</span> Fee Portal</button>
-          </nav>
-          <button
-            style={{
-              marginTop: 32,
-              background: darkMode ? '#232526' : '#fff',
-              color: darkMode ? '#ffb224' : '#e53935',
-              border: '1px solid #ffb224',
-              borderRadius: 8,
-              padding: '10px 0',
-              fontWeight: 700,
-              fontSize: '1.08em',
-              cursor: 'pointer',
-              transition: 'background 0.2s, color 0.2s',
-              width: '100%'
-            }}
-            onClick={toggleDarkMode}
-            aria-label="Toggle dark mode"
-          >
-            {darkMode ? '🌙 Dark Mode On' : '☀️ Light Mode On'}
-          </button>
-        </aside>
+      <div className={`dashboard-main-flex${sidebarOpen ? '' : ' sidebar-hidden'}`}> 
+        {sidebarOpen && (
+          <aside className="dashboard-sidebar">
+            <nav className="sidebar-nav">
+              {/* ...existing code for sidebar buttons... */}
+              <button className={`sidebar-btn${activeBtn === 'dashboard' ? ' active' : ''}`} onClick={() => navigate('/dashboard')}><span role="img" aria-label="dashboard">🏠</span> Dashboard</button>
+              <button className={`sidebar-btn${activeBtn === 'applicants' ? ' active' : ''}`} onClick={() => navigate('/dashboard/applicants')}><span role="img" aria-label="applicants">📝</span> Applicants</button>
+              <button className={`sidebar-btn${activeBtn === 'students' ? ' active' : ''}`} onClick={() => navigate('/dashboard/students')}><span role="img" aria-label="students">👩‍🎓</span> Students</button>
+              <button className={`sidebar-btn${activeBtn === 'admins' ? ' active' : ''}`} onClick={() => navigate('/dashboard/admins')}><span role="img" aria-label="admins">🛡️</span> Admins</button>
+              <button className={`sidebar-btn${activeBtn === 'logs' ? ' active' : ''}`} onClick={() => navigate('/dashboard/logs')}><span role="img" aria-label="logs">📋</span> Logs</button>
+              <button className={`sidebar-btn${activeBtn === 'fee-portal' ? ' active' : ''}`} onClick={() => navigate('/dashboard/fee-portal')}><span role="img" aria-label="fee portal">💳</span> Fee Portal</button>
+            </nav>
+          </aside>
+        )}
         {/* Main content */}
         <main style={{ flex: 1, background: 'var(--redp-bg)', padding: '2rem', display: 'flex', flexDirection: 'column', gap: 24, color: 'var(--redp-text)' }}>
+          {showApprovalMsg && (
+            <div className="dashboard-approval-msg" style={{ marginBottom: 16 }}>
+              ✅ Applicant approved successfully!
+            </div>
+          )}
           {isFeePortalRoute ? (
             <section style={{ marginBottom: 0, flex: '0 0 auto' }}>
               <div style={{
@@ -195,14 +167,98 @@ const Dashboard: React.FC = () => {
                   <AdmissionsTable applicants={applicants} />
                 ) : location.pathname.includes('/dashboard/applicants') ? (
                   <ApplicantList
-                    onAction={async (
-                      partitionKey: string,
-                      rowKey: string,
-                      newStatus: 'Approved' | 'Pending' | 'Denied',
-                      adminEmail?: string,
-                      reason?: string
-                    ) => {
-                      // ...existing code for onAction...
+                    onAction={async (partitionKey, rowKey, newStatus, adminEmail, reason) => {
+                      // Handle approval and denial workflows with dual tracking system
+                      if (newStatus === 'Approved') {
+                        // Call the dual approval Azure Function
+                        try {
+                          const approvalResponse = await fetch('https://simbaaddapproval-f8h7g2ffe2cefchh.westus-01.azurewebsites.net/api/addApproval', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                              email: adminEmail || 'admin@company.com',
+                              partitionKey,
+                              rowKey,
+                              action: 'approve',
+                              reason: reason || ''
+                            }),
+                          });
+
+                          const approvalData = await approvalResponse.json();
+
+                          if (approvalResponse.ok) {
+                            // Check if approvals are now complete
+                            if (approvalResponse.status === 201 && approvalData.isComplete) {
+                              // Approval threshold reached - update the final status to approved
+                              console.log('Approval threshold reached, updating status to Approved');
+
+                              const statusResponse = await fetch('https://approval-function-6370.azurewebsites.net/api/changestatusfunction', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          partitionKey,
+          rowKey,
+          newStatus: 'Approved',
+        }),
+      });
+      if (statusResponse.ok) {
+        setShowApprovalMsg(true);
+        setTimeout(() => setShowApprovalMsg(false), 2500);
+      } else {
+        console.error('Failed to update status to Approved');
+      }
+                            }
+                          } else {
+                            console.error('Approval API call failed');
+                          }
+                        } catch (err) {
+                          console.error('Error during approval:', err);
+                        }
+                      } else if (newStatus === 'Denied') {
+                        // Call the dual denial Azure Function
+                        try {
+                          const denialResponse = await fetch('https://simbaaddapproval-f8h7g2ffe2cefchh.westus-01.azurewebsites.net/api/addApproval', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                              email: adminEmail || 'admin@company.com',
+                              partitionKey,
+                              rowKey,
+                              action: 'deny',
+                              reason: reason || ''
+                            }),
+                          });
+
+                          const denialData = await denialResponse.json();
+
+                          if (denialResponse.ok) {
+                            // Check if denials are now complete
+                            if (denialResponse.status === 201 && denialData.isComplete) {
+                              // Denial threshold reached - update the final status to denied
+                              console.log('Denial threshold reached, updating status to Denied');
+
+                              const statusResponse = await fetch('https://approval-function-6370.azurewebsites.net/api/changestatusfunction', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                  partitionKey,
+                                  rowKey,
+                                  newStatus: 'Denied',
+                                }),
+                              });
+                              if (statusResponse.ok) {
+                                console.log('Status updated to Denied');
+                              } else {
+                                console.error('Failed to update status to Denied');
+                              }
+                            }
+                          } else {
+                            console.error('Denial API call failed');
+                          }
+                        } catch (err) {
+                          console.error('Error during denial:', err);
+                        }
+                      }
                     }}
                   />
                 ) : (
@@ -269,44 +325,36 @@ const Dashboard: React.FC = () => {
                     </button>
                   </div>
                   <div className="overflow-x-auto px-2 pb-4">
-                    <table className="w-full min-w-[320px] text-left">
-                      <thead>
-                        <tr>
-                          <th className="dashboard-table-header-cell" style={{ color: 'var(--redp-table-header)', background: 'var(--redp-table-header-bg)' }}>Avatar</th>
-                          <th className="dashboard-table-header-cell" style={{ color: 'var(--redp-table-header)', background: 'var(--redp-table-header-bg)' }}>Name</th>
-                          <th className="dashboard-table-header-cell" style={{ color: 'var(--redp-table-header)', background: 'var(--redp-table-header-bg)', width: 120, textAlign: 'center' }}>Status</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {(applicants.slice(0, 4) as ApplicantWithExtras[]).map((a) => {
-                          const status = typeof a.status === 'number'
-                            ? (a.status === 1 ? 'Pending' : a.status === 2 ? 'Approved' : a.status === 3 ? 'Denied' : a.status)
-                            : a.status;
-                          return (
-                            <tr key={a.partitionKey + '-' + a.rowKey} className="dashboard-table-row">
-                              <td className="dashboard-table-cell" style={{ color: 'var(--redp-text)', background: 'var(--redp-table-bg)' }}>
-                                <span className="avatar-initials dashboard-recent-avatar" style={{ width: 44, height: 44, fontSize: '1.25em' }}>
-                                  {a.firstName && a.lastName ? `${a.firstName[0]}${a.lastName[0]}`.toUpperCase() : '?'}
-                                </span>
-                              </td>
-                              <td className="dashboard-table-cell" style={{ color: 'var(--redp-text)', background: 'var(--redp-table-bg)' }}>{a.firstName} {a.lastName}</td>
-                              <td className={`dashboard-table-cell dashboard-status ${status && status.toLowerCase()}`}
-                                  style={{
-                                    color: status === 'Approved' ? 'var(--redp-status-approved)' : status === 'Denied' ? 'var(--redp-status-denied)' : status === 'Pending' ? 'var(--redp-status-pending)' : 'var(--redp-text)',
-                                    background: 'var(--redp-table-bg)',
-                                    width: 120,
-                                    minWidth: 120,
-                                    maxWidth: 120,
-                                    textAlign: 'center',
-                                    borderRadius: 8,
-                                    padding: '6px 0',
-                                    fontWeight: 600
-                                  }}>{status}</td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
+                    {/* ResizableTable for Recent Applicants */}
+                    {(() => {
+                      const columns = [
+                        { key: 'avatar', label: 'Avatar', minWidth: 80, maxWidth: 160 },
+                        { key: 'name', label: 'Name', minWidth: 120, maxWidth: 300 },
+                        { key: 'status', label: 'Status', minWidth: 100, maxWidth: 180 },
+                      ];
+                      const data = (applicants.slice(0, 4) as ApplicantWithExtras[]).map(a => {
+                        const status = typeof a.status === 'number'
+                          ? (a.status === 1 ? 'Pending' : a.status === 2 ? 'Approved' : a.status === 3 ? 'Denied' : a.status)
+                          : a.status;
+                        return {
+                          avatar: <span className="avatar-initials dashboard-recent-avatar" style={{ width: 44, height: 44, fontSize: '1.25em' }}>{a.firstName && a.lastName ? `${a.firstName[0]}${a.lastName[0]}`.toUpperCase() : '?'}</span>,
+                          name: `${a.firstName} ${a.lastName}`,
+                          status: <span className={`dashboard-table-cell dashboard-status ${status && status.toLowerCase()}`}
+                            style={{
+                              color: status === 'Approved' ? 'var(--redp-status-approved)' : status === 'Denied' ? 'var(--redp-status-denied)' : status === 'Pending' ? 'var(--redp-status-pending)' : 'var(--redp-text)',
+                              background: 'var(--redp-table-bg)',
+                              width: 120,
+                              minWidth: 120,
+                              maxWidth: 120,
+                              textAlign: 'center',
+                              borderRadius: 8,
+                              padding: '6px 0',
+                              fontWeight: 600
+                            }}>{status}</span>
+                        };
+                      });
+                      return <ResizableTable columns={columns} data={data} />;
+                    })()}
                   </div>
                 </section>
               </div>

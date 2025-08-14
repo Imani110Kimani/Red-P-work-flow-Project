@@ -1,5 +1,5 @@
 import React from "react";
-import { useNavigate, Link, useParams } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import "./AdmissionsDetails.css";
 
 // Example: You can fetch real data using the id param if needed
@@ -22,7 +22,7 @@ const statusColors: Record<string, string> = {
 
 const AdmissionsDetails: React.FC = () => {
   const navigate = useNavigate();
-  const { id } = useParams();
+  // ...existing code...
 
   // In a real app, fetch details using the id param
   const details = mockDetails;

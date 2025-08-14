@@ -1,4 +1,4 @@
-import redpLogo from './assets/redp-logo.png';
+// ...existing code...
 import React from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import FeePortal from './pages/FeePortal';
@@ -6,7 +6,7 @@ import Dashboard from "./pages/Dashboard";
 import Logs from "./pages/Logs";
 import Notifications from "./pages/Notifications";
 import LandingLoginPage from "./pages/LandingLoginPage";
-import StudentVerificationDetails from "./pages/StudentVerificationDetails";
+// ...existing code...
 import SchoolVerificationDetails from "./pages/SchoolVerificationDetails";
 import ApplicantListWithAction from "./pages/ApplicantListWithAction";
 import ApplicantDetails from "./pages/ApplicantDetails";

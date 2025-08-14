@@ -1,5 +1,5 @@
 import React from 'react';
-import ApplicantList from './ApplicantList';
+// ...existing code...
 import { useNotification } from '../contexts/NotificationContext';
 import { useApplicantData } from '../contexts/ApplicantDataContext';
 
@@ -27,7 +27,7 @@ const ApplicantListWithAction: React.FC = () => {
     adminEmail?: string,
     reason?: string
   ) => {
-    try {
+    // Removed unused ActionWithReason interface
       const response = await fetch(APPROVAL_API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

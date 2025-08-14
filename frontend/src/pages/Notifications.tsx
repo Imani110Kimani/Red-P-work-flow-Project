@@ -2,7 +2,7 @@ import React from 'react';
 import './Notifications.css';
 // Import legacy applicants and API applicants logic from Dashboard
 import { initialApplicants } from './initialApplicants';
-import { statusToString, joinName, notificationMessage } from './utils';
+import { statusToString } from './utils';
 
 const getRecentNotifications = (apiApplicants: any[], applicants: any[]) => {
   let dataSource: any[] = [];
