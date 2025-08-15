@@ -126,7 +126,7 @@ const LandingLoginPage: React.FC = () => {
   const handleConfirmationSuccess = () => {
     if (userEmailFromEntra) {
       setUserEmail(userEmailFromEntra);
-      navigate("/faceid-camera");
+      navigate("/dashboard"); // Redirect to dashboard
     }
   };
 

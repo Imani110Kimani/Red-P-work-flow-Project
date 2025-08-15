@@ -119,7 +119,7 @@ const Dashboard: React.FC = () => {
           </aside>
         )}
         {/* Main content */}
-        <main style={{ flex: 1, background: 'var(--redp-bg)', padding: '2rem', display: 'flex', flexDirection: 'column', gap: 24, color: 'var(--redp-text)' }}>
+        <main className="dashboard-main-content">
           {showApprovalMsg && (
             <div className="dashboard-approval-msg" style={{ marginBottom: 16 }}>
               ✅ Applicant approved successfully!
@@ -141,15 +141,7 @@ const Dashboard: React.FC = () => {
             </section>
           ) : isTableRoute ? (
             <section style={{ marginBottom: 0, flex: '0 0 auto' }}>
-              <div className="max-w-3xl mx-auto" style={{
-                background: 'var(--redp-card)',
-                borderRadius: 14,
-                boxShadow: '0 1px 8px 0 rgba(34,34,34,0.08)',
-                padding: '1.5rem 1rem',
-                maxHeight: 480,
-                overflowY: 'auto',
-                minHeight: 320
-              }}>
+              <div className="dashboard-table-container">
                 {location.pathname.includes('/dashboard/students') ? (
                   <StudentsTable applicants={approvedBasics.map(basic => ({
                     id: basic.partitionKey + '-' + basic.rowKey,
@@ -269,13 +261,13 @@ const Dashboard: React.FC = () => {
           ) : (
             <React.Fragment>
               {/* Stats row at the top, profile/progress/notifications in right column */}
-              <div style={{ display: 'flex', gap: 24, alignItems: 'flex-start', marginBottom: '2.2rem', width: '100%', maxWidth: 1400, margin: '0 auto' }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', marginBottom: '2.2rem', width: '100%', maxWidth: 1400, margin: '0 auto' }}>
                 <div className="dashboard-summary dashboard-summary-row" style={{ flex: 3, minWidth: 0, marginRight: 32 }}>
                   {summaryStats.map(stat => (
                     <div
                       key={stat.label}
                       className="dashboard-summary-card"
-                      style={{ background: stat.color, color: stat.textColor, cursor: 'pointer', borderRadius: 18, minWidth: 180, maxWidth: 260, height: 130, margin: '0 18px 0 0', boxShadow: '0 4px 18px 0 rgba(2,60,105,0.10)', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'flex-start', padding: '22px 28px' }}
+                      style={{ cursor: 'pointer', borderRadius: 18, margin: '0 18px 0 0', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'flex-start' }}
                       onClick={() => navigate(stat.route)}
                     >
                       <div className="dashboard-summary-icon" style={{ fontSize: '2.1rem', marginBottom: 6 }}>{stat.icon}</div>

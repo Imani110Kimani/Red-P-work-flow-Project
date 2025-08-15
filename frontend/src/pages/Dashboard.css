@@ -251,19 +251,19 @@
   border-color: #ffe0b2 !important;
 }
 .dashboard-summary-card-medium {
-  min-width: 120px !important;
-  max-width: 170px !important;
-  padding: 16px 16px !important;
+  min-width: 50px !important;
+  max-width: 80px !important;
+  padding: 6px 6px !important;
 }
 .dashboard-summary-card-small {
-  min-width: 90px !important;
-  max-width: 120px !important;
-  padding: 10px 10px !important;
+  min-width: 30px !important;
+  max-width: 50px !important;
+  padding: 3px 3px !important;
 }
 .dashboard-summary-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 18px;
+  gap: 4px; /* Reduce spacing further */
   margin-bottom: 0.7rem;
   width: 100%;
   justify-content: flex-start;
@@ -279,7 +279,7 @@
   background: #fff;
   border-radius: 16px;
   box-shadow: 0 2px 16px 0 rgba(34,34,34,0.08);
-  padding: 2rem 2.5rem 1.2rem 2.5rem;
+  padding: 0.5rem 0.8rem 0.4rem 0.8rem; /* Reduce padding further */
   margin-right: 0;
   margin-bottom: 0;
   display: flex;
@@ -293,7 +293,7 @@
   background: #fff;
   border-radius: 14px;
   box-shadow: 0 1px 8px 0 rgba(255,61,0,0.07);
-  padding: 0.7rem 0.7rem 0.8rem 0.7rem;
+  padding: 0.2rem 0.2rem 0.3rem 0.2rem; /* Reduce padding further */
   margin-bottom: 0;
 }
 /* Logs table customizations */
@@ -409,16 +409,15 @@
 /* Dashboard main content and right panel layout */
 .dashboard-content-flex {
   display: flex;
-  gap: 24px;
+  gap: 6px; /* Reduce gap further */
   align-items: stretch;
   min-height: 420px;
   width: 100%;
   max-width: none;
 }
 .dashboard-right-panel {
-  flex: 1 1 340px;
-  min-width: 260px;
-  max-width: 400px;
+  flex: 1 1 150px; /* Adjust flex for smaller size */
+  max-width: 200px; /* Reduce max width further */
   display: flex;
   flex-direction: column;
   gap: 14px;
@@ -1133,22 +1132,22 @@ th, td {
 }
 
 .dashboard-table-container {
-  padding: 3rem 3.5rem 2rem 3.5rem; /* Increase padding for larger screens */
+  padding: 0.5rem 0.8rem 0.4rem 0.8rem; /* Reduce padding further */
   max-width: 90%; /* Limit width for better scaling */
   margin: 0 auto; /* Center align */
 }
 
 .dashboard-widget-card {
-  padding: 1.5rem; /* Increase padding for better spacing */
+  padding: 0.2rem 0.2rem 0.3rem 0.2rem; /* Reduce padding further */
 }
 
 .dashboard-content-flex {
-  gap: 3rem; /* Increase gap between main content and right panel */
+  gap: 6px; /* Reduce gap further */
 }
 
 .dashboard-right-panel {
-  flex: 1 1 400px; /* Adjust flex for better scaling */
-  max-width: 450px; /* Increase max width */
+  flex: 1 1 150px; /* Adjust flex for smaller size */
+  max-width: 200px; /* Reduce max width further */
 }
 
 /* Responsive adjustments for smaller screens */
@@ -1448,5 +1447,4 @@ body, html {
 .admin-sidebar {
   background: #fff7e6; /* Hint of orange */
   box-shadow: none; /* Remove red haze */
-}
 }
