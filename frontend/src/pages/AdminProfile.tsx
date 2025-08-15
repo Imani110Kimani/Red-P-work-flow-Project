@@ -1,5 +1,7 @@
 
 import React, { useRef, useState, useEffect } from 'react';
+import { useAdmins } from '../hooks/useAdmins';
+import type { Admin } from '../hooks/useAdmins';
 import { useTheme } from '../contexts/ThemeContext';
 import './AdminProfile.css';
 import logo from '../assets/redp-logo.png';
@@ -7,10 +9,12 @@ import { useUser } from '../contexts/UserContext';
 
 const AdminProfile: React.FC = () => {
   const { userName, userEmail, userPhoto, setUserPhoto, logout } = useUser();
-  // For demo: super admin and last login (replace with real data if available)
-  const isSuperAdmin = true; // TODO: get from context or API
-  const lastLogin = '2025-08-08 09:00'; // TODO: get from context or API
-  const { darkMode, toggleDarkMode } = useTheme();
+  const { admins } = useAdmins();
+  // Find current admin info
+  const currentAdmin = admins.find((a: Admin) => a.email === userEmail);
+  const isSuperAdmin = currentAdmin?.role === 'super_admin';
+  const lastLogin = currentAdmin?.last_login || 'Unknown';
+  const { darkMode } = useTheme();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -117,109 +121,58 @@ const AdminProfile: React.FC = () => {
               animation: 'fadeIn 0.18s ease'
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
-              <span style={{ fontWeight: 700, fontSize: '1.1rem', color: darkMode ? '#ffb224' : '#e53935' }}>{userName}</span>
-              {isSuperAdmin && <span style={{ fontSize: 12, color: '#fff', background: '#e53935', borderRadius: 6, padding: '2px 8px', marginLeft: 4 }}>Super Admin</span>}
-            </div>
-            <div style={{ color: darkMode ? '#eee' : '#444', fontSize: '0.98rem', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
-              {userEmail}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
+                <span style={{ fontWeight: 700, fontSize: '1.1rem', color: darkMode ? '#ffb224' : '#e53935' }}>{userName}</span>
+                {isSuperAdmin && <span style={{ fontSize: 12, color: '#fff', background: '#e53935', borderRadius: 6, padding: '2px 8px', marginLeft: 4 }}>Super Admin</span>}
+                {!isSuperAdmin && currentAdmin?.role === 'admin' && <span style={{ fontSize: 12, color: '#fff', background: '#ff9800', borderRadius: 6, padding: '2px 8px', marginLeft: 4 }}>Admin</span>}
+              </div>
+              <div style={{ color: darkMode ? '#eee' : '#444', fontSize: '0.98rem', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
+                {userEmail}
+                <button
+                  onClick={handleCopyEmail}
+                  style={{ background: 'none', border: 'none', color: '#ff9800', cursor: 'pointer', fontSize: 15, padding: 0 }}
+                  title="Copy email"
+                  tabIndex={0}
+                >📋</button>
+                {copied && <span style={{ color: '#4caf50', fontSize: 13 }}>Copied!</span>}
+              </div>
+              <div style={{ color: darkMode ? '#bbb' : '#888', fontSize: '0.93rem', marginBottom: 2 }}>Last login: {lastLogin}</div>
+              <div style={{ borderTop: '1px solid #eee', margin: '8px 0 8px 0' }} />
               <button
-                onClick={handleCopyEmail}
-                style={{ background: 'none', border: 'none', color: '#ff9800', cursor: 'pointer', fontSize: 15, padding: 0 }}
-                title="Copy email"
+                style={{
+                  background: '#ffb224',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: 8,
+                  padding: '6px 18px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  fontSize: '1rem',
+                  marginBottom: 4
+                }}
+                onClick={handleChangeProfilePic}
                 tabIndex={0}
-              >📋</button>
-              {copied && <span style={{ color: '#4caf50', fontSize: 13 }}>Copied!</span>}
+              >
+                Change Profile Picture
+              </button>
+              <button
+                style={{
+                  background: '#fff',
+                  color: '#e53935',
+                  border: '1px solid #e53935',
+                  borderRadius: 8,
+                  padding: '6px 18px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  fontSize: '1rem',
+                  marginTop: 2
+                }}
+                onClick={logout}
+                tabIndex={0}
+              >
+                Logout
+              </button>
             </div>
-            <div style={{ color: darkMode ? '#bbb' : '#888', fontSize: '0.93rem', marginBottom: 2 }}>Last login: {lastLogin}</div>
-            <div style={{ borderTop: '1px solid #eee', margin: '8px 0 8px 0' }} />
-            <button
-              style={{
-                background: '#fff',
-                color: '#222',
-                border: '1px solid #eee',
-                borderRadius: 8,
-                padding: '6px 18px',
-                fontWeight: 600,
-                cursor: 'pointer',
-                fontSize: '1rem',
-                textAlign: 'left'
-              }}
-              tabIndex={0}
-              // onClick={() => {}}
-            >
-              My Profile
-            </button>
-            <button
-              style={{
-                background: '#fff',
-                color: '#222',
-                border: '1px solid #eee',
-                borderRadius: 8,
-                padding: '6px 18px',
-                fontWeight: 600,
-                cursor: 'pointer',
-                fontSize: '1rem',
-                textAlign: 'left'
-              }}
-              tabIndex={0}
-              // onClick={() => {}}
-            >
-              Help
-            </button>
-            <button
-              style={{
-                background: darkMode ? '#ffb224' : '#eee',
-                color: darkMode ? '#fff' : '#222',
-                border: 'none',
-                borderRadius: 8,
-                padding: '6px 18px',
-                fontWeight: 600,
-                cursor: 'pointer',
-                fontSize: '1rem',
-                textAlign: 'left'
-              }}
-              onClick={toggleDarkMode}
-              tabIndex={0}
-            >
-              {darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-            </button>
-            <div style={{ borderTop: '1px solid #eee', margin: '8px 0 8px 0' }} />
-            <button
-              style={{
-                background: '#ffb224',
-                color: '#fff',
-                border: 'none',
-                borderRadius: 8,
-                padding: '6px 18px',
-                fontWeight: 600,
-                cursor: 'pointer',
-                fontSize: '1rem',
-                marginBottom: 4
-              }}
-              onClick={handleChangeProfilePic}
-              tabIndex={0}
-            >
-              Change Profile Picture
-            </button>
-            <button
-              style={{
-                background: '#fff',
-                color: '#e53935',
-                border: '1px solid #e53935',
-                borderRadius: 8,
-                padding: '6px 18px',
-                fontWeight: 600,
-                cursor: 'pointer',
-                fontSize: '1rem',
-                marginTop: 2
-              }}
-              onClick={logout}
-              tabIndex={0}
-            >
-              Logout
-            </button>
-          </div>
         )}
       </div>
     </div>

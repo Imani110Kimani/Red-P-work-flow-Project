@@ -9,7 +9,10 @@ import "./LandingLoginPage.css";
 
 // ...existing code...
 
-const msalInstance = new PublicClientApplication(msalConfig);
+const msalInstance = new PublicClientApplication({
+  ...msalConfig,
+  system: {}, // Remove or update to match BrowserSystemOptions if needed
+});
 
 const LandingLoginPage: React.FC = () => {
   const navigate = useNavigate();

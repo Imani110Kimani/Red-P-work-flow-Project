@@ -32,9 +32,7 @@ const NewAdmissionForm: React.FC = () => {
   };
 
   // Preview helpers
-  const isImage = (url: string) => /\.(jpg|jpeg|png|gif|bmp|webp)$/i.test(url);
-  const isPdf = (url: string) => /\.pdf$/i.test(url);
-  const isTxt = (url: string) => /\.txt$/i.test(url);
+  // ...existing code...
 
   React.useEffect(() => {
     // This effect is no longer needed as we are not previewing text directly from SAS URL
@@ -73,8 +71,12 @@ const NewAdmissionForm: React.FC = () => {
       });
       setStudentIdFile(null);
       setSchoolDocFile(null);
-    } catch (err: any) {
-      setError(err.message || 'Submission failed.');
+  } catch (err: unknown) {
+      if (typeof err === 'object' && err !== null && 'message' in err) {
+        setError((err as { message?: string }).message || 'Submission failed.');
+      } else {
+        setError('Submission failed.');
+      }
     } finally {
       setLoading(false);
     }

@@ -11,9 +11,8 @@ export const msalConfig = {
     cacheLocation: 'localStorage',
     storeAuthStateInCookie: false,
   },
-  system: {
-    allowNativeBroker: false,
-  }
+    // system: { allowNativeBroker: boolean; }, // Remove or update to match BrowserSystemOptions if needed
+    system: {}, // Updated to match BrowserSystemOptions if needed
 };
 
 export const loginRequest = {

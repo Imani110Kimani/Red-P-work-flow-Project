@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import "./PendingDetails.css";
-import { statusToString, joinName, paginate } from './utils';
+// ...existing code...
 
 // Accepts applicants as prop and filters for status === 'Pending'
 
@@ -15,6 +15,25 @@ interface Applicant {
 }
 
 const PendingDetails: React.FC<{ applicants: Applicant[] }> = ({ applicants }) => {
+  // Add state for editable notes
+  const [edits, setEdits] = useState<{ [id: string]: { notes: string } }>({});
+
+  // Handler for editing notes
+  const handleEdit = (id: string, field: string, value: string) => {
+    setEdits(prev => ({
+      ...prev,
+      [id]: {
+        ...prev[id],
+        [field]: value,
+      },
+    }));
+  };
+
+  // Handler for saving notes (stub, implement backend integration as needed)
+  const handleSave = () => {
+    // TODO: Integrate with backend to persist notes
+    // For now, just keep in local state
+  };
   // Restore state and logic for search, pagination, and page size
   const [search, setSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -68,7 +87,7 @@ const PendingDetails: React.FC<{ applicants: Applicant[] }> = ({ applicants }) =
                     <textarea
                       value={edits[applicant.id]?.notes ?? applicant.notes}
                       onChange={e => handleEdit(applicant.id, 'notes', e.target.value)}
-                      onBlur={() => handleSave(applicant.id, 'notes')}
+                      onBlur={handleSave}
                       rows={2}
                       style={{ width: '100%', minWidth: 120, borderRadius: 6, border: '1.5px solid #ff9800', padding: 4, fontSize: '1em', resize: 'vertical' }}
                       placeholder="Enter notes..."

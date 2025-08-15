@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState } from 'react';
 import { PublicClientApplication } from '@azure/msal-browser';
 import { msalConfig } from '../config/msalConfig';
 import type { ReactNode } from 'react';
