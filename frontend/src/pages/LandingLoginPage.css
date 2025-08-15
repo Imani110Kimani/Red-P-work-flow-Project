@@ -4,6 +4,143 @@
   background: #f4f6fa;
 }
 
+.landing-bg {
+  min-height: 100vh;
+  width: 100vw;
+  background: #fff7f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.landing-center-card {
+  background: #fff;
+  border-radius: 18px;
+  box-shadow: 0 4px 32px rgba(0,0,0,0.08);
+  padding: 2.8rem 2.2rem 2.2rem 2.2rem;
+  max-width: 420px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 2rem;
+}
+
+.landing-card-icon {
+  background: #fff7e0;
+  border-radius: 50%;
+  width: 72px;
+  height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1.2rem;
+  box-shadow: 0 2px 12px #ff980033;
+}
+
+.landing-card-title {
+  font-size: 2rem;
+  font-weight: 900;
+  color: #222;
+  margin-bottom: 0.5rem;
+  text-align: center;
+}
+.landing-card-title-red {
+  color: #ff9800;
+}
+.grad-icon {
+  vertical-align: middle;
+}
+.landing-card-subtitle {
+  color: #888;
+  font-size: 1.08rem;
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+.landing-card-features {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1.7rem 0;
+  width: 100%;
+}
+.landing-card-features li {
+  display: flex;
+  align-items: center;
+  gap: 0.7em;
+  margin-bottom: 1.1em;
+}
+.feature-icon-bg {
+  background: #fff7e0;
+  border-radius: 8px;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3em;
+  box-shadow: 0 2px 8px #ff980033;
+}
+.feature-text {
+  color: #222;
+  font-weight: 500;
+  font-size: 1.08rem;
+}
+.landing-card-btn {
+  background: #ff9800;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 1rem 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+  cursor: pointer;
+  margin-top: 0.5rem;
+  width: 100%;
+  box-shadow: 0 2px 12px #ff980033;
+  transition: background 0.2s, box-shadow 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.landing-card-btn:hover {
+  background: #ff7a00;
+  box-shadow: 0 4px 18px #ff980055;
+}
+.landing-card-footer {
+  margin-top: 1.5rem;
+  color: #888;
+  font-size: 0.98rem;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@media (max-width: 600px) {
+  .landing-center-card {
+    padding: 1.2rem 0.5rem 1.2rem 0.5rem;
+    max-width: 98vw;
+    margin: 0.5rem;
+  }
+  .landing-card-title {
+    font-size: 1.2rem;
+  }
+  .landing-card-icon {
+    width: 48px;
+    height: 48px;
+    margin-bottom: 0.7rem;
+  }
+  .feature-icon-bg {
+    width: 28px;
+    height: 28px;
+    font-size: 1em;
+  }
+  .landing-card-btn {
+    font-size: 1rem;
+    padding: 0.7rem 0;
+  }
+}
+
 .landing-section {
   flex: 1.2;
   display: flex;

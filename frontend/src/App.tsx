@@ -2,7 +2,7 @@ import redpLogo from './assets/redp-logo.png';
 import React from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import FeePortal from './pages/FeePortal';
-import FaceIDCamera from "./pages/FaceIDCamera";
+//import FaceIDCamera from "./pages/FaceIDCamera";
 import Dashboard from "./pages/Dashboard";
 import Logs from "./pages/Logs";
 import Notifications from "./pages/Notifications";

@@ -1,7 +1,7 @@
 .sidebar {
   width: 220px;
-  background: #fff;
-  border-right: 1.5px solid #f0f0f0;
+  background: #fff7e6; /* Hint of orange */
+  border-right: 1.5px solid #f0f0f0; /* Keep subtle border */
   min-height: 100vh;
   padding: 2rem 1rem 1rem 1rem;
   display: flex;
@@ -28,9 +28,9 @@
   transition: background 0.15s;
 }
 .sidebar ul li.logs {
-  background: #fff3e0;
-  color: #c62828;
-  border: 1.5px solid #ffd180;
+  background: #fff7e6; /* Hint of orange */
+  color: #c62828; /* Keep text color */
+  border: 1.5px solid #ffd180; /* Keep border */
   font-weight: 600;
 }
 .sidebar ul li:hover {
@@ -39,9 +39,9 @@
 .light-mode-btn {
   margin-top: auto;
   width: 100%;
-  background: #fff3e0;
-  color: #c62828;
-  border: 1.5px solid #ffd180;
+  background: #fff7e6; /* Hint of orange */
+  color: #c62828; /* Keep text color */
+  border: 1.5px solid #ffd180; /* Keep border */
   border-radius: 8px;
   padding: 0.7em 1em;
   font-size: 1em;

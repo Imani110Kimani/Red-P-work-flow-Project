@@ -3,13 +3,11 @@ import { PublicClientApplication } from '@azure/msal-browser';
 import { msalConfig, loginRequest } from '../config/msalConfig';
 import { useNavigate } from "react-router-dom";
 import { useUser } from "../contexts/UserContext";
-import logo from "../assets/redp-logo.png";
+import { FaMicrosoft, FaShieldAlt, FaGraduationCap, FaBolt, FaClipboardList, FaBell, FaLock } from "react-icons/fa";
 import ConfirmationCode from "./ConfirmationCode";
 import "./LandingLoginPage.css";
 
-const PRIMARY = "#ff3d00"; // REDP Red
-const ACCENT = "#ff9800"; // REDP Orange
-const BG = "#fff"; // White background
+// ...existing code...
 
 const msalInstance = new PublicClientApplication(msalConfig);
 
@@ -329,8 +327,8 @@ const LandingLoginPage: React.FC = () => {
   // Show confirmation code if we're in that step
   if (showConfirmation && userEmailFromEntra) {
     return (
-      <div className="landing-login-root" style={{ background: BG }}>
-        <div className="login-section" style={{ flex: 1, width: "100vw", justifyContent: "center", alignItems: "center", display: "flex" }}>
+      <div className="landing-bg">
+        <div className="landing-center-card">
           <ConfirmationCode 
             onSuccess={handleConfirmationSuccess} 
             email={userEmailFromEntra} 
@@ -343,64 +341,49 @@ const LandingLoginPage: React.FC = () => {
   }
 
   return (
-    <div className="landing-login-root" style={{ background: BG }}>
-      <div className="landing-section">
-        <img src={logo} alt="RED(P) Logo" className="landing-logo" />
-        <h1 style={{
-          fontFamily: "'Playfair Display', serif",
-          fontWeight: 900,
-          color: '#222',
-          fontSize: '2.5rem',
-          marginBottom: 8,
-          letterSpacing: 1.5
-        }}>
-          Welcome to <span style={{ color: PRIMARY, fontFamily: 'inherit' }}>RED(P)</span> <span style={{ color: ACCENT, fontFamily: 'inherit' }}>Admin</span>
+    <div className="landing-bg">
+      <div className="landing-center-card">
+        <div className="landing-card-icon">
+          <FaShieldAlt size={48} color="#ff9800" />
+        </div>
+        <h1 className="landing-card-title">
+          Welcome to <span className="landing-card-title-red">RED(P)</span> Admin <FaGraduationCap className="grad-icon" size={28} color="#222" style={{marginLeft: 6, verticalAlign: 'middle'}} />
         </h1>
-        <p>
+        <div className="landing-card-subtitle">
           Admins must sign in with Microsoft Entra ID and complete email verification to access the dashboard.
-        </p>
-        <ul className="landing-features">
+        </div>
+        <ul className="landing-card-features">
           <li>
-            <span className="feature-dot" style={{ background: PRIMARY }} /> <span style={{color: '#222', fontWeight: 600}}>Fast, secure admissions</span>
+            <span className="feature-icon-bg"><FaBolt color="#ff9800" /></span>
+            <span className="feature-text">Fast, secure admissions</span>
           </li>
           <li>
-            <span className="feature-dot" style={{ background: ACCENT }} /> <span style={{color: '#222', fontWeight: 600}}>Easy student & document verification</span>
+            <span className="feature-icon-bg"><FaClipboardList color="#ff9800" /></span>
+            <span className="feature-text">Easy student & document verification</span>
           </li>
           <li>
-            <span className="feature-dot" style={{ background: '#222' }} /> <span style={{color: ACCENT, fontWeight: 600}}>Real-time notifications</span>
+            <span className="feature-icon-bg"><FaBell color="#ff9800" /></span>
+            <span className="feature-text">Real-time notifications</span>
           </li>
         </ul>
-      </div>
-      <div className="login-section">
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
-          {loading && <div className="login-error">Checking login status and admin permissions...</div>}
-          {msalError && <div className="login-error">{msalError}</div>}
-          {!loading && (
-            <button
-              type="button"
-              className="login-btn"
-              style={{
-                background: '#0078d4',
-                color: '#fff',
-                border: '1.5px solid #0078d4',
-                borderRadius: 6,
-                padding: '0.8rem 0',
-                fontWeight: 700,
-                fontSize: '1.1rem',
-                marginTop: '1.5rem',
-                width: '80%',
-                transition: 'background 0.2s, border-color 0.2s',
-                cursor: 'pointer'
-              }}
-              onClick={handleMicrosoftLogin}
-            >
-              Sign in with Microsoft
-            </button>
-          )}
+        {loading && <div className="login-error">Checking login status and admin permissions...</div>}
+        {msalError && <div className="login-error">{msalError}</div>}
+        {!loading && (
+          <button
+            type="button"
+            className="landing-card-btn"
+            onClick={handleMicrosoftLogin}
+          >
+            <FaMicrosoft style={{ marginRight: 8, fontSize: '1.2em', verticalAlign: 'middle' }} /> Sign in with Microsoft
+          </button>
+        )}
+        <div className="landing-card-footer">
+          <FaLock style={{marginRight: 6, verticalAlign: 'middle'}} color="#ff9800" />
+          Secure authentication powered by Microsoft Entra ID
         </div>
       </div>
     </div>
   );
-};
+}
 
 export default LandingLoginPage;

@@ -894,7 +894,50 @@ th, td {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
 }
-/* Responsive: Extra Small Devices */
+/* Adjustments for scalable and responsive design */
+.dashboard-summary-row {
+  justify-content: space-between; /* Spread out cards evenly */
+  gap: 2rem; /* Increase spacing */
+}
+
+.dashboard-table-container {
+  padding: 3rem 3.5rem 2rem 3.5rem; /* Increase padding for larger screens */
+  max-width: 90%; /* Limit width for better scaling */
+  margin: 0 auto; /* Center align */
+}
+
+.dashboard-widget-card {
+  padding: 1.5rem; /* Increase padding for better spacing */
+}
+
+.dashboard-content-flex {
+  gap: 3rem; /* Increase gap between main content and right panel */
+}
+
+.dashboard-right-panel {
+  flex: 1 1 400px; /* Adjust flex for better scaling */
+  max-width: 450px; /* Increase max width */
+}
+
+/* Responsive adjustments for smaller screens */
+@media (max-width: 900px) {
+  .dashboard-summary-row {
+    gap: 1.5rem; /* Reduce gap for smaller screens */
+  }
+
+  .dashboard-table-container {
+    padding: 1.5rem; /* Reduce padding for smaller screens */
+  }
+
+  .dashboard-content-flex {
+    gap: 2rem; /* Adjust gap for smaller screens */
+  }
+
+  .dashboard-right-panel {
+    max-width: 100%; /* Full width for smaller screens */
+    width: 100%;
+  }
+}
 @media (max-width: 600px) {
   .dashboard-content-flex {
     flex-direction: column;
@@ -1104,28 +1147,74 @@ body, html {
 }
 .dark-mode .dashboard-recent-table, .dark-mode .pending-details-container, .dark-mode .applicant-list-container, .dark-mode .admissions-table-container {
   background: #23272b !important;
-  color: #f7fafd !important;
-  box-shadow: 0 2px 16px 0 rgba(0,0,0,0.18);
+  border-radius: 12px;
+  padding: 2rem 1.5rem;
+  margin: 1.5rem 0;
+  box-shadow: 0 2px 12px 0 rgba(2,60,105,0.1);
 }
 .dark-mode .dashboard-table, .dark-mode .pending-table, .dark-mode .applicant-list-table {
-  background: #23272b !important;
-  color: #f7fafd !important;
+  background: #2c2f33;
+  color: #fff;
+  border-radius: 8px;
+  overflow-x: auto;
+  margin-top: 1rem;
 }
-.dark-mode th, .dark-mode td {
-  background: transparent !important;
-  color: #f7fafd !important;
+.dark-mode .dashboard-table th, .dark-mode .pending-table th, .dark-mode .applicant-list-table th {
+  background: #3a3f47;
+  color: #fff;
+  font-weight: 600;
 }
-.dark-mode .sidebar-nav button, .dark-mode .sidebar-nav .active {
-  background: #23272b !important;
-  color: #ff9800 !important;
-  border-color: #ff9800 !important;
-}
-.dark-mode .sidebar-nav button.active, .dark-mode .sidebar-nav .active {
-  background: #333 !important;
-  color: #ff3d00 !important;
-  border-color: #ff3d00 !important;
+.dark-mode .dashboard-table td, .dark-mode .pending-table td, .dark-mode .applicant-list-table td {
+  border-color: #444;
 }
 .dark-mode .modal-content {
-  background: #23272b !important;
-  color: #f7fafd !important;
+  background: #2c2f33;
+  color: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+}
+.dark-mode .modal-close {
+  color: #ff3d00;
+}
+.dark-mode .sidebar-nav button, .dark-mode .sidebar-nav .active {
+  background: #3a3f47;
+  color: #fff;
+  border-left: 4px solid #ff9800;
+}
+.dark-mode .sidebar-nav button:hover {
+  background: #4a4e57;
+}
+.dark-mode .avatar-initials {
+  background: #444;
+  color: #fff;
+}
+.dark-mode .action-btn {
+  background: #3a3f47;
+  border: 1.5px solid #ff9800;
+  color: #ff9800;
+}
+.dark-mode .action-btn:hover {
+  background: #ff9800;
+  color: #fff;
+  border-color: #ff3d00;
+}
+
+/* Adjustments for recent applications header and table */
+.dashboard-recent-table {
+  margin-top: 8rem; /* Increase margin to lower the table further */
+}
+.dashboard-recent h2 {
+  margin-top: 6rem; /* Increase margin to lower the header further */
+}
+
+/* Adjust sidebar background to subtle orange */
+.sidebar-nav {
+  background: #fff7e6; /* Hint of orange */
+  box-shadow: none; /* Remove red haze */
+}
+
+.admin-sidebar {
+  background: #fff7e6; /* Hint of orange */
+  box-shadow: none; /* Remove red haze */
+}
 }
